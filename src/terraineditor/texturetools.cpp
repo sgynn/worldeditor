@@ -19,6 +19,7 @@ void TextureTool::paint(const Brush& b, int flags) {
 	Point e = r.position() + r.size();
 	for(int x=r.x; x<e.x; ++x) for(int y=r.y; y<e.y; ++y) {
 		w = getValue(b, x, y);
+		if(w==0) continue;
 		texture->getPixel(x, y, pixel);
 		ubyte* buf = buffer->value(x, y);
 
@@ -55,8 +56,9 @@ void ColourTool::paint(const Brush& b, int flags) {
 	Point e = r.position() + r.size();
 	for(int x=r.x; x<e.x; ++x) for(int y=r.y; y<e.y; ++y) {
 		w = getValue(b, x, y);
-		texture->getPixel(x, y, pixel);
+		if(w==0) continue;
 
+		texture->getPixel(x, y, pixel);
 		float* buf = buffer->value(x, y);
 		float v = w - *buf;
 		*buf = w;
@@ -87,6 +89,7 @@ void MaterialTool::paint(const Brush& b, int material) {
 	Point e = r.position() + r.size();
 	for(int x=r.x; x<e.x; ++x) for(int y=r.y; y<e.y; ++y) {
 		w = getValue(b, x, y);
+		if(w==0) continue;
 		weightMap->getPixel(x, y, weight);
 		if(w*255 <= weight[channels-1]) continue; // No change
 

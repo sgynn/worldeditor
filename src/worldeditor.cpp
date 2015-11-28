@@ -200,6 +200,8 @@ void WorldEditor::selectToolGroup(Combobox* c, int index) {
 	if(p->getWidgetCount() > 1) p->remove( p->getWidget(1) );
 	p->add( g->getPanel() );
 	g->getPanel()->setPosition( c->getSize().x + 4, 0 );
+	m_editor->setTool(0);
+	g->getPanel()->getWidget(0)->setSelected(false);
 }
 
 void WorldEditor::selectTool(ToolInstance* t) {
@@ -251,6 +253,11 @@ void WorldEditor::addGroup(ToolGroup* group, const char* icon) {
 		list->addItem(group->getName(), group, iconIndex);
 	}
 	group->eventToolSelected.bind(this, &WorldEditor::selectTool);
+	// Select first one
+	if(m_groups.size()==1) {
+		list->selectItem(0);
+		selectToolGroup(list, 0);
+	}
 }
 
 // ======================= Loading and Saving Maps ========================== //
@@ -316,7 +323,7 @@ void WorldEditor::loadWorld(const char* file) {
 	}
 
 	// Terrain info
-	int size = terrain.attribute("size", 0);
+	int size = terrain.attribute("width", 0);
 	const XMLElement& info = terrain.find("data");
 	float res = info.attribute("resolution", 1.f);
 	float scale = info.attribute("scale", 1.f);
@@ -340,6 +347,8 @@ void WorldEditor::loadWorld(const char* file) {
 			m_objects["terrain"] = map;
 			m_terrainOffset = map->getOffset().xz();
 			m_streaming = true;
+			size = map->width();
+			if(size != map->height()) messageBox("Warning", "Terrian map is not square");
 		} else {
 			messageBox("Load error", "Failed to open stream %s", cat(path, source));
 			return;	
@@ -367,6 +376,7 @@ void WorldEditor::loadWorld(const char* file) {
 	m_editor = new TerrainEditor();
 	m_editor->setHeightmap( m_heightMap );
 	setupHeightTools(res, m_terrainOffset);
+	
 
 	// Load editable texture maps
 	char buffer[1024];
@@ -410,7 +420,7 @@ void WorldEditor::loadWorld(const char* file) {
 				tex = new EditableTexture(buffer, use>0);
 			}
 
-			if(!tex) return;
+			if(!tex) continue;
 			m_textures[name] = tex;
 
 
@@ -442,6 +452,7 @@ void WorldEditor::loadWorld(const char* file) {
 			}
 			// Add to list - need to add to a listbox
 			if(g) {
+				g->setup(m_gui);
 				g->setResolution(m_terrainOffset, vec2(size,size), res);
 				addGroup(g, "texture");
 			}

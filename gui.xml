@@ -55,6 +55,11 @@
 		<icon name="level"   rect="192 0  32 32"/>
 		<icon name="flatten" rect="224 0  32 32"/>
 		<icon name="noise"   rect="128 32 32 32"/>
+
+		<icon name="_red"     rect="1  13 2 2"/>
+		<icon name="_green"   rect="5  13 2 2"/>
+		<icon name="_blue"    rect="9  13 2 2"/>
+		<icon name="_alpha"   rect="13 13 2 2"/>
 	</iconlist>
 
 	<!--=========== TEMPLATES ===========-->

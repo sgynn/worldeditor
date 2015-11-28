@@ -89,7 +89,7 @@ WeightToolGroup::WeightToolGroup(const char* name, EditableTexture* image) : Too
 	m_tool = new TextureTool(image);
 	// Create tool for each channel
 	for(int i=0; i<image->getChannels(); ++i) {
-		addTool(m_tool, i, i|4);
+		addTool(m_tool, i|4, i);
 	}
 }
 WeightToolGroup::~WeightToolGroup() {
@@ -98,8 +98,9 @@ WeightToolGroup::~WeightToolGroup() {
 
 void WeightToolGroup::setup(Root* r) {
 	ToolGroup::setup(r);
+	const char* icons[] = { "red", "green", "blue", "alpha" };
 	for(size_t i=0; i<m_tools.size(); ++i) {
-		addButton();
+		addButton( icons[i] );
 	}
 }
 
@@ -109,7 +110,7 @@ void WeightToolGroup::setChannel(int index, const char* icon) {
 }
 
 void WeightToolGroup::setResolution(const vec2& offset, const vec2& size, float res) {
-	res = size.x / m_tool->texture->getWidth();
+	res = (float) size.x / m_tool->texture->getWidth();
 	m_tool->setResolution(res, offset);
 }
 
@@ -126,7 +127,7 @@ void MaterialToolGroup::addTexture(const char* icon, int index) {
 	addTool(m_tool, index, index);
 }
 void MaterialToolGroup::setResolution(const vec2& offset, const vec2& size, float res) {
-	res = size.x / m_tool->weightMap->getWidth();
+	res = (float) size.x / m_tool->weightMap->getWidth();
 	m_tool->setResolution(res, offset);
 }
 
@@ -143,7 +144,7 @@ void ColourToolGroup::setup(Root* r) {
 	ToolGroup::setup(r);
 }
 void ColourToolGroup::setResolution(const vec2& offset, const vec2& size, float res) {
-	res = size.x / m_tool->texture->getWidth();
+	res = (float) size.x / m_tool->texture->getWidth();
 	m_tool->setResolution(res, offset);
 }
 
