@@ -40,6 +40,7 @@ void TextureTool::paint(const Brush& b, int flags) {
 		}
 		texture->setPixel(x, y, pixel);
 	}
+	texture->updateGPU();
 }
 
 

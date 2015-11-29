@@ -94,15 +94,13 @@ void TextureStream::createTexture(int x, int y) {
 	getPixels(r, data);
 	if(m_textures[k].width()!=r.width) {
 		m_textures[k] = Texture::create(r.width, r.height, channels(), data);
-//		printf("Created texture %d,%d (%d %d %d %d) : %u\n", x, y, r.x, r.y, r.width, r.height, m_textures[k].unit());
+		m_textures[k].setWrap( Texture::CLAMP );
 	} else {
 		const GLenum formats[] = { 0, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
 		GLenum fmt = formats[ channels() ];
 		m_textures[k].bind();
 		glTexImage2D( GL_TEXTURE_2D, 0, fmt, r.width, r.height, 0, fmt, GL_UNSIGNED_BYTE, data);
-//		printf("Updated texture %d,%d (%d %d %d %d)\n", x, y, r.x, r.y, r.width, r.height);
 	}
-
 	delete [] data;
 }
 
@@ -135,8 +133,9 @@ void TextureStream::createGlobalTexture(int size) {
 void TextureStream::updateTextures() {
 	if(m_dirty.width==0 || m_dirty.height==0) return;
 	// Which textures need updating
-	Point a(m_dirty.x / m_divisions, m_dirty.y / m_divisions);
-	Point b(m_dirty.right() / m_divisions, m_dirty.bottom() / m_divisions);
+	int div = width() / m_divisions;
+	Point a(m_dirty.x / div, m_dirty.y / div);
+	Point b(m_dirty.right() / div, m_dirty.bottom() / div);
 	// Recreate these textures if they are loaded
 	for(int x=a.x; x<=b.x; ++x) for(int y=a.y; y<=b.y; ++y) {
 		int k = x + y * m_divisions;

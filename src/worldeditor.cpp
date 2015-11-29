@@ -63,7 +63,7 @@ WorldEditor::WorldEditor() : m_editor(0), m_heightMap(0) {
 	m_options.collide = true;
 
 	// Run an fps camera for now
-	base::FPSCamera* cam = new base::FPSCamera(90, base::Game::aspect(), 0.01, 1000);
+	base::FPSCamera* cam = new base::FPSCamera(90, base::Game::aspect(), 0.01, 10000);
 	cam->setSpeed(1, 0.004);
 	cam->setEnabled(false);
 	cam->lookat( vec3(10, 50, 10), vec3(100,0,100));
@@ -410,9 +410,12 @@ void WorldEditor::loadWorld(const char* file) {
 			EditableTexture* tex = 0;
 			if(stream && use > 0) {
 				TextureStream* ts = new TextureStream();
-				ts->initialise(2048, true);
 				if(ts->openStream(buffer)) tex = new EditableTexture(ts);
 				else messageBox("Error", "Failed to open stream %s", file);
+				
+				// Add to streamer
+				ts->initialise(2048, true);
+				if(tex && streamer) streamer->addTexture(name, ts);
 			}
 			else if(stream) {
 				BufferedStream* bs = new BufferedStream();

@@ -60,8 +60,17 @@ void Streamer::setLod(float value) {
 }
 
 void Streamer::setMaterial(Material* m) {
+	float size = m_stream->width() & ~1;
 	if(m_material) delete m_material;
 	m_material = new MaterialStream(m);
+	m_material->setCoordinates(vec2(size,size), m_offset.xz());
+}
+
+void Streamer::addTexture(const char* name, TextureStream* tex) {
+	m_material->addStream(name, tex);
+}
+void Streamer::addTexture(const char* name, const Texture& tex) {
+	m_material->setTexture(name, tex);
 }
 
 // ========================================================================================= //
