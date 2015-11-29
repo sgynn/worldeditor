@@ -25,8 +25,8 @@ Landscape::Landscape(float size, const vec3& pos): m_position(pos), m_size(size)
 	m_threshold   = 8.f;
 	m_root        = 0; //new Patch(this);
 
-	m_getMaterial = 0;
-	m_dropMaterial = 0;
+	m_createCallback = 0;
+	m_destroyCallback = 0;
 
 	m_selected = 0; // Debug
 }
@@ -45,9 +45,9 @@ void Landscape::setHeightFunction( HeightFunc func) {
 	}
 }
 
-void Landscape::setMaterialCallbacks(GetMaterialFunc g, DropMaterialFunc d) {
-	m_getMaterial = g;
-	m_dropMaterial = d;
+void Landscape::setPatchCallbacks(PatchFunc create, PatchFunc destroy) {
+	m_createCallback = create;
+	m_destroyCallback = destroy;
 }
 
 void Landscape::setLimits(int min, int max, int count) {
@@ -86,13 +86,9 @@ void Landscape::update(const Camera* cam) {
 	for(uint i=0; i<m_mergeQueue.size() && i<10; ++i) m_mergeQueue[i]->merge();
 	m_splitQueue.clear();
 	m_mergeQueue.clear();
-
 	
 	// optimise patches (recursive)
 	m_root->update(cam);
-
-	// Collect visible patches
-	cull(cam);
 
 	// Build any index arrays
 	for(uint i=0; i<m_buildList.size(); ++i) {
@@ -106,6 +102,10 @@ int Landscape::cull(const Camera* cam) {
 	return m_geometryList.size();
 }
 
+
+int Landscape::visitAllPatches(PatchFunc f) const {
+	return m_root->visitAllPatches(f);
+}
 
 
 float Landscape::getHeight(const vec3& pos, bool real) const {
@@ -138,7 +138,7 @@ Landscape::Info Landscape::getInfo() const {
 	info.splitQueue     = m_splitQueue.size();
 	info.mergeQueue     = m_mergeQueue.size();
 	info.triangles      = 0;
-	for(uint i=0; i<m_geometryList.size(); ++i) info.triangles += m_geometryList[i]->size-2;
+	for(uint i=0; i<m_geometryList.size(); ++i) info.triangles += m_geometryList[i]->indexCount-2;
 	return info;
 }
 int Patch::getCount() const {
@@ -179,16 +179,15 @@ Patch::Patch(Patch* parent, int index) {
 	m_corner[index^2] = (c[index] + c[index^2]) * 0.5f;
 	m_corner[index^3] = (c[0] + c[1] + c[2] + c[3]) * 0.25f;
 
-	// Material
-	m_geometry.material = parent->m_geometry.material;
+	m_geometry.tag = 0;
 	m_lod = 0;
 	m_error = 0;
 }
 
 Patch::~Patch() {
+	if(m_landscape->m_destroyCallback) m_landscape->m_destroyCallback(&m_geometry);
 	if(m_geometry.vertices) delete [] m_geometry.vertices;
 	if(m_geometry.indices) delete [] m_geometry.indices;
-	if(m_geometry.material && m_landscape->m_dropMaterial) m_landscape->m_dropMaterial(m_geometry.material);
 	if(m_landscape->m_selected==this) m_landscape->m_selected = 0; // Debug
 }
 
@@ -252,6 +251,18 @@ void Patch::collect(const Camera* cam, Landscape::GList& list, int cullFlags) co
 	if(m_split) {
 		for(int i=0; i<4; ++i) m_child[i]->collect(cam, list, cf);
 	} else list.push_back(&m_geometry);
+}
+
+int Patch::visitAllPatches(Landscape::PatchFunc f) {
+	// Recurse to children
+	if(m_split){
+		int r = 0;
+		for(int i=0; i<4; ++i) r += m_child[i]->visitAllPatches(f);
+		return r;
+	}
+	// Call callback
+	f(&m_geometry);
+	return 1;
 }
 
 float Patch::projectError(const Camera* cam) const {
@@ -507,8 +518,9 @@ void Patch::create() {
 		}
 	}
 
+	m_geometry.vertexCount = size * size;
 	m_geometry.vertices = vx;
-	m_geometry.material = m_landscape->m_getMaterial? m_landscape->m_getMaterial(m_bounds): 0;
+	m_geometry.bounds = &m_bounds;
 }
 
 
@@ -528,7 +540,7 @@ void Patch::build() {
 	int count = (size * 2 + 4) * (size-1) - 4;
 	if(m_geometry.indices) delete [] m_geometry.indices;
 	m_geometry.indices = new uint16[ count ];
-	m_geometry.size = count;
+	m_geometry.indexCount = count;
 
 	// Generate indices
 	//for(uint i=0; i<strips; ++i) addStrip(i, step);
@@ -549,6 +561,8 @@ void Patch::build() {
 			ix[1] = x + (y+1)*size;
 		}
 	}
+
+	if(m_landscape->m_createCallback) m_landscape->m_createCallback(&m_geometry);
 	flagChanged();
 }
 
@@ -813,7 +827,7 @@ int Patch::intersect(const vec3& a, const vec3& b, float& t, vec3& normal) const
 		float lod = m_lod<0? 0: m_lod>1? 1: m_lod;
 		const uint16* ix = m_geometry.indices;
 		const float* vx = m_geometry.vertices;
-		for(int i=0; i<m_geometry.size-2; ++i) {
+		for(uint i=0; i<m_geometry.indexCount-2; ++i) {
 			if(ix[i]==ix[i+1] || ix[i+1]==ix[i+2] || ix[i]==ix[i+2]) continue;
 			const float* pa = vx + ix[i+0] * 10;
 			const float* pb = vx + ix[i+1] * 10;

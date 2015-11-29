@@ -154,70 +154,106 @@ void TextureStream::updateTextures() {
 // ======================================================================================= //
 
 MaterialStream::MaterialStream(Material* base) 
-	: m_template(base), m_materials(0), m_global(0), m_ref(0), m_divisions(0), m_offset(0,0), m_size(1,1) {
+	: m_template(base), m_global(0), m_materials(0), m_divisions(0), m_offset(0,0), m_size(1,1) {
 }
 MaterialStream::~MaterialStream() {
-	for(uint i=0; i<m_streams.size(); ++i) delete m_streams[i].stream;
+	for(uint i=0; i<m_streams.size(); ++i) delete m_streams[i].texture;
 	if(m_materials) {
+		for(int i=0; i<m_divisions*m_divisions; ++i) delete m_materials[i].material;
 		delete [] m_materials;
-		delete [] m_ref;
 	}
+	for(uint i=0; i<m_delete.size(); ++i) delete m_delete[i].material;
 	if(m_global) delete m_global;
 }
-bool MaterialStream::addStream(const char* name, TextureStream* stream) {
-	// Can't add a stream with a higher tile count
-	if(m_materials && stream->getDivisions() < m_divisions) {
-		return false;
+
+void MaterialStream::setTexture(const char* name, const Texture& tex) {
+	if(m_template) m_template->setTexture(name, tex);
+	if(m_global) m_global->setTexture(name, tex);
+	if(m_materials) {
+		for(int i=0; i<m_divisions*m_divisions; ++i) {
+			if(m_materials[i].material) m_materials[i].material->setTexture(name, tex);
+		}
 	}
+}
+
+void MaterialStream::addStream(const char* name, TextureStream* texture) {
 	// Add stream to list
-	Stream s;
-	s.stream = stream;
-	strcpy(s.name, name);
-	strcpy(s.infoName, name);
-	strcat(s.infoName, "Info");
-	m_streams.push_back(s);
+	Stream stream;
+	stream.texture = texture;
+	strcpy(stream.name, name);
+	strcpy(stream.infoName, name);
+	strcat(stream.infoName, "Info");
+	m_streams.push_back(stream);
+
+	// Rebuild submaterial list if we need more divisions
+	if(texture->getDivisions() > m_divisions) build();
 
 	// Add any loaded textures
 	if(m_materials) {
 		for(int x=0; x<m_divisions; ++x) for(int y=0; y<m_divisions; ++y) {
-			Material* m = m_materials + x + y*m_divisions;
-			setStreamTexture(m, s, x, y);
+			SubMaterial& m = m_materials[ x + y*m_divisions ];
+			if(m.ref > 0) {
+				setStreamTexture(m.material, stream, x, y);
+			}
 		}
 	}
 
 	// Add global texture
-	if(m_global) m_global->setTexture(name, stream->getGlobalTexture() );
-
-	return true;
+	if(m_global) m_global->setTexture(name, texture->getGlobalTexture() );
 }
 void MaterialStream::removeStream(TextureStream* s) {
-	uint index = 0;
-	while(index<m_streams.size() && m_streams[index].stream!=s) ++index;
-	if(index == m_streams.size()) return; // Stream not in list
-
-	// destroy stream end textures
-	delete m_streams[index].stream;
-	m_streams.erase( m_streams.begin() + index );
-}
-
-void MaterialStream::setCoordinates(const vec2& s, const vec2& o) {
-	m_size = s;
-	m_offset = o;
-}
-
-void MaterialStream::initialise() {
-	if(m_streams.empty()) return; // must call initialise after streams are added ??
-	if(!m_materials) {
-		m_divisions = 1;
-		for(uint i=0; i<m_streams.size(); ++i) {
-			if(m_streams[i].stream->getDivisions() > m_divisions) m_divisions = m_streams[i].stream->getDivisions();
+	for(uint i=0; i<m_streams.size(); ++i) {
+		if(m_streams[i].texture == s) {
+			m_streams.erase( m_streams.begin() + i );
+			break;
 		}
-		int count = m_divisions * m_divisions;
-		m_materials = new Material[ count ];
-		m_ref = new int[ count ];
-		memset(m_ref, 0, count * sizeof(int));
+	}
+
+	// Rebuild with no submaterials
+	if(m_streams.empty()) build();
+}
+
+void MaterialStream::setCoordinates(const vec2& size, const vec2& offset) {
+	m_size = size;
+	m_offset = offset;
+}
+
+void MaterialStream::build() {
+	// Get needed divisions
+	int divisions = 1;
+	for(uint i=0; i<m_streams.size(); ++i) {
+		int d = m_streams[i].texture->getDivisions();
+		if(d > divisions) divisions = d;
+	}
+
+	// Is it different
+	if(divisions != m_divisions) {
+		// Clear out old sub materials
+		if(m_divisions > 1) {
+			for(int i=0; i<m_divisions * m_divisions; ++i) {
+				if(m_materials[i].ref > 0) m_delete.push_back(m_materials[i]);
+				else delete m_materials[i].material;
+			}
+			delete [] m_materials;
+			m_materials = 0;
+		}
+
+		// Create sub materials
+		if(divisions > 1) {
+			int count = divisions * divisions;
+			m_materials = new SubMaterial[ count ];
+			for(int i=0; i<count; ++i) {
+				m_materials[i].material = 0;
+				m_materials[i].ref = 0;
+				m_materials[i].index.x = i%divisions;
+				m_materials[i].index.y = i/divisions;
+				m_materials[i].divisions = divisions;
+			}
+		}
+		m_divisions = divisions;
 	}
 }
+
 
 int MaterialStream::getDivisions() const {
 	return m_divisions;
@@ -228,7 +264,7 @@ Material* MaterialStream::getGlobal() {
 		m_global = new Material(*m_template);
 		float info[4] = { m_offset.x, m_offset.y, m_size.x, m_size.y };
 		for(uint i=0; i<m_streams.size(); ++i) {
-			m_global->setTexture(m_streams[i].name, m_streams[i].stream->getGlobalTexture() );
+			m_global->setTexture(m_streams[i].name, m_streams[i].texture->getGlobalTexture() );
 			m_global->setFloat4(m_streams[i].infoName, info);
 		}
 	}
@@ -236,48 +272,60 @@ Material* MaterialStream::getGlobal() {
 }
 
 Material* MaterialStream::getMaterial(int x, int y) {
+	if(!m_materials) return getGlobal();
 	int k = x + y * m_divisions;
-	if(m_ref[k] == 0) {
-		// Create material - need to clone m_template
-		m_materials[k] = *m_template; // does this work?
+	SubMaterial& m = m_materials[k];
+	if(!m.material) {
+		// Create material
+		m.material = new Material(*m_template);
 
-		// Add textures
+		// Add streamed sub textures
 		for(uint i=0; i<m_streams.size(); ++i) {
-			setStreamTexture(m_materials+k, m_streams[i], x, y);
+			setStreamTexture(m.material, m_streams[i], x, y);
 		}
 	}
-	++m_ref[k];
-	return m_materials + k;
+	++m.ref;
+	return m.material;
 }
 
-void MaterialStream::dropMaterial(int x, int y) {
-	int k = x + y * m_divisions;
-	if(--m_ref[k]==0) {
-		// Destroy material
-		for(uint i=0; i<m_streams.size(); ++i) {
-			int d = m_divisions / m_streams[i].stream->getDivisions();
-			m_streams[i].stream->dropTexture(x/d, y/d);
-		}
-	}
-}
 void MaterialStream::dropMaterial(Material* m) {
+	if(!m || m==m_global) return;
+	// Find material in list
 	for(int i=0; i<m_divisions*m_divisions; ++i) {
-		if(m_materials+i == m) {
-			dropMaterial(i%m_divisions, i/m_divisions);
-			break;
+		if(m_materials[i].material == m) {
+			dropMaterial(m_materials[i]);
+			return;
 		}
+	}
+	// Drop any in delete list
+	for(uint i=0; i<m_delete.size(); ++i) {
+		if(m_delete[i].material == m) {
+			dropMaterial(m_delete[i]);
+			if(m_delete[i].ref==0) m_delete.erase(m_delete.begin()+i);
+			return;
+		}
+	}
+}
+void MaterialStream::dropMaterial(SubMaterial& m) {
+	if(--m.ref == 0) {
+		for(uint i=0; i<m_streams.size(); ++i) {
+			int d = m.divisions / m_streams[i].texture->getDivisions();
+			m_streams[i].texture->dropTexture( m.index.x/d, m.index.y/d );
+		}
+		delete m.material;
+		m.material = 0;
 	}
 }
 
 void MaterialStream::setStreamTexture(Material* m, const Stream& stream, int x, int y) {
-	int d = m_divisions / stream.stream->getDivisions();
-	m->setTexture( stream.name, stream.stream->getTexture(x/d, y/d) );
+	int d = m_divisions / stream.texture->getDivisions();
+	m->setTexture( stream.name, stream.texture->getTexture(x/d, y/d) );
 	// Offet values - ToDo: fix for overlap
 	float info[4];
 	info[0] = (float) (x/d) * d / m_divisions * m_size.x + m_offset.x;
 	info[1] = (float) (y/d) * d / m_divisions * m_size.y + m_offset.y;
-	info[2] = 1.0 / stream.stream->getDivisions() * m_size.x;
-	info[3] = 1.0 / stream.stream->getDivisions() * m_size.y;
+	info[2] = 1.0 / stream.texture->getDivisions() * m_size.x;
+	info[3] = 1.0 / stream.texture->getDivisions() * m_size.y;
 	m->setFloat4( stream.infoName, info );
 }
 

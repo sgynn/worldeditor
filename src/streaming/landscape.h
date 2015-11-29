@@ -10,11 +10,13 @@ class Patch;
 
 /** Geometry data of patch */
 struct PatchGeometry {
-	base::Material* material;
-	int     size;
-	float*  vertices; // Format: POSITION3 NORMAL3 BLEND_NORMAL3 BLEND_HEIGHT:1 (stride:10)
-	uint16* indices;
-	float   lod;	// Lod value 0-1
+	size_t       vertexCount;	// Number of vertices
+	size_t       indexCount;	// Number of indices
+	float*       vertices;      // Vertex data - Format: POSITION3 NORMAL3 BLEND_NORMAL3 BLEND_HEIGHT:1 (stride:10)
+	uint16*      indices;		// Index data
+	BoundingBox* bounds;		// Bounding box
+	float        lod;			// Lod blend value [0-1]
+	void*        tag;			// User data
 };
 
 
@@ -22,8 +24,7 @@ struct PatchGeometry {
 class Landscape {
 	public:
 	typedef float(*HeightFunc)(const vec3&);
-	typedef base::Material* (*GetMaterialFunc)(const BoundingBox&);
-	typedef void(*DropMaterialFunc)(base::Material*);
+	typedef void(*PatchFunc)(PatchGeometry*);
 	typedef std::vector<const PatchGeometry*> GList;
 
 	Landscape(float size, const vec3& position=vec3());
@@ -54,10 +55,13 @@ class Landscape {
 	void setHeightFunction(HeightFunc);
 
 	/** Set the material callbacks */
-	void setMaterialCallbacks(GetMaterialFunc, DropMaterialFunc);
+	void setPatchCallbacks(PatchFunc created, PatchFunc destroyed);
 
 	/** Get all visible geometry for rendering */
 	const GList& getGeometry() const { return m_geometryList; }
+
+	// Visit all patches
+	int visitAllPatches(PatchFunc callback) const;
 	
 	/** Additional collision routines */
 	int intersect(const vec3& start, const vec3& end, vec3& point, vec3& normal) const;
@@ -79,8 +83,9 @@ class Landscape {
 	float m_size;		// Plane width and height (square)
 	HeightFunc m_func;	// Height calculation callback
 
-	GetMaterialFunc m_getMaterial;		// Callback to get the material fr a patch
-	DropMaterialFunc m_dropMaterial;	// Callback to delete a material from a patch
+	PatchFunc  m_createCallback;	// Callback when a patch is created
+	PatchFunc  m_destroyCallback;	// Callback when a patch is destroyed
+
 
 	uint  m_min, m_max;	// Patch lod limits
 	uint  m_patchLimit;	// Maximum patch count
@@ -90,6 +95,7 @@ class Landscape {
 	
 	Patch* m_root;					// Root patch
 	GList m_geometryList;			// Output geometry
+	GList m_allGeometry;			// List of all patches
 	std::vector<Patch*> m_buildList;// Patches to update index data
 
 	std::vector<Patch*> m_splitQueue;
@@ -132,6 +138,9 @@ class Patch {
 
 	/** Change the geometry */
 	void    updateGeometry(const BoundingBox& box, bool normals);
+
+	/** Recursivly call callback for each patch */
+	int visitAllPatches(Landscape::PatchFunc callback);
 
 	/** Recursively get the number of patches */
 	int getCount() const;

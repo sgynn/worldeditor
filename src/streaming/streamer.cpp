@@ -8,7 +8,7 @@
 #include <cstdio>
 
 
-Streamer::Streamer(float hs) : m_heightScale(hs), m_land(0), m_drawable(0), m_overlay(0) {
+Streamer::Streamer(float hs) : m_heightScale(hs), m_land(0), m_drawable(0), m_material(0) {
 	setBufferSize(256, 256);
 	m_encode = m_decode = 0;
 }
@@ -29,11 +29,9 @@ void Streamer::streamOpened() {
 	s_streamer = this;
 	m_land = new Landscape(size, m_offset);
 	m_land->setLimits(0, p-3);
+	m_land->setPatchCallbacks(Streamer::patchCreated, Streamer::patchDestroyed);
 	m_land->setHeightFunction(Streamer::heightFunc);
-	m_land->setMaterialCallbacks(Streamer::materialFunc, Streamer::dropMaterialFunc);
 	m_drawable = new StreamerDrawable(m_land);
-	m_drawable->setMaterial(m_material);
-
 
 	/*
 	// Ok, lets try adding a streamed texture overlay ...
@@ -51,8 +49,8 @@ void Streamer::streamOpened() {
 }
 void Streamer::closeStream() {
 	BufferedStream::closeStream();
-	if(s_streamer==this) s_streamer=0;
 	if(m_land) delete m_land;
+	if(s_streamer==this) s_streamer=0;
 	if(m_drawable) delete m_drawable;
 	m_land = 0;
 }
@@ -61,7 +59,16 @@ void Streamer::setLod(float value) {
 	if(m_land) m_land->setThreshold(value);
 }
 
+void Streamer::setMaterial(Material* m) {
+	if(m_material) delete m_material;
+	m_material = new MaterialStream(m);
+}
+
 // ========================================================================================= //
+
+struct PatchTag {
+	Material* material;
+};
 
 
 Streamer* Streamer::s_streamer = 0;
@@ -73,110 +80,84 @@ float Streamer::heightFunc(const vec3& p) {
 	s_streamer->getPixel(x, y, &pixel);
 	return pixel * s_streamer->m_decode;
 }
-Material* Streamer::materialFunc(const BoundingBox& box) {
-	if(!s_streamer->m_overlay) return s_streamer->m_material;
-	vec2 offset = s_streamer->m_offset.xz();
-	vec2 size = offset * -2.0;
-	int div = s_streamer->m_overlay->getDivisions();
-	vec2 a = floor((box.min.xz() - offset) * div / size);
-	vec2 b = floor((box.max.xz() - offset) * div / size - 0.0001);
-	if(a==b) return s_streamer->m_overlay->getMaterial( (int)a.x, (int)a.y);
-	else return s_streamer->m_overlay->getGlobal();
+void Streamer::patchCreated(PatchGeometry* g) {
+	PatchTag* tag = new PatchTag;
+	tag->material = 0;
+	g->tag = tag;
 }
-void Streamer::dropMaterialFunc(Material* m) {
-	if(!s_streamer->m_overlay) return;
-	s_streamer->m_overlay->dropMaterial( m );
+void Streamer::patchDestroyed(PatchGeometry* g) {
+	PatchTag* tag = static_cast<PatchTag*>(g->tag);
+	s_streamer->m_material->dropMaterial( tag->material );
+	delete tag;
+	g->tag = 0;
 }
 
+
+vec3 lodCameraPosition;
+void Streamer::updatePatchMaterial(PatchGeometry* g) {
+	PatchTag* tag = static_cast<PatchTag*>(g->tag);
+	// Switch material lod
+	vec3 cp = g->bounds->clamp( lodCameraPosition );
+	float d = lodCameraPosition.distance2(cp);
+	Material* global = s_streamer->m_material->getGlobal();
+
+	if(g->bounds->size().x > -s_streamer->m_offset.x * 0.5) d = 1e20f;
+
+	if(d > 1000 * 1000) {
+		// May need to drop reference
+		s_streamer->m_material->dropMaterial( tag->material );
+		tag->material = global;
+	}
+	else if(tag->material == 0 || tag->material == global) {
+		vec2 offset = s_streamer->m_offset.xz();
+		vec2 size = offset * -2.0;
+		int div = s_streamer->m_material->getDivisions();
+		vec2 index = (g->bounds->centre() - s_streamer->m_offset).xz() * div / size;
+		Material* m = s_streamer->m_material->getMaterial( (int)index.x, (int)index.y);
+		tag->material = m;
+	}
+}
+
+
+// ========================================================================================= //
+
+
+
+void Streamer::addToScene(Render* r)      { if(m_drawable) r->add(m_drawable); }
+void Streamer::removeFromScene(Render* r) { if(m_drawable) r->remove(m_drawable); }
+
+StreamerDrawable::StreamerDrawable(Landscape* land) : m_land(land) {}
+void StreamerDrawable::draw( RenderInfo& r) {
+
+	// Update terrain lod stuff - Note: only needs to be called one per frame
+	vec3 cp = lodCameraPosition = r.getCamera()->getPosition();
+	m_land->update( r.getCamera() );
+	m_land->visitAllPatches(Streamer::updatePatchMaterial);
+
+	// View frustum culling
+	m_land->cull( r.getCamera() );
+
+	const int stride = 10 * sizeof(float);
+	r.state(VERTEX_ARRAY | NORMAL_ARRAY);
+//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	for(uint i=0; i<m_land->getGeometry().size(); ++i) {
+		const PatchGeometry* g = m_land->getGeometry()[i];
+		const PatchTag* tag = static_cast<const PatchTag*>(g->tag);
+
+		r.material( tag->material );
+		base::Shader::current().Uniform3f("cameraPos", cp.x, cp.y, cp.z);
+
+		glVertexPointer(3, GL_FLOAT, stride, g->vertices);
+		glNormalPointer(GL_FLOAT, stride, g->vertices+3);
+		glDrawElements(GL_TRIANGLE_STRIP, g->indexCount, GL_UNSIGNED_SHORT, g->indices);
+	}
+//	glPolygonMode(GL_FRONT, GL_FILL);
+}
 
 // ========================================================================================= //
 
 static ubyte* s_buffer = 0;
 static Rect  s_rect;
-
-
-void Streamer::setMaterial(Material* m) {
-	m_material = m;
-	if(m_drawable) m_drawable->setMaterial(m_material);
-}
-
-void Streamer::addToScene(Render* r)      { if(m_drawable) r->add(m_drawable); }
-void Streamer::removeFromScene(Render* r) { if(m_drawable) r->remove(m_drawable); }
-StreamerDrawable::StreamerDrawable(Landscape* land) : m_land(land) {}
-void StreamerDrawable::draw( RenderInfo& r) {
-	m_land->update( r.getCamera() );	// Only needs to be called once per frame (shadows, reflection)
-	const vec3& cp = r.getCamera()->getPosition();
-
-	updateStreamedMaterials( cp, 512 );
-
-//	m_land->cull( r.getCamera() );
-	r.material(m_material);
-	r.state(VERTEX_ARRAY | NORMAL_ARRAY);
-	const int stride = 10 * sizeof(float);
-//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	for(uint i=0; i<m_land->getGeometry().size(); ++i) {
-		const PatchGeometry* g = m_land->getGeometry()[i];
-		r.material( g->material? g->material: m_material );
-		base::Shader::current().Uniform3f("cameraPos", cp.x, cp.y, cp.z);
-
-		glVertexPointer(3, GL_FLOAT, stride, g->vertices);
-		glNormalPointer(GL_FLOAT, stride, g->vertices+3);
-		glDrawElements(GL_TRIANGLE_STRIP, g->size, GL_UNSIGNED_SHORT, g->indices);
-	}
-//	glPolygonMode(GL_FRONT, GL_FILL);
-
-	// Debug: Draw the buffer
-	/*
-	if(s_buffer) {
-		r.material( 0 );
-		int w = s_rect.width;
-		vec3 off = vec3(-8192,0,-8192) + vec3(s_rect.x, 0, s_rect.y);
-		float m_decode = 544.0 / 65535.0;
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		glEnable(GL_POLYGON_OFFSET_LINE);
-		glPolygonOffset(-1,-1);
-		glBegin(GL_QUADS);
-		for(int x=0; x<s_rect.width-1; ++x) for(int y=0; y<s_rect.height-1; ++y) {
-			uint16* h = ((uint16*)s_buffer) + x+y*w;
-			glVertex3f(x+off.x, *h*m_decode, y+off.z);
-			glVertex3f(x+off.x, *(h+w)*m_decode, y+off.z+1);
-			glVertex3f(x+off.x+1, *(h+1+w)*m_decode, y+off.z+1);
-			glVertex3f(x+off.x+1, *(h+1)*m_decode, y+off.z);
-		}
-		glEnd();
-		glPolygonMode(GL_FRONT, GL_FILL);
-	}*/
-}
-
-void StreamerDrawable::updateStreamedMaterials(const vec3& v, float threshold) {
-/*
-	// Select streamed materials based on distance
-	float t = threshold * threshold;
-	for(uint i=0; i<m_land->getGeometry().size(); ++i) {
-		const PatchGeometry* g = m_land->getGeometry()[i];
-		// HACK - get aabb
-		BoundingBox b( g->vertices );
-		b.include( g->vertices + (g->size-1) * 10);
-		// Get closest point on aabb
-		vec3 cp = v;
-		for(int i=0; i<3; ++i) {
-			if(cp[i]<b.min[i]) cp[i] = b.min[i];
-			else if(cp[i]>b.max[i]) cp[i] = b.max[i];
-		}
-		// Manage materials
-		if(cp.distance2(v) < t) {
-			Material* m = Streamer::materialFunc(b);
-			m_overlay->dropMaterial( g->material );
-			g->material = m;
-		} else {
-			if(g->material != m_overlay->getGlobal()) m_overlay->dropMaterial( g->material );
-			g->material = m_overlay->getGlobal();
-		}
-	}
-	*/
-}
-
-// ========================================================================================= //
 
 inline uint16 clamp16(float v) { return v<0? 0: v>65535? 65535: v; }
 

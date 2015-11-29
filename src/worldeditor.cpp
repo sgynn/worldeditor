@@ -330,25 +330,28 @@ void WorldEditor::loadWorld(const char* file) {
 	const char* source = info.attribute("file");
 	const char* format = info.attribute("type");
 
+	Streamer* streamer = 0;
+	SimpleHeightmap* simple = 0;
+
 	m_library->addPath(path);
 
 	// Material
 	const XMLElement& matData = terrain.find("material");
 	const char* material = matData.attribute("file", "default.mat");
-	
+
 
 	// Create terrain - maybe use a plugin system for different types?
 	if(info.attribute("stream", 0)) {
-		Streamer* map = new Streamer(scale);
-		if(map->openStream( cat(path, source) )) {
-			map->addToScene(m_renderer);
-			map->setMaterial( m_library->material(material)  );
-			m_heightMap = new StreamingHeightmapEditor(map);
-			m_objects["terrain"] = map;
-			m_terrainOffset = map->getOffset().xz();
+		streamer = new Streamer(scale);
+		if(streamer->openStream( cat(path, source) )) {
+			streamer->addToScene(m_renderer);
+			streamer->setMaterial( m_library->material(material)  );
+			m_heightMap = new StreamingHeightmapEditor(streamer);
+			m_objects["terrain"] = streamer;
+			m_terrainOffset = streamer->getOffset().xz();
 			m_streaming = true;
-			size = map->width();
-			if(size != map->height()) messageBox("Warning", "Terrian map is not square");
+			size = streamer->width();
+			if(size != streamer->height()) messageBox("Warning", "Terrian map is not square");
 		} else {
 			messageBox("Load error", "Failed to open stream %s", cat(path, source));
 			return;	
@@ -356,14 +359,14 @@ void WorldEditor::loadWorld(const char* file) {
 	}
 	else {
 		if(strcmp(format, "float")==0) {
-			SimpleHeightmap* map = new SimpleHeightmap();
+			simple = new SimpleHeightmap();
 			File data = File::load( cat(path, source) );
-			map->create(size, size, res, (const float*) data.contents());
-			map->addToScene(m_renderer);
-			map->setMaterial( m_library->material(material)  );
-			m_heightMap = new SimpleHeightmapEditor(map);
+			simple->create(size, size, res, (const float*) data.contents());
+			simple->addToScene(m_renderer);
+			simple->setMaterial( m_library->material(material)  );
+			m_heightMap = new SimpleHeightmapEditor(simple);
 			m_terrainOffset = vec2();
-			m_objects["terrain"] = map;
+			m_objects["terrain"] = simple;
 			m_streaming = false;
 		}
 		else {

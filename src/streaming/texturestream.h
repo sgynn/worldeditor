@@ -44,29 +44,41 @@ class MaterialStream {
 	~MaterialStream();
 
 	void setCoordinates(const vec2& size, const vec2& offset);	// Set texture world coordinate mapping
-	bool addStream(const char* name, TextureStream*);			// Add a texture layer
+	void addStream(const char* name, TextureStream*);			// Add a texture layer
 	void removeStream(TextureStream*);							// remove a texture layer
-	void initialise();											// Initialise data
+
+	void setTexture(const char* name, const Texture& texture);	// Set non-streamed texture
 
 	int       getDivisions() const;
 	Material* getGlobal();
 	Material* getMaterial(int x, int y);
-	void      dropMaterial(int x, int y);
 	void      dropMaterial(Material* m);
 
 	protected:
-	struct Stream { TextureStream* stream; char name[32]; char infoName[32]; };
+	struct Stream {
+		TextureStream* texture;		// Streamed texture source
+		char name[32];				// texture sampler name
+		char infoName[32];			// texture transform variable name
+	};
+	struct SubMaterial {
+		Material* material;			// Sub Material
+		int ref;					// Reference count
+		Point index;				// Sub material index
+		int divisions;				// Divisions when created
+	};
+
 	void setStreamTexture(Material* m, const Stream&, int x, int y);
+	void dropMaterial(SubMaterial&);
+	void build();
 
 	protected:
-	std::vector<Stream> m_streams;
+	std::vector<Stream> m_streams;	// Attached texture streams
 	Material*      m_template;		// Template material to create sub materials from
-	Material*      m_materials;		// Array of sub materials
 	Material*      m_global;		// Global material
-	int*           m_ref;			// Reference counrers for materials
+	SubMaterial*   m_materials;		// Array of sub materials
 	int            m_divisions;		// How many divisions the whole is divided into
-	bool           m_overlap;		// Do sub textures overlap by a pixel (to remove seams)
 	vec2           m_offset, m_size;	// World coordinates for generated UVs
+	std::vector<SubMaterial> m_delete;	// Materials to delete that are still referenced
 };
 
 #endif

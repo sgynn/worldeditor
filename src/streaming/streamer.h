@@ -13,12 +13,12 @@ class Landscape;
 class TiffStream;
 class TextureStream;
 class MaterialStream;
+class PatchGeometry;
 
 /** Interface between scene and landscape */
 class StreamerDrawable : public Drawable {
 	friend class Streamer;
 	Landscape* m_land;
-	MaterialStream* m_overlay;
 	public:
 	StreamerDrawable(Landscape*);
 	virtual void draw( RenderInfo& );
@@ -28,6 +28,7 @@ class StreamerDrawable : public Drawable {
 /** Alternative heightmap object that streams to a file for editing huge landscapes */
 class Streamer : public Object, public BufferedStream {
 	friend class StreamingHeightmapEditor;
+	friend class StreamerDrawable;
 	public:
 	Streamer(float heightScale);
 	~Streamer();
@@ -52,7 +53,7 @@ class Streamer : public Object, public BufferedStream {
 	void setMaterial(Material* m);
 
 	void addTexture(const char* name, TextureStream*);
-	void addTexture(const Texture&);
+	void addTexture(const char* name, const Texture&);
 
 	protected:
 	float         m_heightScale;
@@ -61,8 +62,7 @@ class Streamer : public Object, public BufferedStream {
 	Landscape*    m_land;
 
 	StreamerDrawable* m_drawable;
-	Material*         m_material;
-	MaterialStream*   m_overlay;
+	MaterialStream*   m_material;
 	
 	float m_encode, m_decode;
 
@@ -70,8 +70,9 @@ class Streamer : public Object, public BufferedStream {
 	// Landscape needs static functions to interface data
 	static Streamer* s_streamer;
 	static float heightFunc(const vec3&);
-	static Material* materialFunc(const BoundingBox&);
-	static void dropMaterialFunc(Material*);
+	static void  patchCreated(PatchGeometry*);
+	static void  patchDestroyed(PatchGeometry*);
+	static void  updatePatchMaterial(PatchGeometry*);
 };
 
 
