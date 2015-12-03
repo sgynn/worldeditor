@@ -39,6 +39,7 @@ class WorldEditor : public base::SceneState {
 	void showNewDialog(gui::Button*);
 	void showOpenDialog(gui::Button*);
 	void showSaveDialog(gui::Button*);
+	void showOptionsDialog(gui::Button*);
 	void selectToolGroup(gui::Combobox*, int);
 	void selectTool(ToolInstance*);
 

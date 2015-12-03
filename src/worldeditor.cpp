@@ -80,6 +80,7 @@ WorldEditor::WorldEditor() : m_editor(0), m_heightMap(0) {
 	m_gui->getWidget<Button>("newmap")->eventPressed.bind(this, &WorldEditor::showNewDialog);
 	m_gui->getWidget<Button>("openmap")->eventPressed.bind(this, &WorldEditor::showOpenDialog);
 	m_gui->getWidget<Button>("savemap")->eventPressed.bind(this, &WorldEditor::showSaveDialog);
+	m_gui->getWidget<Button>("options")->eventPressed.bind(this, &WorldEditor::showOptionsDialog);
 	m_gui->getWidget<Combobox>("toollist")->eventSelected.bind(this, &WorldEditor::selectToolGroup);
 }
 
@@ -177,7 +178,7 @@ void WorldEditor::drawHUD() {
 
 void WorldEditor::showNewDialog(Button*) {
 	Widget* w = m_gui->getWidget<Widget>("newdialog");
-	w->setVisible(true);
+	if(w) w->setVisible(true);
 }
 void WorldEditor::showOpenDialog(Button*) {
 	FileDialog* d = m_gui->getWidget<FileDialog>("filedialog");
@@ -192,6 +193,10 @@ void WorldEditor::showSaveDialog(Button*) {
 	d->setFileName("");
 	d->setFilter("*.xml");
 	d->showSave();
+}
+void WorldEditor::showOptionsDialog(Button*) {
+	Widget* w = m_gui->getWidget<Widget>("settings");
+	if(w) w->setVisible(true);
 }
 
 void WorldEditor::selectToolGroup(Combobox* c, int index) {
