@@ -86,21 +86,21 @@
 		</widget>
 	</template>
 
-	<template name="slider" class="Scrollbar" rect="0 0 100 16" skin="clear" orientation="horizontal" max="100">
+	<template name="slider" class="Scrollbar" rect="0 0 100 16" skin="clear" orientation="horizontal" max="1000">
 		<widget rect="0 6 100 4" skin="button" anchor="mlr" inheritstate="1" tangible="0"/>
 		<widget class="Button" name="_scrollBlock" rect="0 0 12 16" skin="button" anchor="tb"/>
 	</template>
 
 	<template name="spinbox" class="Spinbox" rect="0 0 60 20">
 		<widget name="_text" class="Textbox" rect="0 0 44 20" anchor="tlrb"/>
-		<widget name="_inc" class="Button" skin="button" rect="44 0 16 10" anchor="trm"/>
-		<widget name="_dec" class="Button" skin="button" rect="44 10 16 10" anchor="brm"/>
+		<widget name="_inc" template="iconbutton" icon="scroll_up" rect="44 0 16 10" anchor="trm"/>
+		<widget name="_dec" template="iconbutton" icon="scroll_down" rect="44 10 16 10" anchor="brm"/>
 	</template>
 
 	<template name="listbox" class="Listbox" rect="0 0 100 100">
 		<widget name="_client" rect="0 0 84 100" anchor="tlrb"/>
 		<widget name="_scroll" template="vscroll" rect="84 0 16 100" anchor="trb"/>
-		<widget name="_text" rect="2 0 80 20"/>
+		<widget name="_text" rect="2 0 80 20" skin="clear"/>
 	</template>
 
 	<template name="iconlistbox" class="Listbox" rect="0 0 100 100">
@@ -108,6 +108,11 @@
 		<widget name="_scroll" template="vscroll" rect="84 0 16 100" anchor="trb"/>
 		<widget name="_text" rect="18 0 67 20" anchor="lr" skin="clear"/>
 		<widget name="_icon" class="Icon" rect="0 2 16 16" iconlist="icons"/>
+	</template>
+
+	<template name="droplist" class="Combobox" rect="0 0 100 20">
+		<widget name="_list" template="listbox" rect="0 20 100 200" anchor="blr"/>
+		<widget name="_text" class="Label" rect="0 0 100 20" anchor="trlb"/>
 	</template>
 
 	<template name="toolgrouplist" class="Combobox" rect="0 0 100 32" skin="button">
@@ -144,28 +149,36 @@
 	<widget caption="New Terrain" template="dialog" name="newdialog" rect="100 100 224 168" visible="0">
 		<widget class="Label" rect="8 40 56 20" caption="Size" />
 		<widget class="Label" rect="8 16 48 20" caption="Mode" />
-		<widget class="Button" rect="80 114 56 20" name="create"  caption="Create"/>
-		<widget class="Button" rect="144 114 56 20" name="cancel"  caption="Cancel"/>
+		<widget class="Button" rect="80 114 56 20" name="create"  caption="Create" anchor="tr"/>
+		<widget class="Button" rect="144 114 56 20" name="cancel"  caption="Cancel" anchor="tr"/>
 		<widget class="Label" rect="8 64 56 20" caption="Source" />
-		<widget class="Textbox" rect="64 64 120 20" name="source"  text=""/>
-		<widget class="Button" rect="184 64 16 20" name="sourcebutton"  caption="..."/>
-		<widget class="Combobox" rect="64 16 136 20" name="mode" />
-		<widget class="Combobox" rect="64 40 136 20" name="size" />
+		<widget class="Textbox" rect="64 64 120 20" name="source"  text="" anchor="tlr"/>
+		<widget class="Button" rect="184 64 16 20" name="sourcebutton"  caption="..." anchor="tr"/>
+		<widget template="droplist" rect="64 16 136 20" name="mode" anchor="tlr">
+			<item>Raw Float</item>
+			<item>8 bit texture</item>
+			<item>16 bit texture</item>
+			<item>8 bit streamed</item>
+			<item>16 bit streamed</item>
+		</widget>
+		<widget template="droplist" rect="64 40 136 20" name="size" anchor="tlr"/>
 		<widget class="Label" rect="8 88 56 20" caption="Height" />
-		<widget class="Spinbox" rect="64 88 136 20" />
+		<widget template="spinbox" rect="64 88 136 20" name="height" value="300" anchor="tlr"/>
 	</widget>
 
 
 	<!-- Options dialog -->
-	<widget caption="Settings" template="dialog" name="settings" rect="100 100 280 136" visible="0">
+	<widget caption="Settings" template="dialog" name="settings" rect="100 100 280 160" visible="0">
 		<widget class="Label" rect="8 8 104 20" caption="View Distance"/> 
 		<widget class="Label" rect="8 32 100 20" caption="Terrain Detail"/>
 		<widget class="Label" rect="8 56 104 20" caption="Camera speed" />
 		<widget class="Label" rect="8 80 100 20" caption="Tablet Mode" />
+		<widget class="Label" rect="8 104 100 20" caption="Collision" />
 		<widget class="Checkbox" skin="button" rect="120 80 16 16" name="tabletmode"/>
-		<widget template="slider" name="viewdistance" rect="120 8 144 16"/>
-		<widget template="slider" name="terraindetail" rect="120 32 144 16"/>
-		<widget template="slider" name="cameraspeed" rect="120 56 144 16"/>
+		<widget class="Checkbox" skin="button" rect="120 104 16 16" name="collision"/>
+		<widget template="slider" name="viewdistance" rect="120 8 144 16" anchor="tlr"/>
+		<widget template="slider" name="terraindetail" rect="120 32 144 16" anchor="tlr"/>
+		<widget template="slider" name="cameraspeed" rect="120 56 144 16" anchor="tlr"/>
 	</widget>
 
 

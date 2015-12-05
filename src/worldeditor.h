@@ -13,11 +13,12 @@
 
 class EditableTexture;
 
-namespace gui { class Button; class Combobox; }
+namespace gui { class Button; class Combobox; class Scrollbar; class Window; }
+namespace base { class INIFile; }
 
 class WorldEditor : public base::SceneState {
 	public:
-	WorldEditor();
+	WorldEditor(const base::INIFile&);
 	~WorldEditor();
 
 	void update();
@@ -40,6 +41,21 @@ class WorldEditor : public base::SceneState {
 	void showOpenDialog(gui::Button*);
 	void showSaveDialog(gui::Button*);
 	void showOptionsDialog(gui::Button*);
+
+	void createNewTerrain(gui::Button*);
+	void cancelNewTerrain(gui::Button*);
+	void changeTerrainMode(gui::Combobox*, int);
+	void browseTerrainSource(gui::Button*);
+	void setTerrainSource(const char* file);
+
+	void changeViewDistance(gui::Scrollbar*, int);
+	void changeDetail(gui::Scrollbar*, int);
+	void changeSpeed(gui::Scrollbar*, int);
+	void changeTabletMode(gui::Button*);
+	void changeCollision(gui::Button*);
+	void saveSettings(gui::Window* =0);
+
+
 	void selectToolGroup(gui::Combobox*, int);
 	void selectTool(ToolInstance*);
 
@@ -62,9 +78,11 @@ class WorldEditor : public base::SceneState {
 	base::HashMap<Object*> m_objects;
 
 	struct {
-		float speed;	// Camera speed
-		float lod;		// Terrain lod parameter
-		bool  collide;	// Camera collides with terrain
+		float distance;	 	// view distance
+		float speed;		// Camera speed
+		float detail;		// Terrain lod parameter
+		bool  collide;		// Camera collides with terrain
+		bool  tabletMode;	// Mouse is not grabbed
 	} m_options;
 	
 };

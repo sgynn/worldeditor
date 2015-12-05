@@ -20,7 +20,7 @@ class FileDialog : public gui::Window {
 	void setDirectory(const char* dir);
 	/** Set the current file name */
 	void setFileName(const char* name);
-	/** Set the file name filter */
+	/** Set the file name filter. Multiple filters separated by ',' */
 	void setFilter(const char* filter);
 	/** Set the default file extension appended to new files */
 	void setDefaultExtension(const char* ext);

@@ -106,6 +106,7 @@ void FileDialog::refreshFileList() {
 			bool matches = false;
 			char* p0;
 			for(char* p = m_filter; *p&&!matches; p=p0) {
+				if(*p==',') ++p;
 				for(p0=p; *p0&&*p0!=','; ++p0);
 				if(*p0) {
 					*p0=0; matches = match(i->name, p); *p0=',';
@@ -170,6 +171,7 @@ void FileDialog::showOpen() {
 	setVisible(true);
 	refreshFileList();
 	m_list->setFocus();
+	raise();
 }
 void FileDialog::showSave() {
 	setCaption("Save File");
@@ -177,6 +179,7 @@ void FileDialog::showSave() {
 	setVisible(true);
 	refreshFileList();
 	m_file->setFocus();
+	raise();
 }
 
 

@@ -28,10 +28,12 @@
 using namespace gui;
 using namespace base;
 
+#define INIFILE "settings.cfg"
+
 
 // Application entry point
 int main(int argc, char* argv[]) {
-	base::INIFile cfg = base::INIFile::load("settings.cfg");
+	base::INIFile cfg = base::INIFile::load(INIFILE);
 	base::INIFile::Section wnd = cfg["window"];
 
 	// System options
@@ -42,7 +44,7 @@ int main(int argc, char* argv[]) {
 
 
 	base::Game* game = base::Game::create(w,h,32,fs,aa);
-	game->setInitialState( new WorldEditor() );
+	game->setInitialState( new WorldEditor(cfg) );
 	game->run();
 
 	delete game;
@@ -52,19 +54,22 @@ int main(int argc, char* argv[]) {
 
 /** Make a world - this file will be a complete mess while I test stuff */
 
-WorldEditor::WorldEditor() : m_editor(0), m_heightMap(0) {
+WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0) {
 	m_renderer = new Render;
 	m_library = new Library;
 	m_library->addPath("data");
 
-	// Editor options - ToDo: load from cfg file
-	m_options.speed = 10;
-	m_options.lod = 4;
-	m_options.collide = true;
+	// Load editor options
+	INIFile::Section options = ini["settings"];
+	m_options.speed      = options.get("speed", 4);
+	m_options.detail     = options.get("detail", 4);
+	m_options.collide    = options.get("collision", true);
+	m_options.tabletMode = options.get("tablet", true);
+	m_options.distance   = options.get("distance", 10000);
 
 	// Run an fps camera for now
-	base::FPSCamera* cam = new base::FPSCamera(90, base::Game::aspect(), 0.01, 10000);
-	cam->setSpeed(1, 0.004);
+	base::FPSCamera* cam = new base::FPSCamera(90, base::Game::aspect(), 0.01, m_options.distance);
+	cam->setSpeed(m_options.speed, 0.004);
 	cam->setEnabled(false);
 	cam->lookat( vec3(10, 50, 10), vec3(100,0,100));
 	m_camera = cam;
@@ -82,6 +87,27 @@ WorldEditor::WorldEditor() : m_editor(0), m_heightMap(0) {
 	m_gui->getWidget<Button>("savemap")->eventPressed.bind(this, &WorldEditor::showSaveDialog);
 	m_gui->getWidget<Button>("options")->eventPressed.bind(this, &WorldEditor::showOptionsDialog);
 	m_gui->getWidget<Combobox>("toollist")->eventSelected.bind(this, &WorldEditor::selectToolGroup);
+
+	// New map dialog
+	Widget* newPanel = m_gui->getWidget<Widget>("newdialog");
+	newPanel->getWidget<Button>("create")->eventPressed.bind(this, &WorldEditor::createNewTerrain);
+	newPanel->getWidget<Button>("cancel")->eventPressed.bind(this, &WorldEditor::cancelNewTerrain);
+	newPanel->getWidget<Combobox>("mode")->eventSelected.bind(this, &WorldEditor::changeTerrainMode);
+	newPanel->getWidget<Button>("sourcebutton")->eventPressed.bind(this, &WorldEditor::browseTerrainSource);
+
+	// Settings
+	m_gui->getWidget<Scrollbar>("viewdistance")->eventChanged.bind(this, &WorldEditor::changeViewDistance);
+	m_gui->getWidget<Scrollbar>("terraindetail")->eventChanged.bind(this, &WorldEditor::changeDetail);
+	m_gui->getWidget<Scrollbar>("cameraspeed")->eventChanged.bind(this, &WorldEditor::changeSpeed);
+	m_gui->getWidget<Checkbox>("tabletmode")->eventChanged.bind(this, &WorldEditor::changeTabletMode);
+	m_gui->getWidget<Checkbox>("collision")->eventChanged.bind(this, &WorldEditor::changeCollision);
+	m_gui->getWidget<gui::Window>("settings")->eventClosed.bind(this, &WorldEditor::saveSettings);
+
+	m_gui->getWidget<Scrollbar>("viewdistance")->setValue((m_options.distance - 1000) / 10);
+	m_gui->getWidget<Scrollbar>("cameraspeed")->setValue(m_options.speed * 100);
+	m_gui->getWidget<Scrollbar>("terraindetail")->setValue((16-m_options.detail)/15 * 1000);
+	m_gui->getWidget<Checkbox>("tabletmode")->setSelected(m_options.tabletMode);
+	m_gui->getWidget<Checkbox>("collision")->setSelected(m_options.collide);
 }
 
 WorldEditor::~WorldEditor() {
@@ -130,8 +156,10 @@ void WorldEditor::update() {
 	
 
 	// Update camera
-	m_camera->update();
-	static_cast<base::FPSCamera*>(m_camera)->setEnabled( base::Game::Mouse()&4 );
+	FPSCamera* cam = static_cast<base::FPSCamera*>(m_camera);
+	cam->setEnabled( mb&4 );
+	cam->grabMouse( (mb&4) && !m_options.tabletMode );
+	cam->update();
 
 	// Collide with terrain
 	if(m_heightMap && m_options.collide) {
@@ -183,21 +211,108 @@ void WorldEditor::showNewDialog(Button*) {
 void WorldEditor::showOpenDialog(Button*) {
 	FileDialog* d = m_gui->getWidget<FileDialog>("filedialog");
 	d->eventConfirm.bind(this, &WorldEditor::loadWorld);
-	d->setFileName("");
 	d->setFilter("*.xml");
+	d->setFileName("");
 	d->showOpen();
 }
 void WorldEditor::showSaveDialog(Button*) {
 	FileDialog* d = m_gui->getWidget<FileDialog>("filedialog");
 	d->eventConfirm.bind(this, &WorldEditor::saveWorld);
-	d->setFileName("");
 	d->setFilter("*.xml");
+	d->setFileName("");
 	d->showSave();
 }
 void WorldEditor::showOptionsDialog(Button*) {
 	Widget* w = m_gui->getWidget<Widget>("settings");
 	if(w) w->setVisible(true);
 }
+// ----------------------------------------------------------- //
+
+void WorldEditor::createNewTerrain(gui::Button* b) {
+	cancelNewTerrain(0);
+	// Create new terrain
+	Widget* panel = b->getParent();
+	int mode = panel->getWidget<Combobox>("mode")->getSelectedIndex();
+	const char* source = panel->getWidget<Textbox>("source")->getText();
+	int size = panel->getWidget<Combobox>("size")->getSelectedData().getValue(128);
+	float height = panel->getWidget<Spinbox>("height")->getValue();
+	switch(mode) {
+	case 0: create(size, 1, 1, false); break;
+	case 1: create(size, 1, height/255.0, false); break;
+	case 2: create(size, 1, height/65535.0, false); break;
+	case 3: create(size, 1, height/255.0, true); break;
+	case 4: create(size, 1, height/65535.0, true); break;
+	}
+	// ToDo: convert source
+}
+void WorldEditor::cancelNewTerrain(gui::Button*) {
+	Widget* w = m_gui->getWidget<Widget>("newdialog");
+	if(w) w->setVisible(false);
+}
+void WorldEditor::changeTerrainMode(gui::Combobox* list, int index) {
+	bool streamed = index>2;
+	Combobox* sizes = list->getParent()->getWidget<Combobox>("size");
+	sizes->clearItems();
+	char buffer[32];
+	int min = streamed? 8: 6;
+	int max = streamed? 14: 10;
+	for(int i=min; i<=max; ++i) {
+		sprintf(buffer, "%dx%d", 1<<i, 1<<i);
+		sizes->addItem(buffer, 1<<i);
+	}
+	sizes->selectItem(0);
+}
+void WorldEditor::browseTerrainSource(gui::Button*) {
+	FileDialog* d = m_gui->getWidget<FileDialog>("filedialog");
+	d->eventConfirm.bind(this, &WorldEditor::setTerrainSource);
+	d->setFilter("*.png,*.tif,*.tiff");
+	d->setFileName("");
+	d->showOpen();
+}
+void WorldEditor::setTerrainSource(const char* file) {
+	Textbox* w = m_gui->getWidget<Textbox>("source");
+	if(w) w->setText(file);
+}
+
+// ----------------------------------------------------------- //
+
+void WorldEditor::changeViewDistance(Scrollbar*, int v) {
+	m_options.distance = 1000 + v * 9;
+	m_camera->adjustDepth(0.1, m_options.distance);
+}
+void WorldEditor::changeDetail(Scrollbar*, int v) {
+	if(m_streaming) {
+		float value = v / 1000.f;
+		m_options.detail = 16 - value * 15;
+		// Umm - need access somehow...
+	}
+}
+void WorldEditor::changeSpeed(Scrollbar*, int v) {
+	float value = v / 1000.f;
+	m_options.speed = value * 10;
+	static_cast<base::FPSCamera*>(m_camera)->setSpeed(m_options.speed, 0.004);
+}
+void WorldEditor::changeTabletMode(Button* b) {
+	m_options.tabletMode = b->isSelected();
+}
+
+void WorldEditor::changeCollision(Button* b) {
+	m_options.collide = b->isSelected();
+}
+
+void WorldEditor::saveSettings(gui::Window*) {
+	INIFile ini = INIFile::load(INIFILE);
+	INIFile::Section& settings = ini["settings"];
+	settings.set("distance", m_options.distance);
+	settings.set("speed",    m_options.speed);
+	settings.set("detail",   m_options.detail);
+	settings.set("tablet",   m_options.tabletMode);
+	settings.set("collision",m_options.collide);
+	ini.save(INIFILE);
+}
+
+// ----------------------------------------------------------- //
+
 
 void WorldEditor::selectToolGroup(Combobox* c, int index) {
 	ToolGroup* g = *c->getItemData(index).cast<ToolGroup*>();
@@ -267,6 +382,22 @@ void WorldEditor::addGroup(ToolGroup* group, const char* icon) {
 
 // ======================= Loading and Saving Maps ========================== //
 
+bool copyFile(const char* source, const char* dest) {
+	char buffer[BUFSIZ];
+	size_t size;
+	FILE* src = fopen(source, "rb");
+	if(!src) return false;
+	FILE* dst = fopen(dest, "wb");
+	while((size = fread(buffer, 1, BUFSIZ, src))) {
+		fwrite(buffer, 1, size, dst);
+	}
+	fclose(src);
+	fclose(dst);
+	return true;
+}
+bool deleteFile(const char* file) {
+	return remove(file) == 0;
+}
 
 inline int enumerate(const char* key, const char** values, int size) {
 	for(int i=0; i<size; ++i) {
@@ -294,6 +425,7 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 	if(streamed) {
 		Streamer* map = new Streamer(scale);
 		map->createStream("tmp.tiff", size, size, 1, 16);
+		map->setLod( m_options.detail );
 		map->addToScene(m_renderer);
 		m_heightMap = new StreamingHeightmapEditor(map);
 		m_objects["terrain"] = map;
@@ -351,6 +483,7 @@ void WorldEditor::loadWorld(const char* file) {
 		if(streamer->openStream( cat(path, source) )) {
 			streamer->addToScene(m_renderer);
 			streamer->setMaterial( m_library->material(material)  );
+			streamer->setLod( m_options.detail );
 			m_heightMap = new StreamingHeightmapEditor(streamer);
 			m_objects["terrain"] = streamer;
 			m_terrainOffset = streamer->getOffset().xz();
