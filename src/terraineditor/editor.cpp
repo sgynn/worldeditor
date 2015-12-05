@@ -33,6 +33,15 @@ void TerrainEditor::addTool(ToolInstance* t) {
 	if(t) m_tool.push_back(t);
 }
 
+const Brush& TerrainEditor::getBrush() const {
+	return m_brush;
+}
+void TerrainEditor::setBrush(const Brush& b) {
+	m_brush.radius = b.radius;
+	m_brush.strength = b.strength;
+	m_brush.falloff = b.falloff;
+}
+
 void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, int wheel, int shift) {
 	if(m_tool.empty() || !m_heightmap) return;
 

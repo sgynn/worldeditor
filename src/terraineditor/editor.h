@@ -30,6 +30,9 @@ class TerrainEditor {
 	void setTool(ToolInstance*);
 	void addTool(ToolInstance*);
 
+	const Brush& getBrush() const;
+	void setBrush(const Brush&);
+
 	void update(const vec3& rayStart, const vec3& rayDir, int btn, int wheel, int shift);
 	void draw();
 

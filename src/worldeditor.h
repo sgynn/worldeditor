@@ -58,6 +58,8 @@ class WorldEditor : public base::SceneState {
 
 	void selectToolGroup(gui::Combobox*, int);
 	void selectTool(ToolInstance*);
+	void changeBrushSlider(gui::Scrollbar*, int);
+	void updateBrushSliders();
 
 	private:
 	Render* m_renderer;

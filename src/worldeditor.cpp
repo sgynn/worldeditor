@@ -88,6 +88,10 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0) {
 	m_gui->getWidget<Button>("options")->eventPressed.bind(this, &WorldEditor::showOptionsDialog);
 	m_gui->getWidget<Combobox>("toollist")->eventSelected.bind(this, &WorldEditor::selectToolGroup);
 
+	m_gui->getWidget<Scrollbar>("brushsize")->eventChanged.bind(this, &WorldEditor::changeBrushSlider);
+	m_gui->getWidget<Scrollbar>("brushstrength")->eventChanged.bind(this, &WorldEditor::changeBrushSlider);
+	m_gui->getWidget<Scrollbar>("brushfalloff")->eventChanged.bind(this, &WorldEditor::changeBrushSlider);
+
 	// New map dialog
 	Widget* newPanel = m_gui->getWidget<Widget>("newdialog");
 	newPanel->getWidget<Button>("create")->eventPressed.bind(this, &WorldEditor::createNewTerrain);
@@ -108,6 +112,13 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0) {
 	m_gui->getWidget<Scrollbar>("terraindetail")->setValue((16-m_options.detail)/15 * 1000);
 	m_gui->getWidget<Checkbox>("tabletmode")->setSelected(m_options.tabletMode);
 	m_gui->getWidget<Checkbox>("collision")->setSelected(m_options.collide);
+
+	// Initail slignment - would be good to do this in the xml somehow
+	Widget* brush = m_gui->getWidget<Widget>("brushinfo");
+	Widget* shelf = m_gui->getWidget<Widget>("toolshelf");
+	if(brush) brush->setPosition( Game::width() - brush->getSize().x, 0);
+	if(shelf) shelf->setSize( Game::width() - shelf->getPosition().x - brush->getSize().x - 8, shelf->getSize().y);
+
 }
 
 WorldEditor::~WorldEditor() {
@@ -180,6 +191,7 @@ void WorldEditor::update() {
 		vec3 cp = m_camera->getPosition();
 		vec3 cd = m_camera->unproject( vec3(mouse.x, Game::height()-mouse.y, 1), Game::getSize() ) - cp;
 		m_editor->update(cp, cd, mb, mw, shift);
+		if(mw) updateBrushSliders();
 	}
 
 	// Update any objects
@@ -326,7 +338,36 @@ void WorldEditor::selectToolGroup(Combobox* c, int index) {
 
 void WorldEditor::selectTool(ToolInstance* t) {
 	m_editor->setTool(t);
+	updateBrushSliders();
 }
+
+// ----------------------------------------------------------- //
+
+void WorldEditor::changeBrushSlider(Scrollbar* s, int ival) {
+	if(!m_editor) return;
+	float v = ival / 1000.f;
+	Brush b = m_editor->getBrush();
+	int index = s->getPosition().y / 18;
+	switch(index) {
+	case 0: b.radius   = powf(v, 2) * 100; break;
+	case 1: b.strength = v; break;
+	case 2: b.falloff  = v; break;
+	default: return;
+	}
+	m_editor->setBrush(b);
+}
+void WorldEditor::updateBrushSliders() {
+	if(!m_editor) return;
+	const Brush& b = m_editor->getBrush();
+	Scrollbar* radius   = m_gui->getWidget<Scrollbar>("brushsize");
+	Scrollbar* strength = m_gui->getWidget<Scrollbar>("brushstrength");
+	Scrollbar* falloff  = m_gui->getWidget<Scrollbar>("brushfalloff");
+	if(radius)   radius->setValue( sqrt(b.radius/100) * 1000);
+	if(strength) strength->setValue( b.strength * 1000 );
+	if(falloff)  falloff->setValue( b.falloff * 1000 );
+}
+
+// ----------------------------------------------------------- //
 
 void closeMessageBox(Button* b) { b->getParent()->getParent()->setVisible(false); }
 void WorldEditor::messageBox(const char* c, const char* m, ...) {

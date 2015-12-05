@@ -111,8 +111,10 @@
 	</template>
 
 	<template name="droplist" class="Combobox" rect="0 0 100 20">
-		<widget name="_list" template="listbox" rect="0 20 100 200" anchor="blr"/>
 		<widget name="_text" class="Label" rect="0 0 100 20" anchor="trlb"/>
+		<widget name="_list" class="Listbox" rect="0 20 100 100" anchor="blr">
+			<widget name="_text" rect="2 0 80 20" skin="clear"/>
+		</widget>
 	</template>
 
 	<template name="toolgrouplist" class="Combobox" rect="0 0 100 32" skin="button">
@@ -163,7 +165,7 @@
 		</widget>
 		<widget template="droplist" rect="64 40 136 20" name="size" anchor="tlr"/>
 		<widget class="Label" rect="8 88 56 20" caption="Height" />
-		<widget template="spinbox" rect="64 88 136 20" name="height" value="300" anchor="tlr"/>
+		<widget template="spinbox" rect="64 88 136 20" name="height" value="300" max="10000" anchor="tlr"/>
 	</widget>
 
 
@@ -193,6 +195,16 @@
 	<widget name="toolshelf" rect="142 0 800 36">
 		<widget name="toollist" template="toolgrouplist" rect="2 2 160 32"/>
 		<!-- Other tools here -->
+	</widget>
+
+	<!-- Brush sliders -->
+	<widget name="brushinfo" rect="700 0 200 56">
+		<widget class="Label" caption="Size" rect="2 2 60 20"/>
+		<widget class="Label" caption="Weight" rect="2 20 60 20"/>
+		<widget class="Label" caption="Falloff" rect="2 38 60 20"/>
+		<widget template="slider" rect="60 2 130 16" name="brushsize"/>
+		<widget template="slider" rect="60 20 130 16" name="brushstrength"/>
+		<widget template="slider" rect="60 38 130 16" name="brushfalloff"/>
 	</widget>
 
 
