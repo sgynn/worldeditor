@@ -19,6 +19,7 @@
 #include "gui/lists.h"
 #include "widgets/filedialog.h"
 #include "widgets/toolbutton.h"
+#include "widgets/orderableitem.h"
 
 #include <cstdarg>
 
@@ -77,6 +78,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0) {
 	// Set up gui
 	Root::registerClass<FileDialog>();
 	Root::registerClass<ToolButton>();
+	Root::registerClass<OrderableItem>();
 	m_gui = new Root(Game::width(), Game::height());
 	m_gui->setRenderer( new gui::Renderer() );
 	m_gui->load("gui.xml");

@@ -50,6 +50,7 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 	int r = m_heightmap->castRay(rayStart, rayDir, hitDistance);
 	vec3 position = rayStart + rayDir * hitDistance;
 	if(r) m_brush.position = position.xz();
+	else { m_ring0.clear(); m_ring1.clear(); }
 
 	// Change brush size
 	if(wheel) {
