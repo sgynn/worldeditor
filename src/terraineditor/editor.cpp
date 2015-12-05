@@ -66,12 +66,34 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 	}
 
 	// Paint
+	static int lb = 0;
+	static vec2 lp;
 	if(btn&1) {
+		// Start
+		if(~lb&1) {
+			for(uint i=0; i<m_tool.size(); ++i) m_tool[i]->tool->begin();
+			lp = position.xz();
+		}
+		// Paint
+		float distance = m_brush.position.distance(lp);
+		float spacing = fmin(m_brush.getRadius(0.8), m_brush.radius * 0.4);
+		int samples = (int) floor(distance / spacing) + 1;
+		vec2 step = (lp - m_brush.position) / distance * spacing;
+		if(samples==1) step.set(0,0);
 		for(uint i=0; i<m_tool.size(); ++i) {
 			ToolInstance* t = m_tool[i];
-			t->tool->paint(m_brush, shift&1? t->shift: t->flags);
+			for(int j=0; j<samples; ++j) {
+				m_brush.position = position.xz() + step * j;
+				t->tool->paint(m_brush, shift&1? t->shift: t->flags);
+			}
+			t->tool->commit();
 		}
+		lp = position.xz();
+	} else if(lb&1) {
+		// End
+		for(uint i=0; i<m_tool.size(); ++i) m_tool[i]->tool->end();
 	}
+	lb = btn;
 }
 
 void TerrainEditor::updateRing(std::vector<vec3>& v, const vec3& c, float r) const {

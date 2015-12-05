@@ -21,6 +21,7 @@ class TextureTool : public TextureToolBase<ubyte> {
 	public:
 	TextureTool(EditableTexture* tex=0) : texture(tex) {}
 	virtual void paint(const Brush&, int flags);
+	virtual void commit() { texture->updateGPU(); }
 	EditableTexture* texture;
 };
 
@@ -30,6 +31,7 @@ class ColourTool : public TextureToolBase<float> {
 	public:
 	ColourTool(EditableTexture* tex=0) : texture(tex) {}
 	virtual void paint(const Brush&, int flags);
+	virtual void commit() { texture->updateGPU(); }
 	EditableTexture* texture;
 };
 
@@ -39,6 +41,7 @@ class MaterialTool : public TextureToolBase<ubyte> {
 	public:
 	MaterialTool(EditableTexture* w=0, EditableTexture* i=0) : weightMap(w), indexMap(i) {}
 	virtual void paint(const Brush&, int flags);
+	virtual void commit() { weightMap->updateGPU(); indexMap->updateGPU(); }
 
 	public:
 	EditableTexture* weightMap;

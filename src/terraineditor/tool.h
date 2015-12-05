@@ -27,6 +27,7 @@ class Tool {
 	virtual ~Tool() {}
 	virtual void begin() {}									// Begin brush stroke (mousedown)
 	virtual void paint(const Brush& brush, int flags) = 0;	// Paint (update / mousemove)
+	virtual void commit() {};								// End of paint update when painting
 	virtual void end() {}									// End brush stroke (mouseup)
 
 	void setResolution(float resolution, const vec2& offset=vec2()) {
