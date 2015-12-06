@@ -6,6 +6,10 @@
 #include <string>
 #include <set>
 
+using base::Shader;
+using base::FragmentShader;
+using base::VertexShader;
+
 DynamicMaterial::DynamicMaterial() : m_material(0) {
 }
 
@@ -58,6 +62,14 @@ size_t DynamicMaterial::size() const {
 	return m_layers.size();
 }
 
+// ------------------------------------------------------------------------------------------------------ //
+
+void DynamicMaterial::update(int index) {
+	// Set all the variables
+	//MaterialLayer* layer = m_layers[index];
+	// opacity, scale, autoValues
+}
+
 
 // ------------------------------------------------------------------------------------------------------ //
 
@@ -77,9 +89,10 @@ bool DynamicMaterial::compile() {
 
 	// Inputs
 	source +=
-	"varying vec3 worldNormal;\n"
-	"varying vec3 worldPos;\n\n"
-	"uniform vec3 lightDirection\n\n";
+	"//#version 130\n\n"
+	"in vec3 worldNormal;\n"
+	"in vec3 worldPos;\n\n"
+	"uniform vec3 lightDirection;\n\n";
 	
 	// Samplers
 	source +=
@@ -100,15 +113,16 @@ bool DynamicMaterial::compile() {
 	// Variables
 	for(size_t i=0; i<m_layers.size(); ++i) {
 		std::string index = str(i);
-		source += "uniform vec3 scale" + index + "\n";
-		source += "uniform float opacity" + index + "\n";
+		if(m_layers[i]->triplanar)	source += "uniform vec3 scale" + index + ";\n";
+		else                        source += "uniform vec2 scale" + index + ";\n";
+		source += "uniform float opacity" + index + ";\n";
 		if(m_layers[i]->type == LAYER_AUTO) source +=
-			"uniform vec4 autoMin" + index + ";\n"
-			"uniform vec4 autoMax" + index + ";\n"
-			"uniform vec4 autoBlend" + index + ";\n";
+			"uniform vec3 autoMin" + index + ";\n"
+			"uniform vec3 autoMax" + index + ";\n"
+			"uniform vec3 autoBlend" + index + ";\n";
 	}
 
-	source += "\n\n";
+	source += "\n\n//Utility functions\n";
 
 	// Functions
 	source +=
@@ -126,17 +140,17 @@ bool DynamicMaterial::compile() {
 	"	nX.xyz = nX.xyz * 2.0 - 1.0;\n"
 	"	nY.xyz = nY.xyz * 2.0 - 1.0;\n"
 	"	nZ.xyz = nZ.xyz * 2.0 - 1.0;\n"
-	"	if(dot(nX, normal)<0.0) nX.x = -nX.x;\n"
-	"	if(dot(nY, normal)<0.0) nY.y = -nY.y;\n"
-	"	if(dot(nZ, normal)<0.0) nZ.z = -nZ.z;\n"
-	"	vec3 normal = normalize(nX.xyz*weights.xxx + nY.xyz*weights.yyy + nZ.xyz*weights.zzz);\n"
-	"	return vec4(normal, nX.w*weights.x + nY.w*weights.y + nZ.w*weights.z);\n"
+	"	if(dot(nX.xyz, normal)<0.0) nX.x = -nX.x;\n"
+	"	if(dot(nY.xyz, normal)<0.0) nY.y = -nY.y;\n"
+	"	if(dot(nZ.xyz, normal)<0.0) nZ.z = -nZ.z;\n"
+	"	vec3 result = normalize(nX.xyz*weights.xxx + nY.xyz*weights.yyy + nZ.xyz*weights.zzz);\n"
+	"	return vec4(result, nX.w*weights.x + nY.w*weights.y + nZ.w*weights.z);\n"
 	"}\n";
 
 	source +=
 	"float getAutoWeight(vec3 value, vec3 vmin, vec3 vmax, vec3 vblend) {\n"
 	"	vec3 ctr = (vmin + vmax) * 0.5;\n"
-	"	vec3 r = smoothStep(ctr - min + blend, ctr - min, abs(value - ctr));\n"
+	"	vec3 r = smoothStep(ctr - vmin + blend, ctr - vmin, abs(value - ctr));\n"
 	"	return dot(r, vec3(1,1,1));\n"
 	"}\n";
 
@@ -153,28 +167,33 @@ bool DynamicMaterial::compile() {
 
 	source +=
 	"vec4 sampleNormal(float map, vec2 coord) {\n"
-	"	vec4 n texture3D(diffuseArray, vec3(coord, map));\n"
+	"	vec4 n = texture3D(diffuseArray, vec3(coord, map));\n"
 	"	return vec4(n.xyz * 2.0 - 1.0, n.w);\n"
 	"}\n\n\n";
 
 	// Main function
 	source +=
+	"// Main shader function\n"
 	"void main() {\n"
-	"	vec3 diffuse = vec3(1,1,1);\n"
-	"	vec3 normal = vec3(0,1,0);\n"
-	"	float gloss = 0;\n"
+	"	vec4 diffuse = vec4(1,1,1,1);\n"
+	"	vec4 normal = vec4(0,1,0,0);\n"
+	"	float gloss = 0.0;\n"
 	"	float height;\n"
 	"	float weight;\n"
 	"	vec4 diff, norm;\n"
 	"	vec3 triplanar = max( (abs(worldNormal) - 0.2) * 0.7, 0.0);\n"
 	"	triplanar /= dot(triplanar, vec3(1,1,1));\n"
+	"	vec3 autoValue = vec3(worldPos.y, worldNormal.y, 0.0);\n"
 	"	\n";
 
 	// Sample maps
-	for(MapList::iterator i=maps.begin(); i!=maps.end(); ++i) {
-		source +=  "	vec4 " + *i + "Sample = sampleMap(" + *i + "Map, " + *i + "Info);\n";
+	if(!maps.empty()) {
+		source +=  "	// Sample maps\n";
+		for(MapList::iterator i=maps.begin(); i!=maps.end(); ++i) {
+			source +=  "	vec4 " + *i + "Sample = sampleMap(" + *i + "Map, " + *i + "Info);\n";
+		}
+		source += "\n";
 	}
-	source += "\n\n";
 
 	// Apply layers
 	const std::string rgba[] = { "r", "g", "b", "a" };
@@ -210,11 +229,11 @@ bool DynamicMaterial::compile() {
 			"	diff = vec4(" + str(colour.r) + ", " + str(colour.g) + ", " + str(colour.b) + ", 0);\n"
 			"	norm = vec4(0,1 0,0);\n";
 		else if(layer->triplanar) source +=
-			"	diff = sampleTriplanar("+str(layer->texture)+", worldPos * scale"+index+", triplanar);\n"
-			"	norm = sampleTriplanerNormal("+str(layer->texture)+", worldPos * scale"+index+", worldNormal, triplanar);\n";
+			"	diff = sampleTriplanar("+str(layer->texture)+".0, worldPos * scale"+index+", triplanar);\n"
+			"	norm = sampleTriplanerNormal("+str(layer->texture)+".0, worldPos * scale"+index+", worldNormal, triplanar);\n";
 		else source += 
-			"	diff = sampleDiffuse("+str(layer->texture)+", worldPos * scale"+index+");\n"
-			"	norm = sampleNormal("+str(layer->texture)+", worldPos * scale"+index+");\n";
+			"	diff = sampleDiffuse("+str(layer->texture)+".0, worldPos.xz * scale"+index+");\n"
+			"	norm = sampleNormal("+str(layer->texture)+".0, worldPos.xz * scale"+index+");\n";
 
 
 		// Blending
@@ -222,16 +241,16 @@ bool DynamicMaterial::compile() {
 		case BLEND_NORMAL:
 		case BLEND_HEIGHT:
 			source += 
-			"	diffuse = mix(diffuse, diff, weight * opacity" + index + ")\n"
-			"	normal = mix(normal, norm, weight * opacity" + index + ")\n";
+			"	diffuse = mix(diffuse, diff, weight * opacity" + index + ");\n"
+			"	normal = mix(normal, norm, weight * opacity" + index + ");\n";
 			break;
 		case BLEND_MULTIPLY:
 			source += 
-			"	diffuse *= mix(vec4(1,1,1,1), diff, weight * opacity" + index + ")\n";
+			"	diffuse *= mix(vec4(1,1,1,1), diff, weight * opacity" + index + ");\n";
 			break;
 		case BLEND_ADD:
 			source += 
-			"	diffuse += diff * weight * opacity" + index + "\n";
+			"	diffuse += diff * weight * opacity" + index + ";\n";
 			break;
 			
 			
@@ -243,14 +262,31 @@ bool DynamicMaterial::compile() {
 	}
 
 	// Lighting (basic diffuse);
+	source +=  "	// Lighting\n";
 	source +=  "	gl_FragColor = diffuse * 0.1 + diffuse * 0.9 * dot(worldNormal, lightDirection);\n";
 	source += "}\n";
 
-	// Compile it ???
+	// Vertex shader - todo: add concavity attribute
+	static const char* vertexShader = 
+	"varying vec3 worldNormal;\n"
+	"varying vec3 worldPos;\n"
+	"void main() {\n"
+	"	gl_Position = ftransform();\n"
+	"	worldPos = gl_Vertex.xyz;\n"
+	"	worldNormal = gl_Normal;\n"
+	"}\n";
+
+	// Compile shader
+	const char* fragmentShader = source.c_str();
+	VertexShader vert = Shader::createVertex(&vertexShader);
+	FragmentShader frag = Shader::createFragment(&fragmentShader);
+	Shader shader = Shader::link(vert, frag);
+
 	
 	FILE* fp = fopen("shader.glsl", "w");
 	if(fp) fwrite(source.c_str(), 1, source.length(), fp);
 	if(fp) fclose(fp);
+
 
 	return false;
 }

@@ -72,6 +72,11 @@ Material* Library::material(const char* name) {
 }
 
 Texture Library::texture(const char* name, bool mip) {
+	static const Texture::Format formats[] = {
+		Texture::NONE, Texture::R8, Texture::RG8, Texture::RGB8, Texture::RGBA8,
+		Texture::DXT1, Texture::DXT3, Texture::DXT5
+	};
+
 	TextureMap::iterator it = m_textures.find(name);
 	if(it==m_textures.end()) {
 		// Load material
@@ -84,11 +89,8 @@ Texture Library::texture(const char* name, bool mip) {
 				if(dds.format) {
 					// Create texture from DDS data
 					printf("Load %s mip=%d\n", name, dds.mipmaps);
-					uint fmt[] = { 0, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA,
-						GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT };
-
-					const ubyte*const* data = dds.data;
-					base::Texture tex = base::Texture::create1(dds.width, dds.height, fmt[dds.format], data, dds.mipmaps);
+					void** data = (void**)dds.data;
+					base::Texture tex = base::Texture::create(Texture::TEX2D, dds.width, dds.height, 1, formats[dds.format], data, dds.mipmaps+1);
 					m_textures.insert(name, tex);
 					return tex;
 				}
@@ -97,7 +99,7 @@ Texture Library::texture(const char* name, bool mip) {
 				if(!png.data) printf("Invalid image %s\n", name);
 				else {
 					printf("Load %s mip=%d\n", name, mip);
-					base::Texture tex = base::Texture::create(png.width, png.height, png.bpp/8, png.data, mip);
+					base::Texture tex = base::Texture::create(png.width, png.height, formats[png.bpp/8], png.data, mip);
 					if(mip) tex.setFilter(base::Texture::TRILINEAR);
 					m_textures.insert(name, tex);
 					return tex;
@@ -258,6 +260,6 @@ void Library::createDefaultTexture(const char* name, int rgb, int a) {
 	for(int i=1; i<64; ++i) {
 		memcpy(data + i*4, data, 4);
 	}
-	m_textures[name] = Texture::create(8, 8, Texture::RGBA, data);
+	m_textures[name] = Texture::create(8, 8, Texture::RGBA8, data);
 }
 

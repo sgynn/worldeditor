@@ -548,7 +548,7 @@ void WorldEditor::loadWorld(const char* file) {
 					layer->opacity = j->attribute("opacity", 1.f);
 					layer->texture = j->attribute("texture", -1);
 					layer->colour = j->attribute("colour", 0xffffff);
-					layer->triplanar = j->attribute("triplanar", 0);
+					layer->triplanar = strcmp(j->attribute("mode"), "triplanar")==0;
 					layer->scale = vec3(1,1,1) * j->attribute("scale", 10.f);
 
 					if(mode<3) {

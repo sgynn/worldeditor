@@ -51,7 +51,7 @@ class DynamicMaterial {
 	size_t size() const;
 
 	bool            compile();				// Generate the shader
-	void            update();				// Update constant buffers (need shared params)
+	void            update(int layer);		// Update constant buffers (need shared params)
 	base::Material* getMaterial() const;	// Get material pointer
 
 	protected:

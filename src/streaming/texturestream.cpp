@@ -93,7 +93,7 @@ void TextureStream::createTexture(int x, int y) {
 	char* data = new char[ r.width * r.height * pixelSize() ];
 	getPixels(r, data);
 	if(m_textures[k].width()!=r.width) {
-		m_textures[k] = Texture::create(r.width, r.height, channels(), data);
+		m_textures[k] = Texture::create(r.width, r.height, (Texture::Format) channels(), data);
 		m_textures[k].setWrap( Texture::CLAMP );
 	} else {
 		const GLenum formats[] = { 0, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
@@ -108,7 +108,7 @@ void TextureStream::createGlobalTexture(int size) {
 	// On the offchance that the image is small
 	if(width()<=size && height()<=size) {
 		char* data = new char[ width() * height() * pixelSize() ];
-		m_global = Texture::create(width(), height(), channels(), data);
+		m_global = Texture::create(width(), height(), (Texture::Format) channels(), data);
 		delete [] data;
 		printf("No global texture\n");
 		return;
@@ -116,7 +116,7 @@ void TextureStream::createGlobalTexture(int size) {
 
 	// white
 	char d[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	m_global = Texture::create(4,4,1,d);
+	m_global = Texture::create(4, 4, Texture::R8, d);
 	return;
 
 	// lets just use nearest pixel for now
@@ -125,7 +125,7 @@ void TextureStream::createGlobalTexture(int size) {
 		char* p = data + (x + y*size) * pixelSize();
 		getPixel(x*width()/size, y*height()/size, p);
 	}
-	m_global = Texture::create(size, size, channels(), data);
+	m_global = Texture::create(size, size, (Texture::Format)channels(), data);
 	printf("Global texture created\n");
 	delete [] data;
 }
