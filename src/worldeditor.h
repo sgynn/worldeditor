@@ -12,6 +12,7 @@
 #include <list>
 
 class EditableTexture;
+class DynamicMaterial;
 
 namespace gui { class Button; class Combobox; class Scrollbar; class Window; }
 namespace base { class INIFile; }
@@ -74,6 +75,7 @@ class WorldEditor : public base::SceneState {
 
 	// Terrain textures
 	base::HashMap<EditableTexture*> m_textures;
+	std::vector<DynamicMaterial*> m_materials;
 	
 
 	// Object list

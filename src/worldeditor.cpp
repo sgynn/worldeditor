@@ -26,6 +26,8 @@
 #include "terraineditor/heighttools.h"
 #include "terraineditor/texturetools.h"
 
+#include "dynamicmaterial.h"
+
 using namespace gui;
 using namespace base;
 
@@ -247,7 +249,7 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	// Create new terrain
 	Widget* panel = b->getParent();
 	int mode = panel->getWidget<Combobox>("mode")->getSelectedIndex();
-	const char* source = panel->getWidget<Textbox>("source")->getText();
+	//const char* source = panel->getWidget<Textbox>("source")->getText();
 	int size = panel->getWidget<Combobox>("size")->getSelectedData().getValue(128);
 	float height = panel->getWidget<Spinbox>("height")->getValue();
 	switch(mode) {
@@ -464,6 +466,13 @@ inline const char* cat(const char* a, const char* b, const char* c=0, const char
 	return buffer;
 }
 
+void readAutoParams(const XMLElement& e, AutoParams& p) {
+	p.min   = e.attribute("min", p.min);
+	p.max   = e.attribute("max", p.max);
+	p.blend = e.attribute("blend", p.blend);
+	p.noise = e.attribute("noise", p.noise);
+}
+
 void WorldEditor::create(int size, float res, float scale, bool streamed) {
 	if(streamed) {
 		Streamer* map = new Streamer(scale);
@@ -518,6 +527,49 @@ void WorldEditor::loadWorld(const char* file) {
 	// Material
 	const XMLElement& matData = terrain.find("material");
 	const char* material = matData.attribute("file", "default.mat");
+
+	// Load materials
+	const char* layerTypes[] = { "auto", "weight", "colour", "indexed" };
+	const char* blendModes[] = { "normal", "height", "multiply", "add" };
+	const char* channels[]   = { "r", "g", "b", "a", "x" };
+	for(XML::iterator i=terrain.begin(); i!=terrain.end(); ++i) {
+		if(*i == "material") {
+			DynamicMaterial* mat = new DynamicMaterial();
+			mat->setName( i->attribute("name") );
+			m_materials.push_back(mat);
+			// read layers
+			for(XML::iterator j=i->begin(); j!=i->end(); ++j) {
+				if(*j=="layer") {
+					int mode = enumerate(j->attribute("type", "normal"), layerTypes, 4);
+					MaterialLayer* layer = mat->addLayer((LayerType) mode);
+					layer->name = j->attribute("name");
+					layer->blend = (::BlendMode) enumerate(j->attribute("blend", "normal"), blendModes, 4);
+					layer->blendScale = j->attribute("blendscale", 1.f);
+					layer->opacity = j->attribute("opacity", 1.f);
+					layer->texture = j->attribute("texture", -1);
+					layer->colour = j->attribute("colour", 0xffffff);
+					layer->triplanar = j->attribute("triplanar", 0);
+					layer->scale = vec3(1,1,1) * j->attribute("scale", 10.f);
+
+					if(mode<3) {
+						layer->map = j->attribute("map");
+						layer->mapData = enumerate(j->attribute("channel", "r"), channels, 5);
+					} else {
+						layer->map = j->attribute("weightmap");
+						layer->map2 = j->attribute("indexmap");
+						layer->mapData = j->attribute("offset", 0);
+					}
+
+					if(mode==0) {
+						readAutoParams( j->find("height"), layer->height );
+						readAutoParams( j->find("slope"), layer->slope );
+						readAutoParams( j->find("concavity"), layer->concavity );
+					}
+				}
+			}
+			mat->compile();
+		}
+	}
 
 
 	// Create terrain - maybe use a plugin system for different types?
