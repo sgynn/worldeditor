@@ -89,7 +89,7 @@ bool DynamicMaterial::compile() {
 
 	// Inputs
 	source +=
-	"//#version 130\n\n"
+	"#version 130\n\n"
 	"in vec3 worldNormal;\n"
 	"in vec3 worldPos;\n\n"
 	"uniform vec3 lightDirection;\n\n";
@@ -128,15 +128,15 @@ bool DynamicMaterial::compile() {
 	source +=
 	"vec4 sampleTriplanar(float map, vec3 coord, vec3 weights) {\n"
 	"	vec4 c = vec4(coord.xyz, map);\n"
-	"	return texture3D(diffuseArray, c.yzw)*weights.xxxx + texture3D(diffuseArray, c.zxw)*weights.yyyy + texture3D(diffuseArray, c.xyw)*weights.zzzz;\n"
+	"	return texture(diffuseArray, c.yzw)*weights.xxxx + texture(diffuseArray, c.zxw)*weights.yyyy + texture(diffuseArray, c.xyw)*weights.zzzz;\n"
 	"}\n";
 
 	source +=
 	"vec4 sampleTriplanerNormal(float map, vec3 coord, vec3 normal, vec3 weights) {\n"
 	"	vec4 c = vec4(coord.xyz, map);\n"
-	"	vec4 nX = texture3D(normalArray, c.yzw);\n"
-	"	vec4 nY = texture3D(normalArray, c.zxw);\n"
-	"	vec4 nZ = texture3D(normalArray, c.xyw);\n"
+	"	vec4 nX = texture(normalArray, c.yzw);\n"
+	"	vec4 nY = texture(normalArray, c.zxw);\n"
+	"	vec4 nZ = texture(normalArray, c.xyw);\n"
 	"	nX.xyz = nX.xyz * 2.0 - 1.0;\n"
 	"	nY.xyz = nY.xyz * 2.0 - 1.0;\n"
 	"	nZ.xyz = nZ.xyz * 2.0 - 1.0;\n"
@@ -150,24 +150,24 @@ bool DynamicMaterial::compile() {
 	source +=
 	"float getAutoWeight(vec3 value, vec3 vmin, vec3 vmax, vec3 vblend) {\n"
 	"	vec3 ctr = (vmin + vmax) * 0.5;\n"
-	"	vec3 r = smoothStep(ctr - vmin + blend, ctr - vmin, abs(value - ctr));\n"
+	"	vec3 r = smoothstep(ctr - vmin + vblend, ctr - vmin, abs(value - ctr));\n"
 	"	return dot(r, vec3(1,1,1));\n"
 	"}\n";
 
 	source +=
 	"vec4 sampleMap(sampler2D map, vec4 info, vec2 coord) {\n"
 	"	coord = (coord - info.xy) * info.zw;\n"
-	"	return texture2d(map, coord);\n"
+	"	return texture(map, coord);\n"
 	"}\n";
 
 	source +=
 	"vec4 sampleDiffuse(float map, vec2 coord) {\n"
-	"	return texture3D(diffuseArray, vec3(coord, map));\n"
+	"	return texture(diffuseArray, vec3(coord, map));\n"
 	"}\n";
 
 	source +=
 	"vec4 sampleNormal(float map, vec2 coord) {\n"
-	"	vec4 n = texture3D(diffuseArray, vec3(coord, map));\n"
+	"	vec4 n = texture(diffuseArray, vec3(coord, map));\n"
 	"	return vec4(n.xyz * 2.0 - 1.0, n.w);\n"
 	"}\n\n\n";
 
