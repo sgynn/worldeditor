@@ -50,7 +50,7 @@ class Streamer : public Object, public BufferedStream {
 	public: // Object functions
 	void addToScene(Render* r);
 	void removeFromScene(Render* r);
-	void setMaterial(Material* m);
+	void setMaterial(const DynamicMaterial* m);
 
 	void addTexture(const char* name, TextureStream*);
 	void addTexture(const char* name, const Texture&);
@@ -88,6 +88,9 @@ class StreamingHeightmapEditor : public HeightmapEditorInterface {
 
 	int getHeights(const Rect&, float*) const;
 	int setHeights(const Rect&, const float*);
+
+	void setDetail(float d)         { m_map->setLod(d); }
+	void setMaterial(const DynamicMaterial* m)   { m_map->setMaterial(m); }
 };
 
 

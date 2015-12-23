@@ -119,7 +119,7 @@ void TextureStream::createGlobalTexture(int size) {
 	m_global = Texture::create(4, 4, Texture::R8, d);
 	return;
 
-	// lets just use nearest pixel for now
+	// lets just use nearest pixel for now (super slow - perhaps back thread it)
 	char* data = new char[ size * size * pixelSize() ];
 	for(int x=0; x<size; ++x) for(int y=0; y<size; ++y) {
 		char* p = data + (x + y*size) * pixelSize();
@@ -172,6 +172,23 @@ void MaterialStream::setTexture(const char* name, const Texture& tex) {
 		for(int i=0; i<m_divisions*m_divisions; ++i) {
 			if(m_materials[i].material) m_materials[i].material->setTexture(name, tex);
 		}
+	}
+}
+
+void MaterialStream::copyParam(const char* name) {
+	float values[4];
+	int n = m_template->getFloatv(name, values);
+	if(n==0) return;
+	if(m_global) m_global->setFloatv(name, n, values);
+	for(int i=0; i<m_divisions*m_divisions; ++i) {
+		if(m_materials[i].ref) m_materials[i].material->setFloatv(name, n, values);
+	}
+}
+
+void MaterialStream::updateShader() {
+	if(m_global) m_global->setShader( m_template->getShader() );
+	for(int i=0; i<m_divisions*m_divisions; ++i) {
+		if(m_materials[i].ref) m_materials[i].material->setShader( m_template->getShader() );
 	}
 }
 
@@ -256,6 +273,10 @@ void MaterialStream::build() {
 
 int MaterialStream::getDivisions() const {
 	return m_divisions;
+}
+
+Material* MaterialStream::getTemplate() const {
+	return m_template;
 }
 
 Material* MaterialStream::getGlobal() {

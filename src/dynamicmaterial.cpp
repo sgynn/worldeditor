@@ -1,4 +1,5 @@
 #include "dynamicmaterial.h"
+#include "streaming/texturestream.h"
 #include <base/material.h>
 #include <base/colour.h>
 
@@ -9,8 +10,10 @@
 using base::Shader;
 using base::FragmentShader;
 using base::VertexShader;
+using base::Material;
+using base::Texture;
 
-DynamicMaterial::DynamicMaterial() : m_material(0) {
+DynamicMaterial::DynamicMaterial(bool stream) : m_material(0), m_stream(0), m_streaming(stream) {
 }
 
 DynamicMaterial::~DynamicMaterial() {
@@ -64,10 +67,46 @@ size_t DynamicMaterial::size() const {
 
 // ------------------------------------------------------------------------------------------------------ //
 
+// Warning: use carefuly as buffer is shared */
+const char* addIndex(const char* base, int index) {
+	static char buffer[32];
+	sprintf(buffer, "%s%d", base, index);
+	return buffer;
+}
+
 void DynamicMaterial::update(int index) {
 	// Set all the variables
-	//MaterialLayer* layer = m_layers[index];
-	// opacity, scale, autoValues
+	MaterialLayer* layer = m_layers[index];
+	m_material->setFloat( addIndex("opacity",index), layer->opacity);
+	m_material->setFloatv( addIndex("scale",index), layer->triplanar? 3: 2, layer->scale);
+
+	if(m_stream) {
+		m_stream->copyParam( addIndex("opacity",index) );
+		m_stream->copyParam( addIndex("scale",index) );
+	}
+	
+	if(layer->type == LAYER_AUTO) {
+		vec3 min(layer->height.min, layer->slope.min, layer->concavity.min);
+		vec3 max(layer->height.max, layer->slope.max, layer->concavity.max);
+		vec3 blend(layer->height.blend, layer->slope.blend, layer->concavity.blend);
+		//vec3 noise(layer->height.noise, layer->slope.noise, layer->concavity.noise);
+		m_material->setFloat3( addIndex("autoMin",index), min);
+		m_material->setFloat3( addIndex("autoMax",index), max);
+		m_material->setFloat3( addIndex("autoBlend",index), blend);
+		//m_material->setFloat3( addIndex("autoNoise",index), noise);
+		
+		if(m_stream) {
+			m_stream->copyParam( addIndex("autoMin",index) );
+			m_stream->copyParam( addIndex("autoMax",index) );
+			m_stream->copyParam( addIndex("autoBlend",index) );
+		}
+	}
+
+	// Textures - needs access to EditableMaterial map
+	if(layer->map) {
+		
+		
+	}
 }
 
 
@@ -75,6 +114,9 @@ void DynamicMaterial::update(int index) {
 
 base::Material* DynamicMaterial::getMaterial() const {
 	return m_material;
+}
+MaterialStream* DynamicMaterial::getStream() const {
+	return m_stream;
 }
 
 #define MakeString(format, value) static char b[32]; sprintf(b,format,value); return b;
@@ -252,11 +294,7 @@ bool DynamicMaterial::compile() {
 			source += 
 			"	diffuse += diff * weight * opacity" + index + ";\n";
 			break;
-			
-			
-			
 		}
-
 
 		source += "\n";
 	}
@@ -282,7 +320,24 @@ bool DynamicMaterial::compile() {
 	FragmentShader frag = Shader::createFragment(&fragmentShader);
 	Shader shader = Shader::link(vert, frag);
 
+
+	// Setup material
+	if(!m_material) m_material = new Material();
+	m_material->setShader(shader);
+
+	// Streamed material
+	if(m_streaming) {
+		if(!m_stream) m_stream = new MaterialStream(m_material);
+		m_stream->updateShader();
+	}
+
+	// Initialise variables
+	for(size_t i=0; i<m_layers.size(); ++i) {
+		update(i);
+	}
+
 	
+	// DEBUG: save generated shader
 	FILE* fp = fopen("shader.glsl", "w");
 	if(fp) fwrite(source.c_str(), 1, source.length(), fp);
 	if(fp) fclose(fp);

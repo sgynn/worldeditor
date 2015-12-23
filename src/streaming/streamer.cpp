@@ -3,6 +3,7 @@
 #include "tiff.h"
 #include "render/render.h"
 #include "texturestream.h"
+#include "dynamicmaterial.h"
 
 #include <base/opengl.h>
 #include <cstdio>
@@ -32,21 +33,8 @@ void Streamer::streamOpened() {
 	m_land->setPatchCallbacks(Streamer::patchCreated, Streamer::patchDestroyed);
 	m_land->setHeightFunction(Streamer::heightFunc);
 	m_drawable = new StreamerDrawable(m_land);
-
-	/*
-	// Ok, lets try adding a streamed texture overlay ...
-	m_overlay = new MaterialStream(&m_material);
-	TextureStream* ts = new TextureStream();
-	ts->openStream("maps/kenshi_colour.tif");
-	if(ts->channels() > 0) {
-		m_overlay->addStream("colour", ts);
-		ts->initialise(2048, false);
-		m_overlay->setCoordinates(vec2(size,size), m_offset.xz());
-		m_overlay->initialise();
-		m_drawable->m_overlay = m_overlay;
-	}
-	*/
 }
+
 void Streamer::closeStream() {
 	BufferedStream::closeStream();
 	if(m_land) delete m_land;
@@ -59,10 +47,9 @@ void Streamer::setLod(float value) {
 	if(m_land) m_land->setThreshold(value);
 }
 
-void Streamer::setMaterial(Material* m) {
+void Streamer::setMaterial(const DynamicMaterial* m) {
 	float size = m_stream->width() & ~1;
-	if(m_material) delete m_material;
-	m_material = new MaterialStream(m);
+	m_material = m->getStream();
 	m_material->setCoordinates(vec2(size,size), m_offset.xz());
 }
 

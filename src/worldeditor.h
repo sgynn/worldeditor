@@ -13,6 +13,7 @@
 
 class EditableTexture;
 class DynamicMaterial;
+class MaterialEditor;
 
 namespace gui { class Button; class Combobox; class Scrollbar; class Window; }
 namespace base { class INIFile; }
@@ -74,8 +75,8 @@ class WorldEditor : public base::SceneState {
 	std::vector<ToolGroup*> m_groups;		// Terrain tool groups
 
 	// Terrain textures
-	base::HashMap<EditableTexture*> m_textures;
-	std::vector<DynamicMaterial*> m_materials;
+	base::HashMap<EditableTexture*> m_imageMaps;
+	MaterialEditor* m_materials;
 	
 
 	// Object list

@@ -5,6 +5,10 @@
 #include "tool.h"
 #include <vector>
 
+namespace base { class Material; }
+class EditableTexture;
+class DynamicMaterial;
+
 /** Access interface for heightmap data */
 class HeightmapEditorInterface {
 	public:
@@ -16,6 +20,9 @@ class HeightmapEditorInterface {
 
 	virtual int getHeights(const Rect& rect, float* array) const = 0;
 	virtual int setHeights(const Rect& rect, const float* array) = 0;
+
+	virtual void setDetail(float detail) {}
+	virtual void setMaterial(const DynamicMaterial*) = 0;
 };
 
 

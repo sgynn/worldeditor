@@ -53,6 +53,8 @@ class SimpleHeightmapEditor : public HeightmapEditorInterface {
 
 	int setHeights(const Rect&, const float*);
 	int getHeights(const Rect&, float*) const;
+
+	void setMaterial(const DynamicMaterial* m);
 };
 
 #endif

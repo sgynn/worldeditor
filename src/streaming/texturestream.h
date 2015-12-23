@@ -48,11 +48,14 @@ class MaterialStream {
 	void removeStream(TextureStream*);							// remove a texture layer
 
 	void setTexture(const char* name, const Texture& texture);	// Set non-streamed texture
+	void copyParam(const char* name);							// Copy a variable from template to all generated materials
+	void updateShader();
 
-	int       getDivisions() const;
-	Material* getGlobal();
-	Material* getMaterial(int x, int y);
-	void      dropMaterial(Material* m);
+	int       getDivisions() const;			// Number of subdivisions
+	Material* getTemplate() const;			// Get template material. This is the one sent in the constructor.
+	Material* getGlobal();					// Get/create global texture.
+	Material* getMaterial(int x, int y);	// Get a sub material
+	void      dropMaterial(Material* m);	// Dereference a sub material
 
 	protected:
 	struct Stream {

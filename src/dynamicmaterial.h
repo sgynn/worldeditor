@@ -7,6 +7,7 @@
 
 namespace base { class Material; }
 using gui::String;
+class MaterialStream;
 
 
 
@@ -40,24 +41,28 @@ struct MaterialLayer {
 
 class DynamicMaterial {
 	public:
-	DynamicMaterial();
+	DynamicMaterial(bool stream=false);
 	~DynamicMaterial();
 
 	void setName(const char*);
 	const char* getName() const;
 
+	size_t         size() const;
 	MaterialLayer* addLayer(LayerType);
 	MaterialLayer* getLayer(int index) const;
-	size_t size() const;
+	void           removeLayer(int index);
 
 	bool            compile();				// Generate the shader
 	void            update(int layer);		// Update constant buffers (need shared params)
 	base::Material* getMaterial() const;	// Get material pointer
+	MaterialStream* getStream() const;		// Get material stream;
 
 	protected:
 	String m_name;
 	std::vector<MaterialLayer*> m_layers;
 	base::Material* m_material;
+	MaterialStream* m_stream;
+	bool            m_streaming;
 };
 
 

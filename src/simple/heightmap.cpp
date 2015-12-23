@@ -1,5 +1,6 @@
 #include "heightmap.h"
 #include "render/render.h"
+#include "dynamicmaterial.h"
 
 
 SimpleHeightmap::SimpleHeightmap() : m_width(0), m_height(0), m_drawable(0) {
@@ -170,6 +171,10 @@ int SimpleHeightmapEditor::setHeights(const Rect& r, const float* data) {
 }
 int SimpleHeightmapEditor::getHeights(const Rect& r, float* data) const {
 	return 0;
+}
+
+void SimpleHeightmapEditor::setMaterial(const DynamicMaterial* m) {
+	m_map->setMaterial( m->getMaterial() );
 }
 
 
