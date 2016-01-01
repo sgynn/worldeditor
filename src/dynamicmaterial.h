@@ -8,7 +8,7 @@
 namespace base { class Material; }
 using gui::String;
 class MaterialStream;
-
+class MaterialEditor;
 
 
 enum LayerType { LAYER_AUTO, LAYER_WEIGHT, LAYER_COLOUR, LAYER_INDEXED };
@@ -53,9 +53,10 @@ class DynamicMaterial {
 	void           removeLayer(int index);
 
 	bool            compile();				// Generate the shader
+	void			setTextures(MaterialEditor* src);	// Bind textures to material
 	void            update(int layer);		// Update constant buffers (need shared params)
 	base::Material* getMaterial() const;	// Get material pointer
-	MaterialStream* getStream() const;		// Get material stream;
+	MaterialStream* getStream() const;		// Get material stream
 
 	protected:
 	String m_name;

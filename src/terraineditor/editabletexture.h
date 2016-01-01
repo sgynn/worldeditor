@@ -31,6 +31,7 @@ class EditableTexture {
 
 	Mode getMode() const;							// Get texture usage mode
 	const base::Texture& getTexture() const;		// Get gpu texture (if applicable)
+	TextureStream* getTextureStream() const;		// Get texture stream (if applicable)
 	int getChannels() const;						// Get number of channels in image
 	int getWidth() const;							// Get image width
 	int getHeight() const;							// Get image height

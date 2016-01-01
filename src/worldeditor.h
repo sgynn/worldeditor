@@ -75,9 +75,7 @@ class WorldEditor : public base::SceneState {
 	std::vector<ToolGroup*> m_groups;		// Terrain tool groups
 
 	// Terrain textures
-	base::HashMap<EditableTexture*> m_imageMaps;
 	MaterialEditor* m_materials;
-	
 
 	// Object list
 	base::HashMap<Object*> m_objects;

@@ -49,7 +49,8 @@ class MaterialStream {
 
 	void setTexture(const char* name, const Texture& texture);	// Set non-streamed texture
 	void copyParam(const char* name);							// Copy a variable from template to all generated materials
-	void updateShader();
+	void updateShader();										// Copy shader program from template
+	void build();												// Ensure submaterias are created
 
 	int       getDivisions() const;			// Number of subdivisions
 	Material* getTemplate() const;			// Get template material. This is the one sent in the constructor.
@@ -72,7 +73,6 @@ class MaterialStream {
 
 	void setStreamTexture(Material* m, const Stream&, int x, int y);
 	void dropMaterial(SubMaterial&);
-	void build();
 
 	protected:
 	std::vector<Stream> m_streams;	// Attached texture streams

@@ -1,5 +1,7 @@
 #include "dynamicmaterial.h"
+#include "materialeditor.h"
 #include "streaming/texturestream.h"
+#include "terraineditor/editabletexture.h"
 #include <base/material.h>
 #include <base/colour.h>
 
@@ -67,6 +69,15 @@ size_t DynamicMaterial::size() const {
 
 // ------------------------------------------------------------------------------------------------------ //
 
+
+#define MakeString(format, value) static char b[32]; sprintf(b,format,value); return b;
+std::string str(int v) { MakeString("%d", v); }
+std::string str(size_t v) { MakeString("%lu", v); }
+std::string str(float v) { MakeString("%g", v); }
+std::string str(const char* s) { return s; }
+std::string str(const String& s) { return (const char*)s; }
+
+
 // Warning: use carefuly as buffer is shared */
 const char* addIndex(const char* base, int index) {
 	static char buffer[32];
@@ -75,10 +86,11 @@ const char* addIndex(const char* base, int index) {
 }
 
 void DynamicMaterial::update(int index) {
+	printf("Variables updated (%d)\n", index);
 	// Set all the variables
 	MaterialLayer* layer = m_layers[index];
 	m_material->setFloat( addIndex("opacity",index), layer->opacity);
-	m_material->setFloatv( addIndex("scale",index), layer->triplanar? 3: 2, layer->scale);
+	m_material->setFloatv( addIndex("scale",index), layer->triplanar? 3: 2, 1.0 / layer->scale);
 
 	if(m_stream) {
 		m_stream->copyParam( addIndex("opacity",index) );
@@ -101,14 +113,35 @@ void DynamicMaterial::update(int index) {
 			m_stream->copyParam( addIndex("autoBlend",index) );
 		}
 	}
-
-	// Textures - needs access to EditableMaterial map
-	if(layer->map) {
-		
-		
-	}
 }
 
+void DynamicMaterial::setTextures(MaterialEditor* src) {
+	if(!m_material) return;
+	if(m_stream) m_stream->build();
+
+	// Textures
+	m_material->setTexture("diffuseArray", src->getDiffuseArray());
+	m_material->setTexture("normalArray", src->getNormalArray());
+	if(m_stream) {
+		m_stream->setTexture("diffuseArray", src->getDiffuseArray());
+		m_stream->setTexture("normalArray", src->getNormalArray());
+		printf("Textures set\n");
+	}
+
+	// Bind all the maps
+	typedef std::set<const char*> MapList;
+	MapList maps;
+	for(size_t i=0; i<m_layers.size(); ++i) {
+		if(m_layers[i]->map  && m_layers[i]->map[0])  maps.insert( m_layers[i]->map );
+		if(m_layers[i]->map2 && m_layers[i]->map2[0]) maps.insert( m_layers[i]->map2 );
+		update(i);
+	}
+	for(MapList::iterator i=maps.begin(); i!=maps.end(); ++i) {
+		EditableTexture* map = src->getMap(*i);
+		m_material->setTexture(*i, map->getTexture());
+		if(m_stream) m_stream->addStream(*i, map->getTextureStream());
+	}
+}
 
 // ------------------------------------------------------------------------------------------------------ //
 
@@ -118,13 +151,6 @@ base::Material* DynamicMaterial::getMaterial() const {
 MaterialStream* DynamicMaterial::getStream() const {
 	return m_stream;
 }
-
-#define MakeString(format, value) static char b[32]; sprintf(b,format,value); return b;
-std::string str(int v) { MakeString("%d", v); }
-std::string str(size_t v) { MakeString("%lu", v); }
-std::string str(float v) { MakeString("%g", v); }
-std::string str(const char* s) { return s; }
-std::string str(const String& s) { return (const char*)s; }
 
 bool DynamicMaterial::compile() {
 	std::string source;
@@ -193,7 +219,7 @@ bool DynamicMaterial::compile() {
 	"float getAutoWeight(vec3 value, vec3 vmin, vec3 vmax, vec3 vblend) {\n"
 	"	vec3 ctr = (vmin + vmax) * 0.5;\n"
 	"	vec3 r = smoothstep(ctr - vmin + vblend, ctr - vmin, abs(value - ctr));\n"
-	"	return dot(r, vec3(1,1,1));\n"
+	"	return r.x * r.y * r.z;\n"
 	"}\n";
 
 	source +=
@@ -302,6 +328,7 @@ bool DynamicMaterial::compile() {
 	// Lighting (basic diffuse);
 	source +=  "	// Lighting\n";
 	source +=  "	gl_FragColor = diffuse * 0.1 + diffuse * 0.9 * dot(worldNormal, lightDirection);\n";
+	source +=  "	gl_FragColor = vec4(diffuse.rgb, 1);\n";
 	source += "}\n";
 
 	// Vertex shader - todo: add concavity attribute
@@ -341,6 +368,7 @@ bool DynamicMaterial::compile() {
 	FILE* fp = fopen("shader.glsl", "w");
 	if(fp) fwrite(source.c_str(), 1, source.length(), fp);
 	if(fp) fclose(fp);
+	printf("Compiled shader\n");
 
 
 	return false;

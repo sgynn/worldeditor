@@ -102,6 +102,10 @@ const base::Texture& EditableTexture::getTexture() const {
 EditableTexture::Mode EditableTexture::getMode() const {
 	return m_mode;
 }
+TextureStream* EditableTexture::getTextureStream() const {
+	if(m_mode == TEXTURESTREAM) return static_cast<TextureStream*>(m_stream);
+	else return 0;
+}
 
 // ------------------------------------------------------------------------------------------------------- //
 

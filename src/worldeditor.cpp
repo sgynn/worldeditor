@@ -144,10 +144,8 @@ void WorldEditor::clear() {
 	m_heightMap = 0;
 	m_editor = 0;
 
-	// delete textures
+	// delete materials
 	if(m_materials) delete m_materials;
-	for(HashMap<EditableTexture*>::iterator i=m_imageMaps.begin(); i!=m_imageMaps.end(); ++i) delete *i;
-	m_imageMaps.clear();
 
 	// delete tools from dropdown list
 	Combobox* list = m_gui->getWidget<Combobox>("toollist");
@@ -557,9 +555,8 @@ void WorldEditor::loadWorld(const char* file) {
 		if(*i == "material") m_materials->loadMaterial(*i);
 		else if(*i == "texture") m_materials->loadTexture(*i);
 	}
-	m_materials->buildTextures();
-	m_heightMap->setMaterial( m_materials->getMaterial(0) );	// set initial material
-	if(!m_materials->getMaterial(0)) printf("Error: No materials\n");
+	m_materials->buildTextures();	// Build texture arrays
+	
 
 
 	// Set up terrain editor
@@ -581,7 +578,7 @@ void WorldEditor::loadWorld(const char* file) {
 			int  use = enumerate(usage, textureUsage, 5);
 			
 			// Already exists ?
-			if(m_imageMaps.contains(name)) {
+			if(m_materials->getMap(name)) {
 				messageBox("Warning", "Texture %s already exists", name);
 				continue;
 			}
@@ -614,8 +611,7 @@ void WorldEditor::loadWorld(const char* file) {
 			}
 
 			if(!tex) continue;
-			m_imageMaps[name] = tex;
-
+			m_materials->addMap(name, tex);
 
 			// Create tool
 			ToolGroup* g = 0;
@@ -629,14 +625,14 @@ void WorldEditor::loadWorld(const char* file) {
 				
 			case 2:	// Weight
 				if(*link==0) g = new WeightToolGroup(name, tex);
-				else if(m_imageMaps.contains(link)) {
-					g = new MaterialToolGroup( m_imageMaps[link], tex);
+				else if(m_materials->getMap(link)) {
+					g = new MaterialToolGroup( m_materials->getMap(link), tex);
 				}
 				break;
 
 			case 3:	// index
-				if(m_imageMaps.contains(link)) {
-					g = new MaterialToolGroup(tex, m_imageMaps[link]);
+				if(m_materials->getMap(link)) {
+					g = new MaterialToolGroup(tex, m_materials->getMap(link));
 				}
 				break;
 
@@ -650,6 +646,16 @@ void WorldEditor::loadWorld(const char* file) {
 				addGroup(g, "texture");
 			}
 		}
+	}
+
+	// Set initial material
+	DynamicMaterial* mat = m_materials->getMaterial(0);
+	if(mat) {
+		mat->compile();
+		mat->setTextures(m_materials);
+		m_heightMap->setMaterial(mat);
+	} else {
+		printf("Error: No materials\n");
 	}
 }
 void WorldEditor::saveWorld(const char* file) {

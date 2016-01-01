@@ -180,8 +180,10 @@ void MaterialStream::copyParam(const char* name) {
 	int n = m_template->getFloatv(name, values);
 	if(n==0) return;
 	if(m_global) m_global->setFloatv(name, n, values);
-	for(int i=0; i<m_divisions*m_divisions; ++i) {
-		if(m_materials[i].ref) m_materials[i].material->setFloatv(name, n, values);
+	if(m_materials) {
+		for(int i=0; i<m_divisions*m_divisions; ++i) {
+			if(m_materials[i].ref) m_materials[i].material->setFloatv(name, n, values);
+		}
 	}
 }
 
@@ -235,6 +237,8 @@ void MaterialStream::setCoordinates(const vec2& size, const vec2& offset) {
 }
 
 void MaterialStream::build() {
+	printf("Build material stream\n");
+
 	// Get needed divisions
 	int divisions = 1;
 	for(uint i=0; i<m_streams.size(); ++i) {
