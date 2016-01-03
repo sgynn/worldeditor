@@ -101,6 +101,8 @@ void DynamicMaterial::update(int index) {
 		vec3 min(layer->height.min, layer->slope.min, layer->concavity.min);
 		vec3 max(layer->height.max, layer->slope.max, layer->concavity.max);
 		vec3 blend(layer->height.blend, layer->slope.blend, layer->concavity.blend);
+		for(int i=0; i<3; ++i) if(blend[i]<=0) blend[i] = 0.001; // avoid div0
+
 		//vec3 noise(layer->height.noise, layer->slope.noise, layer->concavity.noise);
 		m_material->setFloat3( addIndex("autoMin",index), min);
 		m_material->setFloat3( addIndex("autoMax",index), max);
@@ -217,9 +219,10 @@ bool DynamicMaterial::compile() {
 
 	source +=
 	"float getAutoWeight(vec3 value, vec3 vmin, vec3 vmax, vec3 vblend) {\n"
-	"	vec3 ctr = (vmin + vmax) * 0.5;\n"
-	"	vec3 r = smoothstep(ctr - vmin + vblend, ctr - vmin, abs(value - ctr));\n"
-	"	return r.x * r.y * r.z;\n"
+//	"	vec3 ctr = (vmin + vmax) * 0.5;\n"
+//	"	vec3 r = smoothstep(ctr - vmin, ctr - vmin + vblend, abs(value - ctr));\n"
+	"	vec3 r = smoothstep(vmin-vblend, vmin, value) * smoothstep(vmax+vblend, vmax, value);\n"
+	"	return r.y; //r.x * r.y * r.z;\n"
 	"}\n";
 
 	source +=
@@ -251,7 +254,7 @@ bool DynamicMaterial::compile() {
 	"	vec4 diff, norm;\n"
 	"	vec3 triplanar = max( (abs(worldNormal) - 0.2) * 0.7, 0.0);\n"
 	"	triplanar /= dot(triplanar, vec3(1,1,1));\n"
-	"	vec3 autoValue = vec3(worldPos.y, worldNormal.y, 0.0);\n"
+	"	vec3 autoValue = vec3(worldPos.y, 1.0 - worldNormal.y, 0.0);\n"
 	"	\n";
 
 	// Sample maps
