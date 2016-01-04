@@ -24,7 +24,7 @@ struct MaterialLayer {
 	float opacity;		// Multiplier
 
 	int  texture;		// Texture unit to use. set -1 to use colour
-	int  colour;		// COlour to use instead of a texture
+	int  colour;		// Colour to use instead of a texture
 	vec3 scale;			// Texture scaling. Use z for triplanar maps
 	bool triplanar;		// Triplanar projection
 

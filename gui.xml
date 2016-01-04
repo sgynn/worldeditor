@@ -238,22 +238,21 @@
 	<!-- Materials dialog -->
 	<widget caption="Materials" template="dialog" name="materials" rect="288 496 264 288">
 		<widget class="Label" rect="8 8 64 20" caption="Material"/>
-		<widget template="combobox" name="materiallist" rect="72 8 176 20"/>
-		<widget caption="New" class="Button" name="newmaterial" rect="5 236 40 20" skin="button"/>
-		<widget template="scrollpane" name="layerlist" rect="0 32 253 200"/>
-		<widget caption="Add Layer" template="droplist" name="addlayer" rect="64 236 80 20" skin="button">
+		<widget template="combobox" name="materiallist" rect="72 8 176 20" anchor="tlr"/>
+		<widget caption="New" class="Button" name="newmaterial" rect="5 236 40 20" skin="button" anchor="bl"/>
+		<widget template="scrollpane" name="layerlist" rect="0 32 253 200" anchor="tlrb"/>
+		<widget caption="Add Layer" template="droplist" name="addlayer" rect="64 236 80 20" skin="button" anchor="br">
 			<item>Procedural</item>
 			<item>Mapped</item>
+			<item>Colour</item>
 			<item>Indexed</item>
 		</widget>
-		<widget caption="Delete Layer" class="Button" name="removelayer" rect="152 236 96 20" skin="button"/>
+		<widget caption="Delete Layer" class="Button" name="removelayer" rect="152 236 96 20" skin="button" anchor="br"/>
 	</widget>
 	<template name="materiallayer" rect="296 800 240 120">
-		<widget Type="Icon" name="typeicon" rect="0 0 27 25" iconlist="icons"/>
-		<widget icon="scroll_up" template="iconbutton" name="expand" rect="216 0 24 24"/>
-		<widget caption="Name" class="Label" name="layername" rect="32 0 176 20"/>
-		<widget text="Name" class="Textbox" name="editlayername" rect="32 0 176 20"/>
-		<widget name="layerinfo" rect="0 24 240 100"/>
+		<widget class="Icon" name="typeicon" rect="0 0 27 25" iconlist="icons"/>
+		<widget icon="scroll_up" template="iconbutton" name="expand" rect="216 0 24 24" anchor="tr"/>
+		<widget text="Name" class="Textbox" name="layername" rect="32 0 176 20" anchor="tlr"/>
 	</template>
 
 

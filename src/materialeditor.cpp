@@ -2,6 +2,7 @@
 #include "terraineditor/editabletexture.h"
 #include "resource/library.h"
 #include "widgets/filedialog.h"
+#include "widgets/orderableitem.h"
 #include <base/directory.h>
 #include <base/xml.h>
 #include <base/dds.h>
@@ -71,6 +72,7 @@ void readAutoParams(const XMLElement& e, AutoParams& p) {
 }
 DynamicMaterial* MaterialEditor::loadMaterial(const XMLElement& e) {
 	DynamicMaterial* mat = createMaterial( e.attribute("name") );
+	m_materialList->addItem( mat->getName() );
 
 	// read layers
 	for(XML::iterator i=e.begin(); i!=e.end(); ++i) {
@@ -274,26 +276,30 @@ void MaterialEditor::setupGui() {
 	m_gui->getWidget<gui::Button>("reloadtexture")->eventPressed.bind(this, &MaterialEditor::reloadTexture);
 
 
-//	m_gui->getWidget<gui::Button>("newmaterial")->eventPressed.bind(this, &MaterialEditor::addMaterial);
-//	m_gui->getWidget<gui::Button>("removelayer")->eventPressed.bind(this, &MaterialEditor::removeLayer);
-//	m_gui->getWidget<gui::Combobox>("addlayer")->eventSelected.bind(this, &MaterialEditor::addLayer);
-//	m_materialList->eventSelected.bind(this, &MaterialEditor::selectMaterial);
-//	m_materialList->eventSubmit.bind(this, &MaterialEditor::renameMaterial);
+	m_gui->getWidget<gui::Button>("newmaterial")->eventPressed.bind(this, &MaterialEditor::addMaterial);
+	m_gui->getWidget<gui::Button>("removelayer")->eventPressed.bind(this, &MaterialEditor::removeLayer);
+	m_gui->getWidget<gui::Combobox>("addlayer")->eventSelected.bind(this, &MaterialEditor::addLayer);
+	m_materialList->eventSelected.bind(this, &MaterialEditor::selectMaterial);
+	m_materialList->eventSubmit.bind(this, &MaterialEditor::renameMaterial);
 
 	m_selectedTexture = -1;
 	m_selectedLayer = -1;
-	m_materialIndex = 0;
+	m_selectedMaterial = -1;
 }
 
-// ------------------------------------------------------------------------------ //
-
-int MaterialEditor::getTextureIndex(gui::Widget* w) {
-	for(int i=0; i<m_textureList->getWidgetCount(); ++i) {
+int MaterialEditor::getItemIndex(gui::Widget* w, gui::Widget* list) {
+	for(int i=0; i<list->getWidgetCount(); ++i) {
 		gui::Widget* t = m_textureList->getWidget(i);
-		if(t == w || t == w->getParent() || t == w->getParent()->getParent()) return i;
+		for(int j=0; j<3; ++j) {
+			if(t == w) return i;
+			t = t->getParent();
+		}
 	}
 	return -1;
 }
+
+
+// ------------------------------------------------------------------------------ //
 
 void MaterialEditor::addTexture(gui::Button*) {
 	// Create gui item
@@ -405,15 +411,170 @@ void MaterialEditor::reloadTexture(gui::Button*) {
 
 void MaterialEditor::selectTexture(gui::Widget* w) {
 	if(m_selectedTexture>=0) m_textureList->getWidget(m_selectedTexture)->setSelected(false);
-	m_selectedTexture = getTextureIndex(w);
+	m_selectedTexture = getItemIndex(w, m_textureList);
 	if(m_selectedTexture>=0) m_textureList->getWidget(m_selectedTexture)->setSelected(true);
 }
 
 void MaterialEditor::renameTexture(gui::Textbox* t) {
-	int i = getTextureIndex(t);
+	int i = getItemIndex(t, m_textureList);
 	m_textures[i]->name = t->getText();
 }
 
 
 // ------------------------------------------------------------------------------ //
+
+
+void MaterialEditor::addMaterial(gui::Button*) {
+	createMaterial("New Material");
+	m_materialList->selectItem( m_materials.size()-1 );
+	selectMaterial(0, m_materials.size()-1);
+}
+
+void MaterialEditor::selectMaterial(gui::Combobox*, int i) {
+	// Build gui for this material
+	m_selectedMaterial = i;
+	m_selectedLayer = -1;
+}
+void MaterialEditor::renameMaterial(gui::Combobox* c) {
+	m_materials[m_selectedMaterial]->setName( c->getText() );
+	m_materialList->setItemName( m_selectedMaterial, c->getText() );
+}
+void MaterialEditor::addLayer(gui::Combobox* c, int i) {
+	c->setText("Add");	// Hacking Combobox into a dropdown menu
+	MaterialLayer* layer = m_materials[ m_selectedMaterial ]->addLayer( (LayerType)i );
+	const char* names[] = { "Procedural layer", "Mapped Layer", "Colour layer", "Indexed Layer" };
+	layer->name = names[i];
+	addLayerGUI(layer);
+}
+void MaterialEditor::removeLayer(gui::Button*) {
+	if(m_selectedMaterial<0 || m_selectedLayer<0) return;
+	m_materials[m_selectedMaterial]->removeLayer( m_selectedLayer );
+	// Gui
+	gui::Widget* w = m_layerList->getWidget(m_selectedLayer);
+	for(int i=m_selectedLayer+1; i<m_layerList->getWidgetCount(); ++i) {
+		gui::Widget* t = m_layerList->getWidget(i);
+		t->setPosition(t->getPosition().x, t->getPosition().y - w->getSize().y);
+	}
+	m_layerList->remove(w);
+	m_selectedLayer = -1;
+	delete w;
+}
+void MaterialEditor::renameLayer(gui::Textbox* t) {
+	if(m_selectedMaterial<0 || m_selectedLayer<0) return;
+	MaterialLayer* layer = m_materials[m_selectedMaterial]->getLayer( m_selectedLayer );
+	layer->name = t->getText();
+
+}
+
+void MaterialEditor::expandLayer(gui::Button* b) {
+	gui::Widget* w = b->getParent();
+	if(w->getSize().y>20) w->setSize(w->getSize().x, b->getSize().y);
+	else {
+		gui::Widget* btm = w->getWidget( w->getWidgetCount()-1 );
+		w->setSize(w->getSize().x, btm->getPosition().y + btm->getSize().y);
+	}
+	// Shift the rest
+	int y = b->getPosition().y + b->getSize().y;
+	int start = getItemIndex(w, m_layerList);
+	for(int i=start+1; i<m_layerList->getWidgetCount(); ++i) {
+		m_layerList->getWidget(i)->setPosition(0, y);
+		y += m_layerList->getWidget(i)->getSize().y;
+	}
+	// update pane
+	m_layerList->setPaneAutoSize(true);
+}
+
+template<typename T> T* addLayerWidget(gui::Root* gui, gui::Widget* parent, const char* name, const char* type) {
+	gui::Widget* prev = parent->getWidget( parent->getWidgetCount()-1 );
+	int y = prev->getPosition().y + prev->getSize().y + 2;
+
+	if(name) {
+		gui::Label* label = gui->createWidget<gui::Label>(Rect(0,y,60,20), "default");
+		label->setCaption(name);
+		parent->add(label);
+	}
+	if(type) {
+		T* w = gui->createWidget<T>(Rect(60,y,120,20), type);
+		parent->add(w);
+		return w;
+	}
+	return 0;
+}
+
+void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
+	gui::Widget* w = m_gui->createWidget<OrderableItem>("materiallayer");
+	w->setSize(m_textureList->getClientRect().width, w->getSize().y);
+
+	int count = m_layerList->getWidgetCount();
+	gui::Widget* prev = count? m_layerList->getWidget(count-1): 0;
+	int top = prev? prev->getPosition().y + prev->getSize().y: 0;
+	m_layerList->add(w);
+	w->setPosition(0, top);
+
+	m_layerList->setPaneSize( m_layerList->getClientRect().width, top + w->getSize().y);
+
+	// Setup
+	w->getWidget<gui::Icon>("typeicon")->setIcon( (int)layer->type );
+	w->getWidget<gui::Textbox>("layername")->setText( layer->name );
+	w->getWidget<gui::Textbox>("layername")->eventSubmit.bind(this, &MaterialEditor::renameLayer);
+	w->getWidget<gui::Button>("expand")->eventPressed.bind(this, &MaterialEditor::expandLayer);
+
+	// Create sub widgets
+	int y = 25;
+
+	// Blend mode
+	gui::Combobox* blend = addLayerWidget<gui::Combobox>(m_gui, w, "Blend", "droplist");
+	blend->addItem("normal");
+	blend->addItem("height");
+	blend->addItem("multiply");
+	blend->addItem("add");
+	blend->selectItem( (int) layer->blend );
+	//blend->eventSelected.bind(this, &MaterialEditor::changeBlendMode);
+	
+	// Opacity
+	gui::Scrollbar* opacity = addLayerWidget<gui::Scrollbar>(m_gui, w, "Opacity", "slider");
+	opacity->setRange(0, 1000);
+	opacity->setValue( layer->opacity * 1000 );
+	//opacity->eventChanged.bind(this, &MaterialEditor::changeOpacity);
+	
+	if(layer->type == LAYER_AUTO || layer->type == LAYER_WEIGHT) {
+		// Texture picker
+		gui::Combobox* tex = addLayerWidget<gui::Combobox>(m_gui, w, "Texture", "toolgrouplist");
+		// Can we share the list data ?
+
+
+		// Triplanar option
+		gui::Checkbox* triplanar = addLayerWidget<gui::Checkbox>(m_gui, w, "Triplanar", "button");
+		triplanar->setSelected( layer->triplanar );
+		//triplanar->eventPressed.bind(this, &MaterialEditor::changeTriplanar);
+
+		// Texture scale
+		gui::Scrollbar* scaleX = addLayerWidget<gui::Scrollbar>(m_gui, w, "Scale", "slider");
+		gui::Scrollbar* scaleY = addLayerWidget<gui::Scrollbar>(m_gui, w, "Scale", "slider");
+		scaleX->setRange(1, 1000);
+		scaleY->setRange(1, 1000);
+		scaleX->setValue(layer->scale.x * 1000);
+		scaleY->setValue(layer->scale.y * 1000);
+		// scaleX->eventChanged.bind(this, &MaterialEditor::changeScaleX);
+		// scaleY->eventChanged.bind(this, &MaterialEditor::changeScaleY);
+	}
+
+	// Maps
+	if(layer->type == LAYER_WEIGHT || layer->type == LAYER_COLOUR) {
+		gui::Combobox* map = addLayerWidget<gui::Combobox>(m_gui, w, "Map", "droplist");
+		// ...
+	}
+	else if(layer->type == LAYER_INDEXED) {
+		gui::Combobox* index = addLayerWidget<gui::Combobox>(m_gui, w, "Index Map", "droplist");
+		gui::Combobox* weight = addLayerWidget<gui::Combobox>(m_gui, w, "Weight Map", "droplist");
+	}
+
+
+	// Procedural Parameters
+	if(layer->type == LAYER_AUTO) {
+		// lots more sliders - use names to share callbacks
+	}
+}
+
+
 

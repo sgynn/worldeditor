@@ -59,14 +59,16 @@ class MaterialEditor {
 	void reloadTexture(gui::Button*);	// reload selected texture
 	void selectTexture(gui::Widget*);	// Click on texture
 	void renameTexture(gui::Textbox*);	// Rename texture
-	int  getTextureIndex(gui::Widget*);	// Get the texture index of of a widget
+
 
 	void addMaterial(gui::Button*);
+	void selectMaterial(gui::Combobox*, int);
+	void renameMaterial(gui::Combobox*);
 	void addLayer(gui::Combobox*, int);
 	void removeLayer(gui::Button*);
 	void renameLayer(gui::Textbox*);
-	void renameMaterial(gui::Combobox*);
-	void selectMaterial(gui::Combobox*, int);
+	void expandLayer(gui::Button*);
+	void addLayerGUI(MaterialLayer*);
 
 	protected:	// Gui objects
 	gui::Window* m_materialPanel;
@@ -77,7 +79,10 @@ class MaterialEditor {
 
 	int m_selectedLayer;
 	int m_selectedTexture;
+	int m_selectedMaterial;
 	int m_browseTarget;
+
+	int getItemIndex(gui::Widget* w, gui::Widget* list);
 
 
 	protected:	// Data
@@ -86,7 +91,6 @@ class MaterialEditor {
 	std::vector<DynamicMaterial*> m_materials;		// Materials
 	std::vector<TerrainTexture*>  m_textures;		// Textures
 	base::HashMap<EditableTexture*> m_imageMaps;	// Image maps
-	int          m_materialIndex;	// Current material
 	bool         m_streaming;		// Use streamed textures
 	Library*     m_library;			// Library to get data
 	gui::Root*   m_gui;				// Gui

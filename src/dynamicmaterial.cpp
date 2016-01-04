@@ -63,6 +63,14 @@ MaterialLayer* DynamicMaterial::addLayer(LayerType type) {
 MaterialLayer* DynamicMaterial::getLayer(int index) const {
 	return m_layers[index];
 }
+
+void DynamicMaterial::removeLayer(int index) {
+	if(index<(int)size()) {
+		delete m_layers[index];
+		m_layers.erase( m_layers.begin() + index );
+	}
+}
+
 size_t DynamicMaterial::size() const {
 	return m_layers.size();
 }
