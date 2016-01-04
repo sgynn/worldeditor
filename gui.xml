@@ -23,6 +23,12 @@
 		<state name="selected pressed"   coord="8  4 4 4" border="2 2 2 2"/>
 		<state name="selected disabled"  coord="12 4 4 4" border="2 2 2 2"/>
 	</skin>
+	<skin name="border">
+		<font name="helvetica" size="16"/>
+		<image file="data/gui.png"/>
+		<state coord="0 0 4 4" border="2 2 2 2"/>
+		<state name="selected normal" coord="8 8 4 4" border="2 2 2 2"/>
+	</skin>
 
 
 	<!--============= ICONS ====================-->
@@ -117,6 +123,14 @@
 		</widget>
 	</template>
 
+	<template name="combobox" class="Combobox" rect="0 0 100 20">
+		<widget name="_text" class="Textbox" rect="0 0 82 20" anchor="trlb"/>
+		<widget name="_button" template="iconbutton" rect="82 0 18 20" anchor="trb" icon="scroll_down"/>
+		<widget name="_list" class="Listbox" rect="0 20 100 100" anchor="blr">
+			<widget name="_text" rect="2 0 80 20" skin="clear"/>
+		</widget>
+	</template>
+
 	<template name="toolgrouplist" class="Combobox" rect="0 0 100 32" skin="button">
 		<widget name="_icon" class="Icon" rect="4 0 32 32" iconlist="icons" icon="-1"/>
 		<widget name="_text" class="Label" rect="38 6 62 20"/>
@@ -132,6 +146,13 @@
 		<widget name="message" class="Label" rect="10 10 280 140" anchor="tlrb"/>
 		<widget name="button" class="Button" rect="130 150 40 20" anchor="bc" caption="Ok" skin="button"/>
 	</widget>
+
+	<template name="scrollpane" class="Scrollpane" rect="0 0 100 100" autosize="1">
+		<widget name="_vscroll" template="vscroll" rect="84 0 16 100" anchor="trb"/>
+		<widget name="_view" rect="0 0 84 100" anchor="tlrb">
+			<widget name="_client" rect="0 0 84 84"/>
+		</widget>
+	</template>
 
 
 	<!--============== File dialog  ================-->
@@ -215,6 +236,42 @@
 	<!-- Brush dialog -->
 
 	<!-- Materials dialog -->
+	<widget caption="Materials" template="dialog" name="materials" rect="288 496 264 288">
+		<widget class="Label" rect="8 8 64 20" caption="Material"/>
+		<widget template="combobox" name="materiallist" rect="72 8 176 20"/>
+		<widget caption="New" class="Button" name="newmaterial" rect="5 236 40 20" skin="button"/>
+		<widget template="scrollpane" name="layerlist" rect="0 32 253 200"/>
+		<widget caption="Add Layer" template="droplist" name="addlayer" rect="64 236 80 20" skin="button">
+			<item>Procedural</item>
+			<item>Mapped</item>
+			<item>Indexed</item>
+		</widget>
+		<widget caption="Delete Layer" class="Button" name="removelayer" rect="152 236 96 20" skin="button"/>
+	</widget>
+	<template name="materiallayer" rect="296 800 240 120">
+		<widget Type="Icon" name="typeicon" rect="0 0 27 25" iconlist="icons"/>
+		<widget icon="scroll_up" template="iconbutton" name="expand" rect="216 0 24 24"/>
+		<widget caption="Name" class="Label" name="layername" rect="32 0 176 20"/>
+		<widget text="Name" class="Textbox" name="editlayername" rect="32 0 176 20"/>
+		<widget name="layerinfo" rect="0 24 240 100"/>
+	</template>
+
+
+	<!-- Textures dialog -->
+	<widget caption="Textures" template="dialog" name="textures" rect="16 568 256 342">
+		<widget template="scrollpane" name="texturelist" rect="0 0 246 280" anchor="tlrb"/>
+		<widget caption="Add" class="Button" name="addtexture" rect="16 288 56 20" skin="button" anchor="br"/>
+		<widget caption="Remove" class="Button" name="removetexture" rect="80 288 64 20" skin="button" anchor="br"/>
+		<widget caption="Reload" class="Button" name="reloadtexture" rect="152 288 72 20" skin="button" anchor="br"/>
+	</widget>
+	<template class="Widget" rect="24 920 216 64" name="textureitem" anchor="tlr" skin="border">
+		<widget class="Textbox" text="Name" name="texturename" rect="65 2 143 20" anchor="tlr"/>
+		<widget class="Textbox" rect="64 24 128 20" name="diffuse" text="diffuse map" anchor="tlr"/>
+		<widget class="Button" rect="192 24 16 20" name="browse_diffuse" skin="button" caption="..." anchor="tr"/>
+		<widget class="Textbox" rect="64 42 128 20" name="normal" text="normal map" anchor="tlr"/>
+		<widget class="Button" rect="192 42 16 20" name="browse_normal" skin="button" caption="..." anchor="tr"/>
+		<widget class="Icon" rect="0 0 64 64" name="textureicon"/>
+	</template>
 
 
 </gui>
