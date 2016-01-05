@@ -286,6 +286,7 @@ void MaterialEditor::setupGui() {
 	m_gui->getWidget<gui::Button>("newmaterial")->eventPressed.bind(this, &MaterialEditor::addMaterial);
 	m_gui->getWidget<gui::Button>("removelayer")->eventPressed.bind(this, &MaterialEditor::removeLayer);
 	m_gui->getWidget<gui::Combobox>("addlayer")->eventSelected.bind(this, &MaterialEditor::addLayer);
+	m_gui->getWidget<gui::Combobox>("addlayer")->setText("Add Layer");
 	m_materialList->eventSelected.bind(this, &MaterialEditor::selectMaterial);
 	m_materialList->eventSubmit.bind(this, &MaterialEditor::renameMaterial);
 

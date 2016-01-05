@@ -244,20 +244,20 @@
 	<!-- Brush dialog -->
 
 	<!-- Materials dialog -->
-	<widget caption="Materials" template="dialog" name="materials" rect="288 496 264 288">
+	<widget caption="Materials" template="dialog" name="materials" rect="400 100 400 500" visible="0">
 		<widget class="Label" rect="8 8 64 20" caption="Material"/>
-		<widget template="combobox" name="materiallist" rect="72 8 176 20" anchor="tlr"/>
-		<widget caption="New" class="Button" name="newmaterial" rect="5 236 40 20" skin="button" anchor="bl"/>
-		<widget template="scrollpane" name="layerlist" rect="0 32 253 200" anchor="tlrb"/>
-		<widget caption="Add Layer" template="droplist" name="addlayer" rect="64 236 80 20" skin="button" anchor="br">
+		<widget template="combobox" name="materiallist" rect="72 8 310 20" anchor="tlr"/>
+		<widget template="scrollpane" name="layerlist" rect="0 32 390 412" anchor="tlrb"/>
+		<widget caption="New" class="Button" name="newmaterial" rect="5 448 40 20" skin="button" anchor="bl"/>
+		<widget caption="Add Layer" template="droplist" name="addlayer" rect="200 448 80 20" skin="button" anchor="br">
 			<item>Procedural</item>
 			<item>Mapped</item>
 			<item>Colour</item>
 			<item>Indexed</item>
 		</widget>
-		<widget caption="Delete Layer" class="Button" name="removelayer" rect="152 236 96 20" skin="button" anchor="br"/>
+		<widget caption="Delete Layer" class="Button" name="removelayer" rect="288 448 96 20" skin="button" anchor="br"/>
 	</widget>
-	<template name="materiallayer" rect="296 800 240 120" class="OrderableItem">
+	<template name="materiallayer" rect="0 0 232 120" class="OrderableItem">
 		<widget icon="scroll_up" template="iconbutton" name="expand" rect="216 0 16 16" anchor="tr"/>
 		<widget text="Name" class="Textbox" name="layername" rect="32 0 176 20" anchor="tlr"/>
 		<widget class="Icon" name="typeicon" rect="0 0 26 26" iconlist="icons"/>
@@ -265,11 +265,11 @@
 
 
 	<!-- Textures dialog -->
-	<widget caption="Textures" template="dialog" name="textures" rect="16 568 256 342">
-		<widget template="scrollpane" name="texturelist" rect="0 0 246 280" anchor="tlrb"/>
-		<widget caption="Add" class="Button" name="addtexture" rect="16 288 56 20" skin="button" anchor="br"/>
-		<widget caption="Remove" class="Button" name="removetexture" rect="80 288 64 20" skin="button" anchor="br"/>
-		<widget caption="Reload" class="Button" name="reloadtexture" rect="152 288 72 20" skin="button" anchor="br"/>
+	<widget caption="Textures" template="dialog" name="textures" rect="100 100 256 400" visible="0">
+		<widget template="scrollpane" name="texturelist" rect="0 0 246 336" anchor="tlrb"/>
+		<widget caption="Add" class="Button" name="addtexture" rect="16 344 56 20" skin="button" anchor="br"/>
+		<widget caption="Remove" class="Button" name="removetexture" rect="80 344 64 20" skin="button" anchor="br"/>
+		<widget caption="Reload" class="Button" name="reloadtexture" rect="152 344 72 20" skin="button" anchor="br"/>
 	</widget>
 	<template class="Widget" rect="24 920 216 64" name="textureitem" anchor="tlr" skin="border">
 		<widget class="Textbox" text="Name" name="texturename" rect="65 2 143 20" anchor="tlr"/>
