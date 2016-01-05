@@ -57,6 +57,7 @@ DynamicMaterial* MaterialEditor::createMaterial(const char* name) {
 	DynamicMaterial* m = new DynamicMaterial(m_streaming);
 	m->setName(name);
 	m_materials.push_back(m);
+	m_materialList->addItem( name );
 	return m;
 }
 void MaterialEditor::destroyMaterial(int index) {
@@ -72,7 +73,6 @@ void readAutoParams(const XMLElement& e, AutoParams& p) {
 }
 DynamicMaterial* MaterialEditor::loadMaterial(const XMLElement& e) {
 	DynamicMaterial* mat = createMaterial( e.attribute("name") );
-	m_materialList->addItem( mat->getName() );
 
 	// read layers
 	for(XML::iterator i=e.begin(); i!=e.end(); ++i) {
@@ -104,6 +104,13 @@ DynamicMaterial* MaterialEditor::loadMaterial(const XMLElement& e) {
 			}
 		}
 	}
+	
+	// Initial gui state
+	if(m_materials.size() == 1) {
+		m_materialList->selectItem(0);
+		selectMaterial(0,0);
+	}
+
 	return mat;
 }
 void writeAutoParams(XMLElement& e, const char* name, AutoParams& p, AutoParams& d) {
@@ -289,7 +296,7 @@ void MaterialEditor::setupGui() {
 
 int MaterialEditor::getItemIndex(gui::Widget* w, gui::Widget* list) {
 	for(int i=0; i<list->getWidgetCount(); ++i) {
-		gui::Widget* t = m_textureList->getWidget(i);
+		gui::Widget* t = list->getWidget(i);
 		for(int j=0; j<3; ++j) {
 			if(t == w) return i;
 			t = t->getParent();
@@ -430,9 +437,21 @@ void MaterialEditor::addMaterial(gui::Button*) {
 	selectMaterial(0, m_materials.size()-1);
 }
 
-void MaterialEditor::selectMaterial(gui::Combobox*, int i) {
+void MaterialEditor::selectMaterial(gui::Combobox*, int index) {
+	// Clear existing
+	while(m_layerList->getWidgetCount()) {
+		gui::Widget* w = m_layerList->getWidget( m_layerList->getWidgetCount()-1 );
+		m_layerList->remove(w);
+		delete w;
+	}
+
 	// Build gui for this material
-	m_selectedMaterial = i;
+	DynamicMaterial* m = m_materials[index];
+	for(size_t i=0; i<m->size(); ++i) {
+		addLayerGUI( m->getLayer(i) );
+	}
+
+	m_selectedMaterial = index;
 	m_selectedLayer = -1;
 }
 void MaterialEditor::renameMaterial(gui::Combobox* c) {
@@ -468,13 +487,17 @@ void MaterialEditor::renameLayer(gui::Textbox* t) {
 
 void MaterialEditor::expandLayer(gui::Button* b) {
 	gui::Widget* w = b->getParent();
-	if(w->getSize().y>20) w->setSize(w->getSize().x, b->getSize().y);
-	else {
+	int min = w->getWidget(2)->getSize().y;
+	if(w->getSize().y > min) {
+		w->setSize(w->getSize().x, min);
+		b->setIcon("scroll_down");
+	} else {
 		gui::Widget* btm = w->getWidget( w->getWidgetCount()-1 );
-		w->setSize(w->getSize().x, btm->getPosition().y + btm->getSize().y);
+		w->setSize(w->getSize().x, btm->getPosition().y + btm->getSize().y + 4);
+		b->setIcon("scroll_up");
 	}
 	// Shift the rest
-	int y = b->getPosition().y + b->getSize().y;
+	int y = w->getPosition().y + w->getSize().y;
 	int start = getItemIndex(w, m_layerList);
 	for(int i=start+1; i<m_layerList->getWidgetCount(); ++i) {
 		m_layerList->getWidget(i)->setPosition(0, y);
@@ -487,22 +510,24 @@ void MaterialEditor::expandLayer(gui::Button* b) {
 template<typename T> T* addLayerWidget(gui::Root* gui, gui::Widget* parent, const char* name, const char* type) {
 	gui::Widget* prev = parent->getWidget( parent->getWidgetCount()-1 );
 	int y = prev->getPosition().y + prev->getSize().y + 2;
+	static const int div = 100;
 
 	if(name) {
-		gui::Label* label = gui->createWidget<gui::Label>(Rect(0,y,60,20), "default");
+		gui::Label* label = gui->createWidget<gui::Label>(Rect(4,y,div-4,20), "default");
 		label->setCaption(name);
 		parent->add(label);
 	}
 	if(type) {
-		T* w = gui->createWidget<T>(Rect(60,y,120,20), type);
+		T* w = gui->createWidget<T>(Rect(div,y,parent->getSize().x-div-4,20), type, name);
 		parent->add(w);
+		w->setAnchor("tlr");
 		return w;
 	}
 	return 0;
 }
 
 void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
-	gui::Widget* w = m_gui->createWidget<OrderableItem>("materiallayer");
+	gui::Widget* w = m_gui->createWidget<gui::Widget>("materiallayer");
 	w->setSize(m_textureList->getClientRect().width, w->getSize().y);
 
 	int count = m_layerList->getWidgetCount();
@@ -510,11 +535,13 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 	int top = prev? prev->getPosition().y + prev->getSize().y: 0;
 	m_layerList->add(w);
 	w->setPosition(0, top);
+	w->setSize( m_textureList->getClientRect().width, 10);
 
 	m_layerList->setPaneSize( m_layerList->getClientRect().width, top + w->getSize().y);
 
 	// Setup
-	w->getWidget<gui::Icon>("typeicon")->setIcon( (int)layer->type );
+	const char* icons[] = { "layer_a", "layer_w", "layer_c", "layer_i" };
+	w->getWidget<gui::Icon>("typeicon")->setIcon( icons[layer->type] );
 	w->getWidget<gui::Textbox>("layername")->setText( layer->name );
 	w->getWidget<gui::Textbox>("layername")->eventSubmit.bind(this, &MaterialEditor::renameLayer);
 	w->getWidget<gui::Button>("expand")->eventPressed.bind(this, &MaterialEditor::expandLayer);
@@ -549,12 +576,12 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 		//triplanar->eventPressed.bind(this, &MaterialEditor::changeTriplanar);
 
 		// Texture scale
-		gui::Scrollbar* scaleX = addLayerWidget<gui::Scrollbar>(m_gui, w, "Scale", "slider");
-		gui::Scrollbar* scaleY = addLayerWidget<gui::Scrollbar>(m_gui, w, "Scale", "slider");
+		gui::Scrollbar* scaleX = addLayerWidget<gui::Scrollbar>(m_gui, w, "Tiling", "slider");
+		gui::Scrollbar* scaleY = addLayerWidget<gui::Scrollbar>(m_gui, w, 0,        "slider");
 		scaleX->setRange(1, 1000);
 		scaleY->setRange(1, 1000);
-		scaleX->setValue(layer->scale.x * 1000);
-		scaleY->setValue(layer->scale.y * 1000);
+		scaleX->setValue(layer->scale.x);
+		scaleY->setValue(layer->scale.y);
 		// scaleX->eventChanged.bind(this, &MaterialEditor::changeScaleX);
 		// scaleY->eventChanged.bind(this, &MaterialEditor::changeScaleY);
 	}
@@ -573,7 +600,38 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 	// Procedural Parameters
 	if(layer->type == LAYER_AUTO) {
 		// lots more sliders - use names to share callbacks
+		gui::Scrollbar* slider[3];
+		slider[0] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Height Min", "slider");
+		slider[1] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Height Max", "slider");
+		slider[2] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Height Blend", "slider");
+		for(int i=0; i<3; ++i) {
+			slider[i]->setRange(0, 1000); // need max terrain height
+			slider[i]->setValue((&layer->height.min)[i]);
+			//slider[i]->eventChanged.bind(this, &MaterialEditor::changeHeightParam);
+		}
+
+		slider[0] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Slope Min", "slider");
+		slider[1] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Slope Max", "slider");
+		slider[2] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Slope Blend", "slider");
+		for(int i=0; i<3; ++i) {
+			slider[i]->setRange(-1000, 1000);
+			slider[i]->setValue((&layer->slope.min)[i] * 1000);
+			//slider[i]->eventChanged.bind(this, &MaterialEditor::changeSlopeParam);
+		}
+
+		slider[0] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Concave Min", "slider");
+		slider[1] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Concave Max", "slider");
+		slider[2] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Concave Blend", "slider");
+		for(int i=0; i<3; ++i) {
+			slider[i]->setRange(-1000, 1000);
+			slider[i]->setValue((&layer->concavity.min)[i] * 1000);
+			//slider[i]->eventChanged.bind(this, &MaterialEditor::changeSlopeParam);
+		}
 	}
+
+
+	// Autosize box
+	expandLayer(w->getWidget<gui::Button>("expand"));
 }
 
 

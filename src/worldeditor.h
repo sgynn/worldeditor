@@ -43,6 +43,8 @@ class WorldEditor : public base::SceneState {
 	void showOpenDialog(gui::Button*);
 	void showSaveDialog(gui::Button*);
 	void showOptionsDialog(gui::Button*);
+	void showMaterialList(gui::Button*);
+	void showTextureList(gui::Button*);
 
 	void createNewTerrain(gui::Button*);
 	void cancelNewTerrain(gui::Button*);

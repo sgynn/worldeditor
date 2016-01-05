@@ -1,6 +1,6 @@
 #include "orderableitem.h"
 
-OrderableItem::OrderableItem(const Rect& r, gui::Skin* s) : Widget(r, s), m_held(-1) {
+OrderableItem::OrderableItem(const Rect& r, gui::Skin* s) : Widget(r, s), m_held(-1), m_targetIndex(-1) {
 }
 
 void OrderableItem::setSize(int w, int h) {
@@ -43,7 +43,7 @@ void OrderableItem::onMouseButton(const Point& p, int d, int u, int w) {
 		m_startIndex = m_targetIndex = getIndex();
 		raise();
 	}
-	if(u&1) {
+	if(u&1 && m_held>=0) {
 		m_held = -1;
 		setIndex(m_targetIndex);
 		updateParentLayout();
@@ -84,6 +84,7 @@ void OrderableItem::onMouseMove(const Point& lp, const Point& cp, int b) {
 }
 
 void OrderableItem::updateParentLayout() {
+	if(!m_parent) return;
 	int y = 0;
 	for(int i=0; i<m_parent->getWidgetCount(); ++i) {
 		Widget* w = m_parent->getWidget(i);

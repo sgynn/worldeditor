@@ -91,7 +91,11 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	m_gui->getWidget<Button>("openmap")->eventPressed.bind(this, &WorldEditor::showOpenDialog);
 	m_gui->getWidget<Button>("savemap")->eventPressed.bind(this, &WorldEditor::showSaveDialog);
 	m_gui->getWidget<Button>("options")->eventPressed.bind(this, &WorldEditor::showOptionsDialog);
+
 	m_gui->getWidget<Combobox>("toollist")->eventSelected.bind(this, &WorldEditor::selectToolGroup);
+	m_gui->getWidget<Button>("materialbutton")->eventPressed.bind(this, &WorldEditor::showMaterialList);
+	m_gui->getWidget<Button>("texturebutton")->eventPressed.bind(this, &WorldEditor::showTextureList);
+
 
 	m_gui->getWidget<Scrollbar>("brushsize")->eventChanged.bind(this, &WorldEditor::changeBrushSlider);
 	m_gui->getWidget<Scrollbar>("brushstrength")->eventChanged.bind(this, &WorldEditor::changeBrushSlider);
@@ -146,12 +150,15 @@ void WorldEditor::clear() {
 
 	// delete materials
 	if(m_materials) delete m_materials;
+	m_materials = 0;
+	showMaterialList(0);
+	showTextureList(0);
 
 	// delete tools from dropdown list
 	Combobox* list = m_gui->getWidget<Combobox>("toollist");
 	if(list) { list->clearItems();
 		Widget* panel = list->getParent();
-		if(panel->getWidgetCount() > 1) panel->remove( panel->getWidget(1) );
+		if(panel->getWidgetCount() > 3) panel->remove( panel->getWidget(3) );
 	}
 }
 
@@ -327,13 +334,25 @@ void WorldEditor::saveSettings(gui::Window*) {
 
 // ----------------------------------------------------------- //
 
+void WorldEditor::showMaterialList(Button*) {
+	Widget* w = m_gui->getWidget<Widget>("materials");
+	if(m_materials && !w->isVisible()) w->setVisible(true);
+	else w->setVisible(false);
+}
+
+void WorldEditor::showTextureList(Button*) {
+	Widget* w = m_gui->getWidget<Widget>("textures");
+	if(m_materials && !w->isVisible()) w->setVisible(true);
+	else w->setVisible(false);
+}
+
 
 void WorldEditor::selectToolGroup(Combobox* c, int index) {
 	ToolGroup* g = *c->getItemData(index).cast<ToolGroup*>();
 	Widget* p = c->getParent();
-	if(p->getWidgetCount() > 1) p->remove( p->getWidget(1) );
+	if(p->getWidgetCount() > 3) p->remove( p->getWidget(3) );
 	p->add( g->getPanel() );
-	g->getPanel()->setPosition( c->getSize().x + 4, 0 );
+	g->getPanel()->setPosition( c->getPosition().x + c->getSize().x + 4, 0 );
 	m_editor->setTool(0);
 	g->getPanel()->getWidget(0)->setSelected(false);
 }

@@ -55,6 +55,7 @@
 		<icon name="texture" rect="32 32 32 32"/>
 		<icon name="Foliage" rect="64 32 32 32"/>
 		<icon name="Objects" rect="96 32 32 32"/>
+		<icon name="material" rect="128 64 32 32"/> 
 
 		<icon name="raise"   rect="128 0  32 32"/>
 		<icon name="smooth"  rect="160 0  32 32"/>
@@ -66,6 +67,11 @@
 		<icon name="_green"   rect="5  13 2 2"/>
 		<icon name="_blue"    rect="9  13 2 2"/>
 		<icon name="_alpha"   rect="13 13 2 2"/>
+
+		<icon name="layer_a" rect="64 64 16 16"/>
+		<icon name="layer_w" rect="80 64 16 16"/>
+		<icon name="layer_c" rect="64 80 16 16"/>
+		<icon name="layer_i" rect="80 80 16 16"/>
 	</iconlist>
 
 	<!--=========== TEMPLATES ===========-->
@@ -214,7 +220,9 @@
 	</widget>
 	
 	<widget name="toolshelf" rect="142 0 800 36">
-		<widget name="toollist" template="toolgrouplist" rect="2 2 160 32"/>
+		<widget name="materialbutton" template="iconbutton" rect="2 2 32 32" icon="material"/>
+		<widget name="texturebutton" template="iconbutton" rect="36 2 32 32" icon="texture"/>
+		<widget name="toollist" template="toolgrouplist" rect="70 2 160 32"/>
 		<!-- Other tools here -->
 	</widget>
 
@@ -249,10 +257,10 @@
 		</widget>
 		<widget caption="Delete Layer" class="Button" name="removelayer" rect="152 236 96 20" skin="button" anchor="br"/>
 	</widget>
-	<template name="materiallayer" rect="296 800 240 120">
-		<widget class="Icon" name="typeicon" rect="0 0 27 25" iconlist="icons"/>
-		<widget icon="scroll_up" template="iconbutton" name="expand" rect="216 0 24 24" anchor="tr"/>
+	<template name="materiallayer" rect="296 800 240 120" class="OrderableItem">
+		<widget icon="scroll_up" template="iconbutton" name="expand" rect="216 0 16 16" anchor="tr"/>
 		<widget text="Name" class="Textbox" name="layername" rect="32 0 176 20" anchor="tlr"/>
+		<widget class="Icon" name="typeicon" rect="0 0 26 26" iconlist="icons"/>
 	</template>
 
 
