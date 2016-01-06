@@ -317,10 +317,12 @@ Material* MaterialStream::getMaterial(int x, int y) {
 void MaterialStream::dropMaterial(Material* m) {
 	if(!m || m==m_global) return;
 	// Find material in list
-	for(int i=0; i<m_divisions*m_divisions; ++i) {
-		if(m_materials[i].material == m) {
-			dropMaterial(m_materials[i]);
-			return;
+	if(m_materials) {
+		for(int i=0; i<m_divisions*m_divisions; ++i) {
+			if(m_materials[i].material == m) {
+				dropMaterial(m_materials[i]);
+				return;
+			}
 		}
 	}
 	// Drop any in delete list

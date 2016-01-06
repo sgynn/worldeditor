@@ -14,7 +14,7 @@ class OrderableItem : public gui::Widget {
 	void moveUp();
 	void moveDown();
 	public:
-	DelegateS<void()> eventReordered;
+	DelegateS<void(int, int)> eventReordered;
 	protected:
 	void onMouseButton(const Point&, int, int, int);
 	void onMouseMove(const Point&, const Point&, int);

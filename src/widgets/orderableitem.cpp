@@ -47,7 +47,7 @@ void OrderableItem::onMouseButton(const Point& p, int d, int u, int w) {
 		m_held = -1;
 		setIndex(m_targetIndex);
 		updateParentLayout();
-		if(eventReordered) eventReordered();
+		if(eventReordered) eventReordered(m_startIndex, m_targetIndex);
 	}
 	Widget::onMouseButton(p, d, u, w);
 }

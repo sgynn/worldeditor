@@ -59,11 +59,12 @@ class WorldEditor : public base::SceneState {
 	void changeCollision(gui::Button*);
 	void saveSettings(gui::Window* =0);
 
-
 	void selectToolGroup(gui::Combobox*, int);
 	void selectTool(ToolInstance*);
 	void changeBrushSlider(gui::Scrollbar*, int);
 	void updateBrushSliders();
+
+	void setTerrainMaterial(DynamicMaterial*);
 
 	private:
 	Render* m_renderer;

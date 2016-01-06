@@ -23,6 +23,19 @@ MaterialEditor::MaterialEditor(gui::Root* gui, Library* lib, bool stream): m_str
 	m_normalMaps.createBlankTexture(0xff8080ff, 4);
 }
 MaterialEditor::~MaterialEditor() {
+	// Clear persistant gui lists
+	m_materialList->clearItems();
+	while(m_layerList->getWidgetCount()) {
+		gui::Widget* w = m_layerList->getWidget( m_layerList->getWidgetCount()-1 );
+		m_layerList->remove(w);
+		delete w;
+	}
+	while(m_textureList->getWidgetCount()) {
+		gui::Widget* w = m_textureList->getWidget( m_textureList->getWidgetCount()-1 );
+		m_textureList->remove(w);
+		delete w;
+	}
+
 	// Delete materials
 	for(size_t i=0; i<m_materials.size(); ++i) delete m_materials[i];
 	for(size_t i=0; i<m_textures.size(); ++i) delete m_textures[i];
@@ -114,12 +127,6 @@ DynamicMaterial* MaterialEditor::loadMaterial(const XMLElement& e) {
 		}
 	}
 	
-	// Initial gui state
-	if(m_materials.size() == 1) {
-		m_materialList->selectItem(0);
-		selectMaterial(0,0);
-	}
-
 	return mat;
 }
 void writeAutoParams(XMLElement& e, const char* name, AutoParams& p, AutoParams& d) {
@@ -474,6 +481,11 @@ void MaterialEditor::selectMaterial(gui::Combobox*, int index) {
 
 	m_selectedMaterial = index;
 	m_selectedLayer = -1;
+
+	// compile and activate
+	if(m->needsCompiling()) m->compile();
+	m->setTextures(this);
+	eventChangeMaterial(m);
 }
 void MaterialEditor::renameMaterial(gui::Combobox* c) {
 	m_materials[m_selectedMaterial]->setName( c->getText() );
@@ -485,6 +497,7 @@ void MaterialEditor::addLayer(gui::Combobox* c, int i) {
 	const char* names[] = { "Procedural layer", "Mapped Layer", "Colour layer", "Indexed Layer" };
 	layer->name = names[i];
 	addLayerGUI(layer);
+	rebuildMaterial(true);
 }
 void MaterialEditor::removeLayer(gui::Button*) {
 	if(m_selectedMaterial<0 || m_selectedLayer<0) return;
@@ -535,6 +548,11 @@ void MaterialEditor::expandLayer(gui::Button* b) {
 	m_layerList->setPaneAutoSize(true);
 }
 
+void MaterialEditor::moveLayer(int from, int to) {
+	m_materials[m_selectedMaterial]->moveLayer( from, to );
+	rebuildMaterial();
+}
+
 template<typename T> T* addLayerWidget(gui::Root* gui, gui::Widget* parent, const char* name, const char* type) {
 	gui::Widget* prev = parent->getWidget( parent->getWidgetCount()-1 );
 	int y = prev->getPosition().y + prev->getSize().y + 2;
@@ -572,6 +590,7 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 	w->getWidget<gui::Textbox>("layername")->setText( layer->name );
 	w->getWidget<gui::Textbox>("layername")->eventSubmit.bind(this, &MaterialEditor::renameLayer);
 	w->getWidget<gui::Button>("expand")->eventPressed.bind(this, &MaterialEditor::expandLayer);
+	w->cast<OrderableItem>()->eventReordered.bind(this, &MaterialEditor::moveLayer);
 
 	// Blend mode
 	gui::Combobox* blend = addLayerWidget<gui::Combobox>(m_gui, w, "Blend", "droplist");
@@ -595,6 +614,12 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 		tex->shareList(m_textureSelector);
 		tex->selectItem(layer->texture+1);
 		tex->setSize( tex->getSize().x, 30 );
+
+		if(layer->texture<0) {
+			char hexColour[12];
+			sprintf(hexColour, "#%06x", layer->colour);
+			tex->setText(hexColour);
+		}
 
 		// Triplanar option
 		gui::Checkbox* triplanar = addLayerWidget<gui::Checkbox>(m_gui, w, "Triplanar", "button");
@@ -685,18 +710,19 @@ void MaterialEditor::updateMaterial(gui::Widget* w) {
 	DynamicMaterial* mat = m_materials[ m_selectedMaterial ];
 	mat->update(i);
 }
-void MaterialEditor::rebuildMaterial(gui::Widget* w) {
+void MaterialEditor::rebuildMaterial(bool bindMaps) {
 	DynamicMaterial* mat = m_materials[ m_selectedMaterial ];
 	mat->compile();
+	if(bindMaps) mat->setTextures(this);
 }
 
 void MaterialEditor::changeMap(gui::Combobox* w, int i) {
 	getLayer(w)->map = w->getItem(i);
-	rebuildMaterial(w);
+	rebuildMaterial(true);
 }
 void MaterialEditor::changeIndexMap(gui::Combobox* w, int i) {
 	getLayer(w)->map2 = w->getItem(i);
-	rebuildMaterial(w);
+	rebuildMaterial(true);
 }
 void MaterialEditor::changeTexture(gui::Combobox* w, int i) {
 	getLayer(w)->texture = i - 1;
@@ -705,11 +731,11 @@ void MaterialEditor::changeTexture(gui::Combobox* w, int i) {
 		getLayer(w)->colour = 0xff8000;
 		w->setText("#ff8000");
 	}
-	rebuildMaterial(w);
+	rebuildMaterial();
 }
 void MaterialEditor::changeBlendMode(gui::Combobox* w, int i) {
 	getLayer(w)->blend = (BlendMode)i;
-	rebuildMaterial(w);
+	rebuildMaterial();
 }
 void MaterialEditor::changeOpacity(gui::Scrollbar* w, int v) {
 	getLayer(w)->opacity = v/1000.f;
@@ -717,7 +743,7 @@ void MaterialEditor::changeOpacity(gui::Scrollbar* w, int v) {
 }
 void MaterialEditor::changeTriplanar(gui::Button* w) {
 	getLayer(w)->triplanar = w->isSelected();
-	rebuildMaterial(w);
+	rebuildMaterial();
 }
 void MaterialEditor::changeScaleX(gui::Scrollbar* w, int v) {
 	getLayer(w)->scale.x = v;

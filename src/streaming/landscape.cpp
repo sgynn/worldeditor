@@ -258,7 +258,7 @@ int Patch::visitAllPatches(Landscape::PatchFunc f) {
 	if(m_split){
 		int r = 0;
 		for(int i=0; i<4; ++i) r += m_child[i]->visitAllPatches(f);
-		return r;
+		//return r;
 	}
 	// Call callback
 	f(&m_geometry);

@@ -346,6 +346,10 @@ void WorldEditor::showTextureList(Button*) {
 	else w->setVisible(false);
 }
 
+void WorldEditor::setTerrainMaterial(DynamicMaterial* m) {
+	m_heightMap->setMaterial(m);
+}
+
 
 void WorldEditor::selectToolGroup(Combobox* c, int index) {
 	ToolGroup* g = *c->getItemData(index).cast<ToolGroup*>();
@@ -570,6 +574,7 @@ void WorldEditor::loadWorld(const char* file) {
 
 	// Load materials
 	m_materials = new MaterialEditor(m_gui, m_library, m_streaming);
+	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
 	for(XML::iterator i=terrain.begin(); i!=terrain.end(); ++i) {
 		if(*i == "material") m_materials->loadMaterial(*i);
 		else if(*i == "texture") m_materials->loadTexture(*i);
@@ -611,22 +616,14 @@ void WorldEditor::loadWorld(const char* file) {
 
 			// Create texture
 			EditableTexture* tex = 0;
-			if(stream && use > 0) {
+			if(stream) {
 				TextureStream* ts = new TextureStream();
-				if(ts->openStream(buffer)) tex = new EditableTexture(ts);
-				else messageBox("Error", "Failed to open stream %s", file);
-				
-				// Add to streamer
-				ts->initialise(2048, true);
-				if(tex && streamer) streamer->addTexture(name, ts);
-			}
-			else if(stream) {
-				BufferedStream* bs = new BufferedStream();
-				if(bs->openStream(buffer)) tex = new EditableTexture(bs);
-				else messageBox("Error", "Failed to open stream %s", file);
-			}
-			else {
-				tex = new EditableTexture(buffer, use>0);
+				if(ts->openStream(buffer)) {
+					tex = new EditableTexture(ts);
+					ts->initialise(2048, true);
+				} else messageBox("Error", "Failed to open stream %s", file);
+			} else {
+				tex = new EditableTexture(buffer, true);
 			}
 
 			if(!tex) continue;
@@ -668,14 +665,7 @@ void WorldEditor::loadWorld(const char* file) {
 	}
 
 	// Set initial material
-	DynamicMaterial* mat = m_materials->getMaterial(0);
-	if(mat) {
-		mat->compile();
-		mat->setTextures(m_materials);
-		m_heightMap->setMaterial(mat);
-	} else {
-		printf("Error: No materials\n");
-	}
+	m_materials->selectMaterial(0,0);
 }
 void WorldEditor::saveWorld(const char* file) {
 	

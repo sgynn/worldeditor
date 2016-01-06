@@ -15,7 +15,7 @@ using base::VertexShader;
 using base::Material;
 using base::Texture;
 
-DynamicMaterial::DynamicMaterial(bool stream) : m_material(0), m_stream(0), m_streaming(stream) {
+DynamicMaterial::DynamicMaterial(bool stream) : m_material(0), m_stream(0), m_streaming(stream), m_needsCompile(true) {
 }
 
 DynamicMaterial::~DynamicMaterial() {
@@ -42,7 +42,7 @@ MaterialLayer* DynamicMaterial::addLayer(LayerType type) {
 	layer->opacity = 1.0;
 	layer->texture = 0;
 	layer->colour = 0xffffff;
-	layer->scale = vec3(1,1,1);
+	layer->scale = vec3(100,100,100);
 	layer->mapData = 0;
 
 	layer->triplanar = false;
@@ -57,6 +57,7 @@ MaterialLayer* DynamicMaterial::addLayer(LayerType type) {
 	layer->concavity.blend = 0;
 
 	m_layers.push_back(layer);
+	m_needsCompile = true;
 	return layer;
 }
 
@@ -68,7 +69,19 @@ void DynamicMaterial::removeLayer(int index) {
 	if(index<(int)size()) {
 		delete m_layers[index];
 		m_layers.erase( m_layers.begin() + index );
+		m_needsCompile = true;
 	}
+}
+
+void DynamicMaterial::moveLayer(int from, int to) {
+	if(from == to) return;
+	MaterialLayer* layer = m_layers[from];
+	int d = from < to? 1: -1;
+	for(int i=from; i!=to; i+=d) {
+		m_layers[i] = m_layers[i+d];
+	}
+	m_layers[to] = layer;
+	m_needsCompile = true;
 }
 
 size_t DynamicMaterial::size() const {
@@ -94,6 +107,8 @@ const char* addIndex(const char* base, int index) {
 }
 
 void DynamicMaterial::update(int index) {
+	if(!m_material) return;
+
 	// Set all the variables
 	MaterialLayer* layer = m_layers[index];
 	m_material->setFloat( addIndex("opacity",index), layer->opacity);
@@ -148,8 +163,10 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 	}
 	for(MapList::iterator i=maps.begin(); i!=maps.end(); ++i) {
 		EditableTexture* map = src->getMap(*i);
-		m_material->setTexture(*i, map->getTexture());
-		if(m_stream) m_stream->addStream(*i, map->getTextureStream());
+		if(map) {
+			m_material->setTexture(*i, map->getTexture());
+			if(m_stream) m_stream->addStream(*i, map->getTextureStream());
+		}
 	}
 }
 
@@ -160,6 +177,14 @@ base::Material* DynamicMaterial::getMaterial() const {
 }
 MaterialStream* DynamicMaterial::getStream() const {
 	return m_stream;
+}
+
+bool DynamicMaterial::needsCompiling() const {
+	return m_needsCompile;
+}
+
+void DynamicMaterial::flagRecompile() {
+	m_needsCompile = true;
 }
 
 bool DynamicMaterial::compile() {
@@ -269,7 +294,7 @@ bool DynamicMaterial::compile() {
 	if(!maps.empty()) {
 		source +=  "	// Sample maps\n";
 		for(MapList::iterator i=maps.begin(); i!=maps.end(); ++i) {
-			source +=  "	vec4 " + *i + "Sample = sampleMap(" + *i + "Map, " + *i + "Info);\n";
+			source +=  "	vec4 " + *i + "Sample = sampleMap(" + *i + "Map, " + *i + "Info, worldPos.xz);\n";
 		}
 		source += "\n";
 	}
@@ -382,6 +407,7 @@ bool DynamicMaterial::compile() {
 	printf("Compiled shader\n");
 
 
+	m_needsCompile = false;
 	return false;
 }
 

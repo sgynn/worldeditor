@@ -51,6 +51,11 @@ void Streamer::setMaterial(const DynamicMaterial* m) {
 	float size = m_stream->width() & ~1;
 	m_material = m->getStream();
 	m_material->setCoordinates(vec2(size,size), m_offset.xz());
+	// Change materials in existing patches
+	m_swapMaterialFlag = true;
+	m_land->visitAllPatches(Streamer::updatePatchMaterial);
+	m_swapMaterialFlag = false;
+	
 }
 
 void Streamer::addTexture(const char* name, TextureStream* tex) {
@@ -99,9 +104,9 @@ void Streamer::updatePatchMaterial(PatchGeometry* g) {
 
 	if(g->bounds->size().x > -s_streamer->m_offset.x * 0.5) d = 1e20f;
 
-	if(d > 1000 * 1000) {
+	if(d > 1000 * 1000 || s_streamer->m_swapMaterialFlag) {
 		// May need to drop reference
-		s_streamer->m_material->dropMaterial( tag->material );
+		if(tag->material != global) s_streamer->m_material->dropMaterial( tag->material );
 		tag->material = global;
 	}
 	else if(tag->material == 0 || tag->material == global) {

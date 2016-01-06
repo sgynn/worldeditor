@@ -60,6 +60,7 @@ class Streamer : public Object, public BufferedStream {
 	vec3          m_offset;
 	float         m_resolution;
 	Landscape*    m_land;
+	bool          m_swapMaterialFlag;
 
 	StreamerDrawable* m_drawable;
 	MaterialStream*   m_material;

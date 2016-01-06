@@ -50,6 +50,8 @@ class MaterialEditor {
 	void deleteMap(const char* name);
 	EditableTexture* getMap(const char* name) const;
 	
+	public:
+	DelegateS<void(DynamicMaterial*)> eventChangeMaterial;
 
 	public:	// gui callbacks here
 	void addTexture(gui::Button*);		// Add a texture
@@ -67,6 +69,7 @@ class MaterialEditor {
 	void addLayer(gui::Combobox*, int);
 	void removeLayer(gui::Button*);
 	void renameLayer(gui::Textbox*);
+	void moveLayer(int, int);
 	void expandLayer(gui::Button*);
 	void addLayerGUI(MaterialLayer*);
 	void selectLayer(gui::Widget*);
@@ -101,7 +104,7 @@ class MaterialEditor {
 	static int getItemIndex(gui::Widget* w, gui::Widget* list);
 	MaterialLayer* getLayer(gui::Widget*) const;
 	void updateMaterial(gui::Widget*);
-	void rebuildMaterial(gui::Widget*);
+	void rebuildMaterial(bool bind=false);
 
 
 	protected:	// Data

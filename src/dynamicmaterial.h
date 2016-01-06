@@ -51,10 +51,14 @@ class DynamicMaterial {
 	MaterialLayer* addLayer(LayerType);
 	MaterialLayer* getLayer(int index) const;
 	void           removeLayer(int index);
+	void           moveLayer(int from, int to);
 
 	bool            compile();				// Generate the shader
 	void			setTextures(MaterialEditor* src);	// Bind textures to material
 	void            update(int layer);		// Update constant buffers (need shared params)
+	bool			needsCompiling() const;	// do we need to recompile
+	void			flagRecompile();		// Flag material to be compiled when activated
+
 	base::Material* getMaterial() const;	// Get material pointer
 	MaterialStream* getStream() const;		// Get material stream
 
@@ -64,6 +68,7 @@ class DynamicMaterial {
 	base::Material* m_material;
 	MaterialStream* m_stream;
 	bool            m_streaming;
+	bool            m_needsCompile;
 };
 
 
