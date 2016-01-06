@@ -100,10 +100,11 @@ int ArrayTexture::build() {
 	//decompressAll();
 
 	// Check formats
+	DDS* firstLayer = m_layers[0]? m_layers[0]: m_blankLayer;
 	for(size_t i=1; i<m_layers.size(); ++i) {
 		DDS* layer = m_layers[i]? m_layers[i]: m_blankLayer;
-		if(layer->isCompressed() != layer->isCompressed()) decompressAll();
-		if(layer->format != layer->format) return i | 0x100; // Different formats
+		if(layer->isCompressed() != firstLayer->isCompressed()) decompressAll();
+		if(layer->format != firstLayer->format) return i | 0x100; // Different formats
 	}
 
 	// Get mip level
@@ -114,7 +115,6 @@ int ArrayTexture::build() {
 	}
 
 	// Check sizes
-	DDS* firstLayer = m_layers[0]? m_layers[0]: m_blankLayer;
 	int w = firstLayer->width >> (firstLayer->mipmaps-mips);
 	int h = firstLayer->height >> (firstLayer->mipmaps-mips);
 	for(size_t i=1; i<m_layers.size(); ++i) {
@@ -140,14 +140,15 @@ int ArrayTexture::build() {
 	// Copy data - ToDo - Texture::setPixels() functions for this. Also use pixel buffer objects for speed. see ogre.
 	for(size_t i=0; i<m_layers.size(); ++i) {
 		DDS* layer = m_layers[i]? m_layers[i]: m_blankLayer;
+		int shift = layer->mipmaps - mips;
 		for(int mip=0; mip<mips; ++mip) {
 			int mw = w>>mip? w>>mip: 1;
 			int mh = h>>mip? h>>mip: 1;
 			if(layer->isCompressed()) {
 				unsigned size = Texture::getMemorySize(format, mw, mh);
-				glCompressedTexSubImage3D(GL_TEXTURE_2D_ARRAY, mip, 0, 0, i, mw, mh, 1, glFormat, size, layer->data[mip]);
+				glCompressedTexSubImage3D(GL_TEXTURE_2D_ARRAY, mip, 0, 0, i, mw, mh, 1, glFormat, size, layer->data[mip + shift]);
 			} else {
-				glTexSubImage3D(GL_TEXTURE_2D_ARRAY, mip, 0, 0, i, mw, mh, 1, glFormat, GL_UNSIGNED_BYTE, layer->data[mip]);
+				glTexSubImage3D(GL_TEXTURE_2D_ARRAY, mip, 0, 0, i, mw, mh, 1, glFormat, GL_UNSIGNED_BYTE, layer->data[mip + shift]);
 			}
 			GL_CHECK_ERROR;
 		}

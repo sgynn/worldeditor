@@ -255,8 +255,10 @@ XMLElement MaterialEditor::serialiseTexture(int index) {
 }
 
 void MaterialEditor::buildTextures() {
-	m_diffuseMaps.build();
-	m_normalMaps.build();
+	int rd = m_diffuseMaps.build();
+	int rn = m_normalMaps.build();
+	if(rd) printf("Error: Texture %s is incompatible\n", (const char*)m_textures[rd&0xff]->diffuse);
+	if(rn) printf("Error: Texture %s is incompatible\n", (const char*)m_textures[rn&0xff]->normal);
 }
 
 const base::Texture& MaterialEditor::getDiffuseArray() const {
@@ -369,7 +371,7 @@ void MaterialEditor::browseTexture(gui::Button* b) {
 	// Save which one
 	selectTexture(b);
 	m_browseTarget = m_selectedTexture;
-	if(*b->getName() == 'n') m_browseTarget |= 0x100;
+	if(b->getName()[7] == 'n') m_browseTarget |= 0x100;
 
 	// open file dialog
 	FileDialog* d = m_gui->getWidget<FileDialog>("filedialog");
@@ -418,7 +420,9 @@ void MaterialEditor::setTexture(const char* file) {
 	DDS dds = DDS::load(file);
 	if(dds.format != DDS::INVALID) {
 		array->setTexture(m_browseTarget&0xff, dds);
-		array->build();
+		int r = array->build();
+		if(r) printf("Error: Texture %s is incompatible\n", buffer);
+		m_materials[m_selectedMaterial]->setTextures(this);
 	} else printf("Error: Failed to load %s\n", buffer);
 }
 
@@ -437,10 +441,13 @@ void MaterialEditor::reloadTexture(gui::Button*) {
 	}
 	// Load it
 	if(file) {
+		printf("Reloading %s\n", file);
 		DDS dds = DDS::load(file);
 		if(dds.format != DDS::INVALID) {
 			array->setTexture(m_selectedTexture, dds);
-			array->build();
+			int r = array->build();
+			if(r) printf("Error: Texture %s is incompatible\n", file);
+			m_materials[m_selectedMaterial]->setTextures(this);
 		} else printf("Error: Failed to load %s\n", file);
 	}
 }
