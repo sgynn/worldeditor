@@ -69,6 +69,19 @@ class MaterialEditor {
 	void renameLayer(gui::Textbox*);
 	void expandLayer(gui::Button*);
 	void addLayerGUI(MaterialLayer*);
+	void selectLayer(gui::Widget*);
+
+	void changeMap(gui::Combobox*, int);
+	void changeIndexMap(gui::Combobox*, int);
+	void changeTexture(gui::Combobox*, int);
+	void changeBlendMode(gui::Combobox*, int);
+	void changeOpacity(gui::Scrollbar*, int);
+	void changeTriplanar(gui::Button*);
+	void changeScaleX(gui::Scrollbar*, int);
+	void changeScaleY(gui::Scrollbar*, int);
+	void changeHeightParam(gui::Scrollbar*, int);
+	void changeSlopeParam (gui::Scrollbar*, int);
+	void changeConvexParam(gui::Scrollbar*, int);
 
 	protected:	// Gui objects
 	gui::Window* m_materialPanel;
@@ -76,13 +89,19 @@ class MaterialEditor {
 	gui::Scrollpane* m_textureList;
 	gui::Scrollpane* m_layerList;
 	gui::Combobox*   m_materialList;
+	gui::ItemList*   m_textureSelector;
+	gui::ItemList*   m_mapSelector;
 
 	int m_selectedLayer;
 	int m_selectedTexture;
 	int m_selectedMaterial;
 	int m_browseTarget;
 
-	int getItemIndex(gui::Widget* w, gui::Widget* list);
+	static int getListIndex(gui::ItemList*, const char*);
+	static int getItemIndex(gui::Widget* w, gui::Widget* list);
+	MaterialLayer* getLayer(gui::Widget*) const;
+	void updateMaterial(gui::Widget*);
+	void rebuildMaterial(gui::Widget*);
 
 
 	protected:	// Data

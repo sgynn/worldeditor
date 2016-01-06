@@ -189,8 +189,10 @@ void MaterialStream::copyParam(const char* name) {
 
 void MaterialStream::updateShader() {
 	if(m_global) m_global->setShader( m_template->getShader() );
-	for(int i=0; i<m_divisions*m_divisions; ++i) {
-		if(m_materials[i].ref) m_materials[i].material->setShader( m_template->getShader() );
+	if(m_materials) {
+		for(int i=0; i<m_divisions*m_divisions; ++i) {
+			if(m_materials[i].ref) m_materials[i].material->setShader( m_template->getShader() );
+		}
 	}
 }
 

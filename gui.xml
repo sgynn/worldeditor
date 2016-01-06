@@ -247,8 +247,8 @@
 	<widget caption="Materials" template="dialog" name="materials" rect="400 100 400 500" visible="0">
 		<widget class="Label" rect="8 8 64 20" caption="Material"/>
 		<widget template="combobox" name="materiallist" rect="72 8 310 20" anchor="tlr"/>
-		<widget template="scrollpane" name="layerlist" rect="0 32 390 412" anchor="tlrb"/>
-		<widget caption="New" class="Button" name="newmaterial" rect="5 448 40 20" skin="button" anchor="bl"/>
+		<widget template="scrollpane" name="layerlist" rect="0 32 390 412" fullsize="1" anchor="tlrb"/>
+		<widget caption="New Material" class="Button" name="newmaterial" rect="5 448 100 20" skin="button" anchor="bl"/>
 		<widget caption="Add Layer" template="droplist" name="addlayer" rect="200 448 80 20" skin="button" anchor="br">
 			<item>Procedural</item>
 			<item>Mapped</item>
@@ -257,16 +257,16 @@
 		</widget>
 		<widget caption="Delete Layer" class="Button" name="removelayer" rect="288 448 96 20" skin="button" anchor="br"/>
 	</widget>
-	<template name="materiallayer" rect="0 0 232 120" class="OrderableItem">
-		<widget icon="scroll_up" template="iconbutton" name="expand" rect="216 0 16 16" anchor="tr"/>
-		<widget text="Name" class="Textbox" name="layername" rect="32 0 176 20" anchor="tlr"/>
+	<template name="materiallayer" rect="0 0 232 120" class="OrderableItem" anchor="tlr" skin="border">
+		<widget icon="scroll_up" template="iconbutton" name="expand" rect="215 1 16 16" anchor="tr"/>
+		<widget text="Name" class="Textbox" name="layername" rect="32 0 176 20" anchor="tlr" skin="border" inheritstate="1"/>
 		<widget class="Icon" name="typeicon" rect="0 0 26 26" iconlist="icons"/>
 	</template>
 
 
 	<!-- Textures dialog -->
 	<widget caption="Textures" template="dialog" name="textures" rect="100 100 256 400" visible="0">
-		<widget template="scrollpane" name="texturelist" rect="0 0 246 336" anchor="tlrb"/>
+		<widget template="scrollpane" name="texturelist" rect="0 0 246 336" fullsize="1" anchor="tlrb"/>
 		<widget caption="Add" class="Button" name="addtexture" rect="16 344 56 20" skin="button" anchor="br"/>
 		<widget caption="Remove" class="Button" name="removetexture" rect="80 344 64 20" skin="button" anchor="br"/>
 		<widget caption="Reload" class="Button" name="reloadtexture" rect="152 344 72 20" skin="button" anchor="br"/>

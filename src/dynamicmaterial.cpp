@@ -94,11 +94,11 @@ const char* addIndex(const char* base, int index) {
 }
 
 void DynamicMaterial::update(int index) {
-	printf("Variables updated (%d)\n", index);
 	// Set all the variables
 	MaterialLayer* layer = m_layers[index];
 	m_material->setFloat( addIndex("opacity",index), layer->opacity);
-	m_material->setFloatv( addIndex("scale",index), layer->triplanar? 3: 2, 1.0 / layer->scale);
+	if(layer->triplanar) m_material->setFloatv( addIndex("scale",index), 3, 1.0 / layer->scale);
+	else m_material->setFloatv( addIndex("scale",index), 2, 1.0 / layer->scale.xy());
 
 	if(m_stream) {
 		m_stream->copyParam( addIndex("opacity",index) );
@@ -306,7 +306,7 @@ bool DynamicMaterial::compile() {
 		// Sample textures
 		if(layer->texture < 0) source +=
 			"	diff = vec4(" + str(colour.r) + ", " + str(colour.g) + ", " + str(colour.b) + ", 0);\n"
-			"	norm = vec4(0,1 0,0);\n";
+			"	norm = vec4(0, 0, 1, 0);\n";
 		else if(layer->triplanar) source +=
 			"	diff = sampleTriplanar("+str(layer->texture)+".0, worldPos * scale"+index+", triplanar);\n"
 			"	norm = sampleTriplanerNormal("+str(layer->texture)+".0, worldPos * scale"+index+", worldNormal, triplanar);\n";
