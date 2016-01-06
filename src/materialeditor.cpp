@@ -327,6 +327,7 @@ int MaterialEditor::getItemIndex(gui::Widget* w, gui::Widget* list) {
 }
 
 int MaterialEditor::getListIndex(gui::ItemList* list, const char* n) {
+	if(!n) return -1;
 	for(size_t i=0; i<list->getItemCount(); ++i) {
 		if(strcmp(list->getItem(i), n)==0) return i;
 	}
@@ -479,6 +480,7 @@ void MaterialEditor::selectMaterial(gui::Combobox*, int index) {
 		addLayerGUI( m->getLayer(i) );
 	}
 
+	m_materialList->selectItem(index);
 	m_selectedMaterial = index;
 	m_selectedLayer = -1;
 
@@ -510,13 +512,13 @@ void MaterialEditor::removeLayer(gui::Button*) {
 	}
 	m_layerList->remove(w);
 	m_selectedLayer = -1;
+	rebuildMaterial(true);
 	delete w;
 }
 void MaterialEditor::renameLayer(gui::Textbox* t) {
 	if(m_selectedMaterial<0 || m_selectedLayer<0) return;
 	MaterialLayer* layer = m_materials[m_selectedMaterial]->getLayer( m_selectedLayer );
 	layer->name = t->getText();
-
 }
 
 void MaterialEditor::selectLayer(gui::Widget* w) {
@@ -549,8 +551,16 @@ void MaterialEditor::expandLayer(gui::Button* b) {
 }
 
 void MaterialEditor::moveLayer(int from, int to) {
+	if(from == to) return;
 	m_materials[m_selectedMaterial]->moveLayer( from, to );
 	rebuildMaterial();
+}
+
+void MaterialEditor::toggleLayer(gui::Button* b) {
+	MaterialLayer* layer = getLayer(b);
+	layer->visible = !layer->visible;
+	b->setIcon( layer->visible? "eye_open": "eye_closed" );
+	updateMaterial(b);
 }
 
 template<typename T> T* addLayerWidget(gui::Root* gui, gui::Widget* parent, const char* name, const char* type) {
@@ -589,6 +599,8 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 	w->getWidget<gui::Icon>("typeicon")->setIcon( icons[layer->type] );
 	w->getWidget<gui::Textbox>("layername")->setText( layer->name );
 	w->getWidget<gui::Textbox>("layername")->eventSubmit.bind(this, &MaterialEditor::renameLayer);
+	w->getWidget<gui::Button>("visibility")->eventPressed.bind(this, &MaterialEditor::toggleLayer);
+	w->getWidget<gui::Button>("visibility")->setIcon(layer->visible? "eye_open": "eye_closed");
 	w->getWidget<gui::Button>("expand")->eventPressed.bind(this, &MaterialEditor::expandLayer);
 	w->cast<OrderableItem>()->eventReordered.bind(this, &MaterialEditor::moveLayer);
 
@@ -643,7 +655,15 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 		map->eventSelected.bind(this, &MaterialEditor::changeMap);
 		map->shareList(m_mapSelector);
 		map->selectItem( getListIndex(map, layer->map) );
-		
+		if(layer->type == LAYER_WEIGHT) {
+			gui::Combobox* channel = addLayerWidget<gui::Combobox>(m_gui, w, "Channel", "droplist");
+			channel->addItem("Red");
+			channel->addItem("Green");
+			channel->addItem("Blue");
+			channel->addItem("Alpha");
+			channel->addItem("Remainder");
+			channel->eventSelected.bind(this, &MaterialEditor::changeChannel);
+		}
 	}
 	else if(layer->type == LAYER_INDEXED) {
 		gui::Combobox* index = addLayerWidget<gui::Combobox>(m_gui, w, "Index Map", "droplist");
@@ -665,7 +685,7 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 		slider[2] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Height Blend", "slider");
 		for(int i=0; i<3; ++i) {
 			slider[i]->setRange(0, 1000); // need max terrain height
-			slider[i]->setValue((&layer->height.min)[i]);
+			slider[i]->setValue((&layer->height.min)[i] * (i==2?10:1));
 			slider[i]->eventChanged.bind(this, &MaterialEditor::changeHeightParam);
 		}
 
@@ -678,6 +698,7 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 			slider[i]->eventChanged.bind(this, &MaterialEditor::changeSlopeParam);
 		}
 
+		/*
 		slider[0] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Concave Min", "slider");
 		slider[1] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Concave Max", "slider");
 		slider[2] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Concave Blend", "slider");
@@ -686,6 +707,7 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 			slider[i]->setValue((&layer->concavity.min)[i] * 1000);
 			slider[i]->eventChanged.bind(this, &MaterialEditor::changeConvexParam);
 		}
+		*/
 	}
 
 	// Layer selection
@@ -724,6 +746,10 @@ void MaterialEditor::changeIndexMap(gui::Combobox* w, int i) {
 	getLayer(w)->map2 = w->getItem(i);
 	rebuildMaterial(true);
 }
+void MaterialEditor::changeChannel(gui::Combobox* w, int i) {
+	getLayer(w)->mapData = i;
+	rebuildMaterial(true);
+}
 void MaterialEditor::changeTexture(gui::Combobox* w, int i) {
 	getLayer(w)->texture = i - 1;
 	if(i==0) {
@@ -758,7 +784,7 @@ void MaterialEditor::changeHeightParam(gui::Scrollbar* w, int v) {
 	switch(w->getName()[8]) {
 	case 'i': p.min = v; break;
 	case 'a': p.max = v; break;
-	case 'l': p.blend = v; break;
+	case 'l': p.blend = v/10.f; break;
 	}
 	updateMaterial(w);
 }

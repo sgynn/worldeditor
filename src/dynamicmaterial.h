@@ -20,6 +20,7 @@ struct MaterialLayer {
 	String name;		// Layer name
 	LayerType type;		// Layer type
 	BlendMode blend;	// Layer blend mode
+	bool  visible;		// Allow layers to be turned off - uses opacity
 	float blendScale;	// Used for height blend
 	float opacity;		// Multiplier
 

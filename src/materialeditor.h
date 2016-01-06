@@ -68,6 +68,7 @@ class MaterialEditor {
 	void renameMaterial(gui::Combobox*);
 	void addLayer(gui::Combobox*, int);
 	void removeLayer(gui::Button*);
+	void toggleLayer(gui::Button*);
 	void renameLayer(gui::Textbox*);
 	void moveLayer(int, int);
 	void expandLayer(gui::Button*);
@@ -76,6 +77,7 @@ class MaterialEditor {
 
 	void changeMap(gui::Combobox*, int);
 	void changeIndexMap(gui::Combobox*, int);
+	void changeChannel(gui::Combobox*, int);
 	void changeTexture(gui::Combobox*, int);
 	void changeBlendMode(gui::Combobox*, int);
 	void changeOpacity(gui::Scrollbar*, int);

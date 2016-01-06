@@ -38,6 +38,7 @@ MaterialLayer* DynamicMaterial::addLayer(LayerType type) {
 	MaterialLayer* layer = new MaterialLayer();
 	layer->type = type;
 	layer->blend = BLEND_NORMAL;
+	layer->visible = true;
 	layer->blendScale = 1.0;
 	layer->opacity = 1.0;
 	layer->texture = 0;
@@ -51,7 +52,7 @@ MaterialLayer* DynamicMaterial::addLayer(LayerType type) {
 	layer->slope.blend = 0;
 	layer->height.min = 0;
 	layer->height.max = 1000;
-	layer->height.blend = 10;
+	layer->height.blend = 0;
 	layer->concavity.min = -1;
 	layer->concavity.max = 1;
 	layer->concavity.blend = 0;
@@ -111,7 +112,7 @@ void DynamicMaterial::update(int index) {
 
 	// Set all the variables
 	MaterialLayer* layer = m_layers[index];
-	m_material->setFloat( addIndex("opacity",index), layer->opacity);
+	m_material->setFloat( addIndex("opacity",index), layer->visible? layer->opacity: 0);
 	if(layer->triplanar) m_material->setFloatv( addIndex("scale",index), 3, 1.0 / layer->scale);
 	else m_material->setFloatv( addIndex("scale",index), 2, 1.0 / layer->scale.xy());
 
@@ -255,7 +256,7 @@ bool DynamicMaterial::compile() {
 //	"	vec3 ctr = (vmin + vmax) * 0.5;\n"
 //	"	vec3 r = smoothstep(ctr - vmin, ctr - vmin + vblend, abs(value - ctr));\n"
 	"	vec3 r = smoothstep(vmin-vblend, vmin, value) * smoothstep(vmax+vblend, vmax, value);\n"
-	"	return r.y; //r.x * r.y * r.z;\n"
+	"	return r.x * r.y * r.z;\n"
 	"}\n";
 
 	source +=
@@ -305,6 +306,7 @@ bool DynamicMaterial::compile() {
 		std::string index = str(i);
 		MaterialLayer* layer = m_layers[i];
 		Colour colour(layer->colour);
+		bool valid = true;
 
 		source +=  "	// Layer " + str(layer->name) + "\n";
 
@@ -314,30 +316,38 @@ bool DynamicMaterial::compile() {
 			break;
 
 		case LAYER_WEIGHT:
-			if(layer->mapData<4)
+			if(!layer->map || !layer->map[0]) valid = false;
+			else if(layer->mapData<4)
 				source +=  "	weight = " + str(layer->map) + "Sample." + rgba[layer->mapData] + ";\n";
 			else
 				source +=  "	weight = 1.0 - dot(" + str(layer->map) + "Sample, vec4(1,1,1,1));\n";
 			break;
 
 		case LAYER_COLOUR:
-			source +=  "	diff = " + str(layer->map) + "Sample;\n";
+			if(!layer->map || !layer->map[0]) valid = false;
+			else source +=  "	diff = " + str(layer->map) + "Sample;\n	weight = 1.0;\n";
 			break;
 		case LAYER_INDEXED:
 			// ToDo this one
 			break;
 		}
+		if(!valid) {
+			printf("Error: Layer %s references an invalid map\n", (const char*)layer->name);
+			continue;
+		}
 
 		// Sample textures
-		if(layer->texture < 0) source +=
-			"	diff = vec4(" + str(colour.r) + ", " + str(colour.g) + ", " + str(colour.b) + ", 0);\n"
-			"	norm = vec4(0, 0, 1, 0);\n";
-		else if(layer->triplanar) source +=
-			"	diff = sampleTriplanar("+str(layer->texture)+".0, worldPos * scale"+index+", triplanar);\n"
-			"	norm = sampleTriplanerNormal("+str(layer->texture)+".0, worldPos * scale"+index+", worldNormal, triplanar);\n";
-		else source += 
-			"	diff = sampleDiffuse("+str(layer->texture)+".0, worldPos.xz * scale"+index+");\n"
-			"	norm = sampleNormal("+str(layer->texture)+".0, worldPos.xz * scale"+index+");\n";
+		if(layer->type != LAYER_COLOUR) {
+			if(layer->texture < 0) source +=
+				"	diff = vec4(" + str(colour.r) + ", " + str(colour.g) + ", " + str(colour.b) + ", 0);\n"
+				"	norm = vec4(0, 0, 1, 0);\n";
+			else if(layer->triplanar) source +=
+				"	diff = sampleTriplanar("+str(layer->texture)+".0, worldPos * scale"+index+", triplanar);\n"
+				"	norm = sampleTriplanerNormal("+str(layer->texture)+".0, worldPos * scale"+index+", worldNormal, triplanar);\n";
+			else source += 
+				"	diff = sampleDiffuse("+str(layer->texture)+".0, worldPos.xz * scale"+index+");\n"
+				"	norm = sampleNormal("+str(layer->texture)+".0, worldPos.xz * scale"+index+");\n";
+		}
 
 
 		// Blending

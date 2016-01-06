@@ -200,9 +200,8 @@ void MaterialStream::addStream(const char* name, TextureStream* texture) {
 	// Add stream to list
 	Stream stream;
 	stream.texture = texture;
-	strcpy(stream.name, name);
-	strcpy(stream.infoName, name);
-	strcat(stream.infoName, "Info");
+	sprintf(stream.name, "%sMap", name);
+	sprintf(stream.infoName, "%sInfo", name);
 	m_streams.push_back(stream);
 
 	// Rebuild submaterial list if we need more divisions
@@ -352,8 +351,8 @@ void MaterialStream::setStreamTexture(Material* m, const Stream& stream, int x, 
 	float info[4];
 	info[0] = (float) (x/d) * d / m_divisions * m_size.x + m_offset.x;
 	info[1] = (float) (y/d) * d / m_divisions * m_size.y + m_offset.y;
-	info[2] = 1.0 / stream.texture->getDivisions() * m_size.x;
-	info[3] = 1.0 / stream.texture->getDivisions() * m_size.y;
+	info[2] = stream.texture->getDivisions() / m_size.x;
+	info[3] = stream.texture->getDivisions() / m_size.y;
 	m->setFloat4( stream.infoName, info );
 }
 

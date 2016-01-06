@@ -52,9 +52,11 @@ void Streamer::setMaterial(const DynamicMaterial* m) {
 	m_material = m->getStream();
 	m_material->setCoordinates(vec2(size,size), m_offset.xz());
 	// Change materials in existing patches
+		GL_CHECK_ERROR;
 	m_swapMaterialFlag = true;
 	m_land->visitAllPatches(Streamer::updatePatchMaterial);
 	m_swapMaterialFlag = false;
+		GL_CHECK_ERROR;
 	
 }
 

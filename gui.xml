@@ -30,7 +30,6 @@
 		<state name="selected normal" coord="8 8 4 4" border="2 2 2 2"/>
 	</skin>
 
-
 	<!--============= ICONS ====================-->
 
 	<iconlist name="icons">
@@ -45,6 +44,9 @@
 
 		<icon name="folder"       rect="0  80 16 16"/>
 		<icon name="file"         rect="16 80 16 16"/>
+
+		<icon name="eye_open"     rect="32 80 16 16"/>
+		<icon name="eye_closed"   rect="48 80 16 16"/>
 
 		<icon name="new"     rect="32 0  32 32"/>
 		<icon name="open"    rect="64 0  32 32"/>
@@ -259,7 +261,8 @@
 	</widget>
 	<template name="materiallayer" rect="0 0 232 120" class="OrderableItem" anchor="tlr" skin="border">
 		<widget icon="scroll_up" template="iconbutton" name="expand" rect="215 1 16 16" anchor="tr"/>
-		<widget text="Name" class="Textbox" name="layername" rect="32 0 176 20" anchor="tlr" skin="border" inheritstate="1"/>
+		<widget icon="eye_open" template="iconbutton" name="visibility" rect="199 1 16 16" anchor="tr"/>
+		<widget text="Name" class="Textbox" name="layername" rect="32 0 160 20" anchor="tlr" skin="border" inheritstate="1"/>
 		<widget class="Icon" name="typeicon" rect="0 0 26 26" iconlist="icons"/>
 	</template>
 
