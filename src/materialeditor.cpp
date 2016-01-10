@@ -144,6 +144,7 @@ XMLElement MaterialEditor::serialiseMaterial(int index) {
 
 	DynamicMaterial* mat = m_materials[index];
 	XMLElement e("material");
+	e.setAttribute("name", mat->getName());
 	for(size_t i=0; i<mat->size(); ++i) {
 		MaterialLayer* l = mat->getLayer(i);
 		XMLElement& layer = e.add("layer");
@@ -238,11 +239,7 @@ void MaterialEditor::loadTexture(const XMLElement& e) {
 	loadTexture( &m_diffuseMaps, tex->diffuse );
 	loadTexture( &m_normalMaps, tex->normal );
 	// Update gui
-	addTexture(0);
-	gui::Widget* w = m_textureList->getWidget(m_selectedTexture);
-	w->getWidget<gui::Textbox>("texturename")->setText( tex->name );
-	w->getWidget<gui::Textbox>("diffuse")->setText( tex->diffuse );
-	w->getWidget<gui::Textbox>("normal")->setText( tex->normal );
+	addTextureGUI(tex);
 }
 
 XMLElement MaterialEditor::serialiseTexture(int index) {
@@ -287,6 +284,12 @@ void MaterialEditor::deleteMap(const char* name) {
 EditableTexture* MaterialEditor::getMap(const char* name) const {
 	if(!m_imageMaps.contains(name)) return 0;
 	return m_imageMaps[name];
+}
+
+int MaterialEditor::serialiseMaps(base::XMLElement& e) {
+	for(base::HashMap<EditableTexture*>::const_iterator i=m_imageMaps.begin(); i!=m_imageMaps.end(); ++i) {
+		
+	}
 }
 
 
@@ -339,7 +342,7 @@ int MaterialEditor::getListIndex(gui::ItemList* list, const char* n) {
 
 // ------------------------------------------------------------------------------ //
 
-void MaterialEditor::addTexture(gui::Button*) {
+void MaterialEditor::addTextureGUI(TerrainTexture* tex) {
 	// Create gui item
 	gui::Widget* w = m_gui->createWidget<gui::Widget>("textureitem");
 	int count = m_textureList->getWidgetCount();
@@ -349,22 +352,26 @@ void MaterialEditor::addTexture(gui::Button*) {
 	w->setPosition(0, top);
 	m_textureList->setPaneSize( m_textureList->getClientRect().width, top + w->getSize().y);
 	// Initial values
-	w->getWidget<gui::Textbox>("texturename")->setText("New Texture");
+	w->getWidget<gui::Textbox>("texturename")->setText(tex->name);
 	w->getWidget<gui::Button>("browse_diffuse")->eventPressed.bind(this, &MaterialEditor::browseTexture);
 	w->getWidget<gui::Button>("browse_normal")->eventPressed.bind(this, &MaterialEditor::browseTexture);
+	w->getWidget<gui::Textbox>("diffuse")->setText( tex->diffuse );
+	w->getWidget<gui::Textbox>("normal")->setText( tex->normal );
 	w->eventGainedFocus.bind(this, &MaterialEditor::selectTexture);
 	for(int i=0; i<w->getWidgetCount(); ++i) {
 		w->getWidget(i)->eventGainedFocus.bind(this, &MaterialEditor::selectTexture);
 	}
-	// Add material to list
-	TerrainTexture* tex = new TerrainTexture;
-	tex->index = count;
-	tex->name = "New Texture";
-	m_textures.push_back(tex);
+}
+
+void MaterialEditor::addTexture(gui::Button*) {
+	TerrainTexture* tex = createTexture("New Texture");
+	addTextureGUI(tex);
+
 	// Selection
+	int index = m_textureList->getWidgetCount() - 1;
 	if(m_selectedTexture>=0) m_textureList->getWidget(m_selectedTexture)->setSelected(false);
-	w->setSelected(true);
-	m_selectedTexture = count;
+	m_textureList->getWidget( index )->setSelected(true);
+	m_selectedTexture = index;
 }
 
 void MaterialEditor::browseTexture(gui::Button* b) {

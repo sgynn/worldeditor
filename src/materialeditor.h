@@ -10,6 +10,7 @@ namespace base { class XMLElement; class Texture; }
 class Library;
 class EditableTexture;
 
+/** Texture data */
 struct TerrainTexture {
 	int         index;
 	gui::String name;
@@ -49,6 +50,7 @@ class MaterialEditor {
 	void addMap(const char* name, EditableTexture*);
 	void deleteMap(const char* name);
 	EditableTexture* getMap(const char* name) const;
+	int serialiseMaps(base::XMLElement& e) const;
 	
 	public:
 	DelegateS<void(DynamicMaterial*)> eventChangeMaterial;
@@ -61,6 +63,7 @@ class MaterialEditor {
 	void reloadTexture(gui::Button*);	// reload selected texture
 	void selectTexture(gui::Widget*);	// Click on texture
 	void renameTexture(gui::Textbox*);	// Rename texture
+	void addTextureGUI(TerrainTexture*);// Add texture gui item
 
 
 	void addMaterial(gui::Button*);

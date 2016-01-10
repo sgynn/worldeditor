@@ -163,8 +163,6 @@ void WorldEditor::clear() {
 }
 
 void WorldEditor::update() {
-	base::SceneState::update();
-
 	// Update GUI
 	Point mouse;
 	int mb = Game::Mouse(mouse.x, mouse.y);
@@ -175,6 +173,25 @@ void WorldEditor::update() {
 	m_gui->update();
 
 	bool guiHasMouse = m_gui->getRootWidget()->getWidget(mouse) != m_gui->getRootWidget();
+
+	int shift = 0;
+	if(Game::Key(KEY_LSHIFT) || Game::Key(KEY_RSHIFT)) shift |= 1;
+	if(Game::Key(KEY_LCTRL) || Game::Key(KEY_RCTRL)) shift |= 2;
+
+	// Escape button - close stuff
+	if(Game::Pressed(KEY_ESCAPE)) {
+		// Close topmost window
+		bool closedSomething = false;
+		for(int i=m_gui->getRootWidget()->getWidgetCount()-1; i>0; --i) {
+			Widget* w = m_gui->getRootWidget()->getWidget(i);
+			if(w->isVisible() && w->cast<gui::Window>()) {
+				w->setVisible(false);
+				closedSomething = true;
+				break;
+			}
+		}
+		if(!closedSomething) changeState(0);	// exit
+	}
 	
 
 	// Update camera
@@ -195,15 +212,19 @@ void WorldEditor::update() {
 
 	// Update editor
 	if(m_editor) {
-		int shift = 0;
-		if(Game::Key(KEY_LSHIFT) || Game::Key(KEY_RSHIFT)) shift |= 1;
-		if(Game::Key(KEY_LCTRL) || Game::Key(KEY_RCTRL)) shift |= 2;
 		if(guiHasMouse) mb = mw = 0;
 		vec3 cp = m_camera->getPosition();
 		vec3 cd = m_camera->unproject( vec3(mouse.x, Game::height()-mouse.y, 1), Game::getSize() ) - cp;
 		m_editor->update(cp, cd, mb, mw, shift);
 		if(mw) updateBrushSliders();
 	}
+
+	// Other shortcuts
+	if(Game::Pressed(KEY_T)) showTextureList(0);
+	if(Game::Pressed(KEY_R)) showMaterialList(0);
+	if(Game::Pressed(KEY_P)) showOptionsDialog(0);
+	if(Game::Pressed(KEY_O) && shift==2) showOpenDialog(0);
+	if(Game::Pressed(KEY_S) && shift==2) showSaveDialog(0);
 
 	// Update any objects
 	for(base::HashMap<Object*>::iterator i=m_objects.begin(); i!=m_objects.end(); ++i) {
@@ -227,9 +248,15 @@ void WorldEditor::drawHUD() {
 
 // ======================= GUI Events ========================== //
 
+void showDialog(Widget* w) {
+	if(!w) return;
+	w->setVisible(true);
+	w->raise();
+}
+
 void WorldEditor::showNewDialog(Button*) {
 	Widget* w = m_gui->getWidget<Widget>("newdialog");
-	if(w) w->setVisible(true);
+	showDialog(w);
 }
 void WorldEditor::showOpenDialog(Button*) {
 	FileDialog* d = m_gui->getWidget<FileDialog>("filedialog");
@@ -247,7 +274,8 @@ void WorldEditor::showSaveDialog(Button*) {
 }
 void WorldEditor::showOptionsDialog(Button*) {
 	Widget* w = m_gui->getWidget<Widget>("settings");
-	if(w) w->setVisible(true);
+	if(w && w->isVisible()) w->setVisible(false);
+	else showDialog(w);
 }
 // ----------------------------------------------------------- //
 
@@ -336,13 +364,13 @@ void WorldEditor::saveSettings(gui::Window*) {
 
 void WorldEditor::showMaterialList(Button*) {
 	Widget* w = m_gui->getWidget<Widget>("materials");
-	if(m_materials && !w->isVisible()) w->setVisible(true);
+	if(m_materials && !w->isVisible()) showDialog(w);
 	else w->setVisible(false);
 }
 
 void WorldEditor::showTextureList(Button*) {
 	Widget* w = m_gui->getWidget<Widget>("textures");
-	if(m_materials && !w->isVisible()) w->setVisible(true);
+	if(m_materials && !w->isVisible()) showDialog(w);
 	else w->setVisible(false);
 }
 
@@ -532,6 +560,7 @@ void WorldEditor::loadWorld(const char* file) {
 	float scale = info.attribute("scale", 1.f);
 	const char* source = info.attribute("file");
 	const char* format = info.attribute("type");
+	m_terrainFile = source;
 
 	Streamer* streamer = 0;
 	SimpleHeightmap* simple = 0;
@@ -550,6 +579,8 @@ void WorldEditor::loadWorld(const char* file) {
 			m_streaming = true;
 			size = streamer->width();
 			if(size != streamer->height()) messageBox("Warning", "Terrian map is not square");
+			m_terrainScale = scale;
+			m_terrainSize.x = m_terrainSize.y = size-1;
 		} else {
 			messageBox("Load error", "Failed to open stream %s", cat(path, source));
 			return;	
@@ -668,8 +699,46 @@ void WorldEditor::loadWorld(const char* file) {
 	m_materials->selectMaterial(0,0);
 }
 void WorldEditor::saveWorld(const char* file) {
-	
+	// Flush all streams
 
+	// Write xml file
+	XML xml;
+	xml.setRoot( XMLElement("scene") );
+
+	// Write Terrain
+	XMLElement& e = xml.getRoot().add("terrain");
+	e.setAttribute("width", m_terrainSize.x);
+	e.setAttribute("height", m_terrainSize.y);
+
+	// Heightmap
+	XMLElement& map = e.add("data");
+	map.setAttribute("file", m_terrainFile);
+	if(m_streaming) {
+		map.setAttribute("stream", 1);
+		map.setAttribute("scale", m_terrainScale);
+		map.setAttribute("type", "int16");
+	} else {
+		map.setAttribute("type", "float");
+	}
+	
+	// Materials
+	for(int i=0; i<m_materials->getMaterialCount(); ++i) {
+		e.add( m_materials->serialiseMaterial(i) );
+	}
+	// Textures
+	for(int i=0; i<m_materials->getTextureCount(); ++i) {
+		e.add( m_materials->serialiseTexture(i) );
+	}
+
+
+	// Save
+	char buffer[1024];
+	if(strcmp(file+strlen(file)-4, ".xml")) {
+		sprintf(buffer, "%s.xml", file);
+		file = buffer;
+	}
+	xml.save(file);
+	printf("Saved %s\n", file);
 }
 
 

@@ -70,15 +70,19 @@ class WorldEditor : public base::SceneState {
 	Render* m_renderer;
 	Library* m_library;
 
-
+	// Terrain properies
 	bool m_streaming;
 	vec2 m_terrainOffset;
-	TerrainEditor* m_editor;
-	HeightmapEditorInterface* m_heightMap;	// Cached
-	std::vector<ToolGroup*> m_groups;		// Terrain tool groups
+	vec2 m_terrainSize;
+	float m_terrainScale;
+	gui::String m_terrainFile;
+	int m_terrainType;
 
-	// Terrain textures
-	MaterialEditor* m_materials;
+
+	TerrainEditor* m_editor;				// Terrain Editor
+	HeightmapEditorInterface* m_heightMap;	// Terrain object
+	std::vector<ToolGroup*> m_groups;		// Terrain tool groups
+	MaterialEditor* m_materials;			// Terrain material editor
 
 	// Object list
 	base::HashMap<Object*> m_objects;
