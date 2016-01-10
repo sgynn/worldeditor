@@ -79,10 +79,18 @@ class WorldEditor : public base::SceneState {
 	int m_terrainType;
 
 
+	gui::String    m_file;
 	TerrainEditor* m_editor;				// Terrain Editor
 	HeightmapEditorInterface* m_heightMap;	// Terrain object
 	std::vector<ToolGroup*> m_groups;		// Terrain tool groups
 	MaterialEditor* m_materials;			// Terrain material editor
+
+	// List of streams that need flushing on save ?
+	std::vector<BufferedStream*> m_streams;
+
+	// Image map data
+	struct ImageMapData { EditableTexture* map; gui::String file; gui::String name; gui::String link; int usage; };
+	std::vector<ImageMapData*> m_imageMaps;
 
 	// Object list
 	base::HashMap<Object*> m_objects;

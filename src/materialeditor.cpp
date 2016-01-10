@@ -175,7 +175,7 @@ XMLElement MaterialEditor::serialiseMaterial(int index) {
 			break;
 		case LAYER_WEIGHT:
 			layer.setAttribute("map", l->map);
-			layer.setAttribute("channel", l->mapData);
+			layer.setAttribute("channel", channels[l->mapData]);
 			break;
 		case LAYER_COLOUR:
 			layer.setAttribute("map", l->map);
@@ -284,12 +284,6 @@ void MaterialEditor::deleteMap(const char* name) {
 EditableTexture* MaterialEditor::getMap(const char* name) const {
 	if(!m_imageMaps.contains(name)) return 0;
 	return m_imageMaps[name];
-}
-
-int MaterialEditor::serialiseMaps(base::XMLElement& e) {
-	for(base::HashMap<EditableTexture*>::const_iterator i=m_imageMaps.begin(); i!=m_imageMaps.end(); ++i) {
-		
-	}
 }
 
 
@@ -650,7 +644,7 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 		// Triplanar option
 		gui::Checkbox* triplanar = addLayerWidget<gui::Checkbox>(m_gui, w, "Triplanar", "button");
 		triplanar->setSelected( layer->triplanar );
-		triplanar->eventPressed.bind(this, &MaterialEditor::changeTriplanar);
+		triplanar->eventChanged.bind(this, &MaterialEditor::changeTriplanar);
 
 		// Texture scale
 		gui::Scrollbar* scaleX = addLayerWidget<gui::Scrollbar>(m_gui, w, "Tiling", "slider");

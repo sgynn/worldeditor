@@ -84,7 +84,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	Root::registerClass<OrderableItem>();
 	m_gui = new Root(Game::width(), Game::height());
 	m_gui->setRenderer( new gui::Renderer() );
-	m_gui->load("gui.xml");
+	m_gui->load("data/gui.xml");
 
 	// Setup event callbacks
 	m_gui->getWidget<Button>("newmap")->eventPressed.bind(this, &WorldEditor::showNewDialog);
@@ -147,6 +147,8 @@ void WorldEditor::clear() {
 	m_groups.clear();
 	m_heightMap = 0;
 	m_editor = 0;
+	m_file = 0;
+	m_streams.clear();
 
 	// delete materials
 	if(m_materials) delete m_materials;
@@ -266,11 +268,16 @@ void WorldEditor::showOpenDialog(Button*) {
 	d->showOpen();
 }
 void WorldEditor::showSaveDialog(Button*) {
-	FileDialog* d = m_gui->getWidget<FileDialog>("filedialog");
-	d->eventConfirm.bind(this, &WorldEditor::saveWorld);
-	d->setFilter("*.xml");
-	d->setFileName("");
-	d->showSave();
+	bool shift = Game::Key(KEY_LSHIFT) || Game::Key(KEY_RSHIFT);
+	if(m_file && !shift) {
+		saveWorld(m_file);
+	} else {
+		FileDialog* d = m_gui->getWidget<FileDialog>("filedialog");
+		d->eventConfirm.bind(this, &WorldEditor::saveWorld);
+		d->setFilter("*.xml");
+		d->setFileName("");
+		d->showSave();
+	}
 }
 void WorldEditor::showOptionsDialog(Button*) {
 	Widget* w = m_gui->getWidget<Widget>("settings");
@@ -544,16 +551,19 @@ void WorldEditor::loadWorld(const char* file) {
 	XML xml = XML::load(file);
 	if(!(xml.getRoot() == "scene")) {
 		messageBox("Load error", "Invalid scene file");
+		m_file = 0;
 		return;
 	}
 
 	const XMLElement& terrain = xml.getRoot().find("terrain");
 	if(!terrain.name()) {
 		messageBox("Load error", "Scene file missing terrain object");
+		m_file = 0;
 		return;
 	}
 
 	// Terrain info
+	m_file = file;
 	int size = terrain.attribute("width", 0);
 	const XMLElement& info = terrain.find("data");
 	float res = info.attribute("resolution", 1.f);
@@ -581,6 +591,7 @@ void WorldEditor::loadWorld(const char* file) {
 			if(size != streamer->height()) messageBox("Warning", "Terrian map is not square");
 			m_terrainScale = scale;
 			m_terrainSize.x = m_terrainSize.y = size-1;
+			m_streams.push_back(streamer);
 		} else {
 			messageBox("Load error", "Failed to open stream %s", cat(path, source));
 			return;	
@@ -622,7 +633,7 @@ void WorldEditor::loadWorld(const char* file) {
 
 	// Load editable texture maps
 	char buffer[1024];
-	const char* textureUsage[] = { "map", "colour", "weight", "index", "cindex" };
+	const char* textureUsage[] = { "weight", "colour", "index", "cindex" };
 	for(XML::iterator m=terrain.begin(); m!=terrain.end(); ++m) {
 		if(*m == "map") {
 			const char* usage = m->attribute("usage");
@@ -630,20 +641,19 @@ void WorldEditor::loadWorld(const char* file) {
 			const char* name  = m->attribute("name");
 			const char* link  = m->attribute("link");
 			bool stream = m->attribute("stream", 0);
-			int  use = enumerate(usage, textureUsage, 5);
+			int  use = enumerate(usage, textureUsage, 4);
 			
 			// Already exists ?
 			if(m_materials->getMap(name)) {
-				messageBox("Warning", "Texture %s already exists", name);
+				messageBox("Warning", "Texture Map %s already exists", name);
 				continue;
 			}
 
 			// resolve filename
 			if(!m_library->findFile(file, buffer)) {
 				messageBox("Error", "Could not find file %s", file);
-				return;
+				continue;
 			}
-
 
 			// Create texture
 			EditableTexture* tex = 0;
@@ -652,13 +662,22 @@ void WorldEditor::loadWorld(const char* file) {
 				if(ts->openStream(buffer)) {
 					tex = new EditableTexture(ts);
 					ts->initialise(2048, true);
+					m_streams.push_back(ts);
 				} else messageBox("Error", "Failed to open stream %s", file);
 			} else {
 				tex = new EditableTexture(buffer, true);
 			}
 
+			// Add texture to world
 			if(!tex) continue;
 			m_materials->addMap(name, tex);
+			ImageMapData* map = new ImageMapData();
+			map->map = tex;
+			map->file = file;
+			map->name = name;
+			map->link = link[0]? link: 0;
+			map->usage = use;
+			m_imageMaps.push_back(map);
 
 			// Create tool
 			ToolGroup* g = 0;
@@ -686,7 +705,7 @@ void WorldEditor::loadWorld(const char* file) {
 			case 4:	// Coherent Index
 				break;
 			}
-			// Add to list - need to add to a listbox
+			// Add tool to list
 			if(g) {
 				g->setup(m_gui);
 				g->setResolution(m_terrainOffset, vec2(size,size), res);
@@ -699,7 +718,10 @@ void WorldEditor::loadWorld(const char* file) {
 	m_materials->selectMaterial(0,0);
 }
 void WorldEditor::saveWorld(const char* file) {
+	if(m_file!=file) m_file = file;
+
 	// Flush all streams
+	for(uint i=0; i<m_streams.size(); ++i) m_streams[i]->flush();
 
 	// Write xml file
 	XML xml;
@@ -729,7 +751,16 @@ void WorldEditor::saveWorld(const char* file) {
 	for(int i=0; i<m_materials->getTextureCount(); ++i) {
 		e.add( m_materials->serialiseTexture(i) );
 	}
-
+	// Maps
+	static const char* U[] = { "weight", "colour", "index", "cindex" };
+	for(uint i=0; i<m_imageMaps.size(); ++i) {
+		XMLElement& map = e.add("map");
+		map.setAttribute("name", m_imageMaps[i]->name);
+		map.setAttribute("file", m_imageMaps[i]->file);
+		map.setAttribute("usage", U[m_imageMaps[i]->usage]);
+		if(m_imageMaps[i]->map->getMode() >= EditableTexture::STREAM) map.setAttribute("stream", 1);
+		m_imageMaps[i]->map->save( m_imageMaps[i]->file );
+	}
 
 	// Save
 	char buffer[1024];
