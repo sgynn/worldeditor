@@ -57,6 +57,7 @@ MaterialEditor::~MaterialEditor() {
 
 static const char* layerTypes[] = { "auto", "weight", "colour", "indexed" };
 static const char* blendModes[] = { "normal", "height", "multiply", "add" };
+static const char* projections[] = { "flat", "triplanar", "vertical" };
 static const char* channels[]   = { "r", "g", "b", "a", "x" };
 inline int enumerate(const char* key, const char** values, int size) {
 	for(int i=0; i<size; ++i) {
@@ -87,6 +88,16 @@ void MaterialEditor::destroyMaterial(int index) {
 	m_materials.erase( m_materials.begin() + index );
 }
 
+int readVector(const char* src, vec3& out) {
+	for(int i=0; i<3; ++i) {
+		out[i] = atof(src);
+		while(*src && *src!=',') ++src;
+		if(*src==0) return i+1;
+		while(*src==',' || *src==' ') ++src;
+	}
+	return 3;	// should not be hit
+}
+
 void readAutoParams(const XMLElement& e, AutoParams& p) {
 	p.min   = e.attribute("min", p.min);
 	p.max   = e.attribute("max", p.max);
@@ -107,8 +118,14 @@ DynamicMaterial* MaterialEditor::loadMaterial(const XMLElement& e) {
 			layer->opacity = i->attribute("opacity", 1.f);
 			layer->texture = i->attribute("texture", -1);
 			layer->colour = i->attribute("colour", 0xffffff);
-			layer->triplanar = strcmp(i->attribute("mode"), "triplanar")==0;
-			layer->scale = vec3(1,1,1) * i->attribute("scale", 10.f);
+			layer->projection = (TexProjection)enumerate(i->attribute("projection", "flat"), projections, 3);
+
+			// Scale
+			int sr = readVector(i->attribute("scale", "10"), layer->scale);
+			if(sr==1) layer->scale.y = layer->scale.z = layer->scale.x;
+			else if(sr==2 && layer->projection != PROJECTION_FLAT) {
+				layer->scale.z = layer->scale.x;
+			}
 
 			if(mode<3) {
 				layer->map = i->attribute("map");
@@ -155,17 +172,13 @@ XMLElement MaterialEditor::serialiseMaterial(int index) {
 		if(l->opacity<1)           layer.setAttribute("opacity", l->opacity);
 		if(l->texture>=0)          layer.setAttribute("texture", l->texture);
 		else                       layer.setAttribute("colour", l->colour, true);
-		if(l->triplanar)           layer.setAttribute("mode", "triplanar");
+		if(l->projection)          layer.setAttribute("mode", projections[l->projection]);
 
 		// Scale can have different formats
-		int same = (l->scale.x==l->scale.y? 1: 0) + (l->scale.x==l->scale.z? 2: 0);
-		if(same==3 || (same==1 && l->triplanar)) layer.setAttribute("scale", l->scale.x);
-		else {
-			if(!l->triplanar) sprintf(buffer, "%g,%g", l->scale.x, l->scale.y);
-			else if(same==1) sprintf(buffer, "%g,%g", l->scale.x, l->scale.z);
-			else sprintf(buffer, "%g,%g,%g", l->scale.x, l->scale.y, l->scale.z);
-			layer.setAttribute("scale", buffer);
-		}
+		if(l->scale.x == l->scale.y && l->scale.y == l->scale.z) sprintf(buffer, "%g", l->scale.x);
+		else if(l->projection == PROJECTION_FLAT) sprintf(buffer, "%g,%g", l->scale.x, l->scale.y);
+		else sprintf(buffer, "%g,%g,%g", l->scale.x, l->scale.y, l->scale.z);
+		layer.setAttribute("scale", buffer);
 
 		switch(l->type) {
 		case LAYER_AUTO:
@@ -500,6 +513,7 @@ void MaterialEditor::selectMaterial(gui::Combobox*, int index) {
 void MaterialEditor::renameMaterial(gui::Combobox* c) {
 	m_materials[m_selectedMaterial]->setName( c->getText() );
 	m_materialList->setItemName( m_selectedMaterial, c->getText() );
+	m_layerList->setFocus();
 }
 void MaterialEditor::addLayer(gui::Combobox* c, int i) {
 	c->setText("Add");	// Hacking Combobox into a dropdown menu
@@ -507,6 +521,7 @@ void MaterialEditor::addLayer(gui::Combobox* c, int i) {
 	const char* names[] = { "Procedural layer", "Mapped Layer", "Colour layer", "Indexed Layer" };
 	layer->name = names[i];
 	addLayerGUI(layer);
+	m_layerList->setOffset(0, m_layerList->getPaneSize().y - m_layerList->getSize().y);	// Scroll to bottom
 	rebuildMaterial(true);
 }
 void MaterialEditor::removeLayer(gui::Button*) {
@@ -527,6 +542,7 @@ void MaterialEditor::renameLayer(gui::Textbox* t) {
 	if(m_selectedMaterial<0 || m_selectedLayer<0) return;
 	MaterialLayer* layer = m_materials[m_selectedMaterial]->getLayer( m_selectedLayer );
 	layer->name = t->getText();
+	m_layerList->setFocus();
 }
 
 void MaterialEditor::selectLayer(gui::Widget* w) {
@@ -642,17 +658,20 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 		}
 
 		// Triplanar option
-		gui::Checkbox* triplanar = addLayerWidget<gui::Checkbox>(m_gui, w, "Triplanar", "button");
-		triplanar->setSelected( layer->triplanar );
-		triplanar->eventChanged.bind(this, &MaterialEditor::changeTriplanar);
+		gui::Combobox* triplanar = addLayerWidget<gui::Combobox>(m_gui, w, "Projection", "droplist");
+		triplanar->addItem("Flat");
+		triplanar->addItem("Triplanar");
+		triplanar->addItem("Vertical");
+		triplanar->selectItem( (int)layer->projection );
+		triplanar->eventSelected.bind(this, &MaterialEditor::changeProjection);
 
 		// Texture scale
 		gui::Scrollbar* scaleX = addLayerWidget<gui::Scrollbar>(m_gui, w, "Tiling", "slider");
 		gui::Scrollbar* scaleY = addLayerWidget<gui::Scrollbar>(m_gui, w, 0,        "slider");
 		scaleX->setRange(1, 1000);
 		scaleY->setRange(1, 1000);
-		scaleX->setValue(layer->scale.x);
-		scaleY->setValue(layer->scale.y);
+		scaleX->setValue(layer->scale.x*40);
+		scaleY->setValue(layer->scale.y*40);
 		scaleX->eventChanged.bind(this, &MaterialEditor::changeScaleX);
 		scaleY->eventChanged.bind(this, &MaterialEditor::changeScaleY);
 	}
@@ -749,6 +768,7 @@ void MaterialEditor::rebuildMaterial(bool bindMaps) {
 void MaterialEditor::changeMap(gui::Combobox* w, int i) {
 	getLayer(w)->map = w->getItem(i);
 	rebuildMaterial(true);
+	eventChangeMaterial( m_materials[m_selectedMaterial] );	// Reapply material to all terrain patches
 }
 void MaterialEditor::changeIndexMap(gui::Combobox* w, int i) {
 	getLayer(w)->map2 = w->getItem(i);
@@ -775,16 +795,18 @@ void MaterialEditor::changeOpacity(gui::Scrollbar* w, int v) {
 	getLayer(w)->opacity = v/1000.f;
 	updateMaterial(w);
 }
-void MaterialEditor::changeTriplanar(gui::Button* w) {
-	getLayer(w)->triplanar = w->isSelected();
+void MaterialEditor::changeProjection(gui::Combobox* w, int i) {
+	getLayer(w)->projection = (TexProjection)i;
 	rebuildMaterial();
 }
 void MaterialEditor::changeScaleX(gui::Scrollbar* w, int v) {
-	getLayer(w)->scale.x = v;
+	MaterialLayer* l = getLayer(w);
+	if(l->projection == PROJECTION_FLAT) l->scale.x = v/40.0;
+	else l->scale.x = l->scale.z = v/40.0;
 	updateMaterial(w);
 }
 void MaterialEditor::changeScaleY(gui::Scrollbar* w, int v) {
-	getLayer(w)->scale.y = v;
+	getLayer(w)->scale.y = v/40.0;
 	updateMaterial(w);
 }
 void MaterialEditor::changeHeightParam(gui::Scrollbar* w, int v) {

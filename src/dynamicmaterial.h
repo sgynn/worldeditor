@@ -13,6 +13,7 @@ class MaterialEditor;
 
 enum LayerType { LAYER_AUTO, LAYER_WEIGHT, LAYER_COLOUR, LAYER_INDEXED };
 enum BlendMode { BLEND_NORMAL, BLEND_HEIGHT, BLEND_MULTIPLY, BLEND_ADD };
+enum TexProjection { PROJECTION_FLAT, PROJECTION_TRIPLANAR, PROJECTION_VERTICAL };
 
 struct AutoParams { float min, max, blend, noise; };
 
@@ -27,7 +28,7 @@ struct MaterialLayer {
 	int  texture;		// Texture unit to use. set -1 to use colour
 	int  colour;		// Colour to use instead of a texture
 	vec3 scale;			// Texture scaling. Use z for triplanar maps
-	bool triplanar;		// Triplanar projection
+	TexProjection projection;	// Texture projection mode
 
 	// Auto parameters
 	AutoParams slope;

@@ -44,7 +44,7 @@ class MaterialStream {
 	~MaterialStream();
 
 	void setCoordinates(const vec2& size, const vec2& offset);	// Set texture world coordinate mapping
-	void addStream(const char* name, TextureStream*);			// Add a texture layer
+	bool addStream(const char* name, TextureStream*);			// Add a texture layer
 	void removeStream(TextureStream*);							// remove a texture layer
 
 	void setTexture(const char* name, const Texture& texture);	// Set non-streamed texture

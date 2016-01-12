@@ -114,9 +114,9 @@ void TextureStream::createGlobalTexture(int size) {
 		return;
 	}
 
-	// white
-	char d[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	m_global = Texture::create(4, 4, Texture::R8, d);
+	// transparent
+	char d[4*4*4]; memset(d, 0, 4*4*4);
+	m_global = Texture::create(4, 4, Texture::RGBA8, d);
 	return;
 
 	// lets just use nearest pixel for now (super slow - perhaps back thread it)
@@ -196,7 +196,12 @@ void MaterialStream::updateShader() {
 	}
 }
 
-void MaterialStream::addStream(const char* name, TextureStream* texture) {
+bool MaterialStream::addStream(const char* name, TextureStream* texture) {
+	// Skip if stream already added
+	for(uint i=0; i<m_streams.size(); ++i) {
+		if(m_streams[i].texture == texture) return false;
+	}
+
 	// Add stream to list
 	Stream stream;
 	stream.texture = texture;
@@ -219,6 +224,7 @@ void MaterialStream::addStream(const char* name, TextureStream* texture) {
 
 	// Add global texture
 	if(m_global) m_global->setTexture(name, texture->getGlobalTexture() );
+	return true;
 }
 void MaterialStream::removeStream(TextureStream* s) {
 	for(uint i=0; i<m_streams.size(); ++i) {
@@ -336,8 +342,9 @@ void MaterialStream::dropMaterial(Material* m) {
 void MaterialStream::dropMaterial(SubMaterial& m) {
 	if(--m.ref == 0) {
 		for(uint i=0; i<m_streams.size(); ++i) {
+			// if d==0 it it probably wasnt from this stream
 			int d = m.divisions / m_streams[i].texture->getDivisions();
-			m_streams[i].texture->dropTexture( m.index.x/d, m.index.y/d );
+			if(d>0) m_streams[i].texture->dropTexture( m.index.x/d, m.index.y/d );
 		}
 		delete m.material;
 		m.material = 0;

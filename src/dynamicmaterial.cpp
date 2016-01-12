@@ -46,7 +46,7 @@ MaterialLayer* DynamicMaterial::addLayer(LayerType type) {
 	layer->scale = vec3(100,100,100);
 	layer->mapData = 0;
 
-	layer->triplanar = false;
+	layer->projection = PROJECTION_FLAT;
 	layer->slope.min = 0;
 	layer->slope.max = 1;
 	layer->slope.blend = 0;
@@ -113,8 +113,8 @@ void DynamicMaterial::update(int index) {
 	// Set all the variables
 	MaterialLayer* layer = m_layers[index];
 	m_material->setFloat( addIndex("opacity",index), layer->visible? layer->opacity: 0);
-	if(layer->triplanar) m_material->setFloatv( addIndex("scale",index), 3, 1.0 / layer->scale);
-	else m_material->setFloatv( addIndex("scale",index), 2, 1.0 / layer->scale.xy());
+	if(layer->projection == PROJECTION_FLAT) m_material->setFloatv( addIndex("scale",index), 2, 1.0 / layer->scale.xy());
+	else m_material->setFloatv( addIndex("scale",index), 3, 1.0 / layer->scale);
 
 	if(m_stream) {
 		m_stream->copyParam( addIndex("opacity",index) );
@@ -217,8 +217,8 @@ bool DynamicMaterial::compile() {
 	// Variables
 	for(size_t i=0; i<m_layers.size(); ++i) {
 		std::string index = str(i);
-		if(m_layers[i]->triplanar)	source += "uniform vec3 scale" + index + ";\n";
-		else                        source += "uniform vec2 scale" + index + ";\n";
+		if(m_layers[i]->projection == PROJECTION_FLAT) source += "uniform vec2 scale" + index + ";\n";
+		else source += "uniform vec3 scale" + index + ";\n";
 		source += "uniform float opacity" + index + ";\n";
 		if(m_layers[i]->type == LAYER_AUTO) source +=
 			"uniform vec3 autoMin" + index + ";\n"
@@ -291,6 +291,13 @@ bool DynamicMaterial::compile() {
 	"	vec3 autoValue = vec3(worldPos.y, 1.0 - worldNormal.y, 0.0);\n"
 	"	\n";
 
+	// Vertical projection data
+	source +=
+	"	vec3 vertical = vec3(triplanar.x, 0, triplanar.z);\n"
+	"	vertical /= triplanar.y>0.99? 1: dot(vertical, vec3(1,1,1));\n\n";
+	
+
+
 	// Sample maps
 	if(!maps.empty()) {
 		source +=  "	// Sample maps\n";
@@ -341,7 +348,10 @@ bool DynamicMaterial::compile() {
 			if(layer->texture < 0) source +=
 				"	diff = vec4(" + str(colour.r) + ", " + str(colour.g) + ", " + str(colour.b) + ", 0);\n"
 				"	norm = vec4(0, 0, 1, 0);\n";
-			else if(layer->triplanar) source +=
+			else if(layer->projection == PROJECTION_VERTICAL) source +=
+				"	diff = sampleTriplanar("+str(layer->texture)+".0, worldPos * scale"+index+", vertical);\n"
+				"	norm = sampleTriplanerNormal("+str(layer->texture)+".0, worldPos * scale"+index+", worldNormal, vertical);\n";
+			else if(layer->projection == PROJECTION_TRIPLANAR) source +=
 				"	diff = sampleTriplanar("+str(layer->texture)+".0, worldPos * scale"+index+", triplanar);\n"
 				"	norm = sampleTriplanerNormal("+str(layer->texture)+".0, worldPos * scale"+index+", worldNormal, triplanar);\n";
 			else source += 

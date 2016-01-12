@@ -34,11 +34,12 @@ using namespace base;
 
 #define INIFILE "settings.cfg"
 
-#ifdef WIN32	// No console in windows version : needs -mwindows cflag
+#ifdef WIN32
+#define main _main
 int main(int argc, char* argv[]);
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine,int nCmdShow) {
-	freopen("editor.log", "w", stdout);	// Redirect stdout as no console
-	return main(0,0);	// ToDo: convert command line parameters
+	freopen("editor.log", "w", stdout);
+	return main(0,0);
 }
 #endif
 
@@ -569,25 +570,31 @@ void WorldEditor::loadWorld(const char* file) {
 		return;
 	}
 
+	m_library->addPath(path);
+
 	// Terrain info
-	m_file = file;
+	char buffer[2058];
 	int size = terrain.attribute("width", 0);
 	const XMLElement& info = terrain.find("data");
 	float res = info.attribute("resolution", 1.f);
 	float scale = info.attribute("scale", 1.f);
 	const char* source = info.attribute("file");
 	const char* format = info.attribute("type");
-	m_terrainFile = source;
+	if(!m_library->findFile(source, buffer)) {
+		messageBox("Error", "Could not find file %s", source);
+		return;
+	}
+	m_terrainFile = buffer;
+	m_file = file;
 
 	Streamer* streamer = 0;
 	SimpleHeightmap* simple = 0;
 
-	m_library->addPath(path);
 
 	// Create terrain - maybe use a plugin system for different types?
 	if(info.attribute("stream", 0)) {
 		streamer = new Streamer(scale);
-		if(streamer->openStream( cat(path, source) )) {
+		if(streamer->openStream( m_terrainFile )) {
 			streamer->addToScene(m_renderer);
 			streamer->setLod( m_options.detail );
 			m_heightMap = new StreamingHeightmapEditor(streamer);
@@ -607,7 +614,7 @@ void WorldEditor::loadWorld(const char* file) {
 	else {
 		if(strcmp(format, "float")==0) {
 			simple = new SimpleHeightmap();
-			File data = File::load( cat(path, source) );
+			File data = File::load( m_terrainFile );
 			simple->create(size, size, res, (const float*) data.contents());
 			simple->addToScene(m_renderer);
 			m_heightMap = new SimpleHeightmapEditor(simple);
@@ -639,7 +646,6 @@ void WorldEditor::loadWorld(const char* file) {
 	
 
 	// Load editable texture maps
-	char buffer[1024];
 	const char* textureUsage[] = { "weight", "colour", "index", "cindex" };
 	for(XML::iterator m=terrain.begin(); m!=terrain.end(); ++m) {
 		if(*m == "map") {

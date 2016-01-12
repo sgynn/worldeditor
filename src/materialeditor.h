@@ -83,8 +83,8 @@ class MaterialEditor {
 	void changeChannel(gui::Combobox*, int);
 	void changeTexture(gui::Combobox*, int);
 	void changeBlendMode(gui::Combobox*, int);
+	void changeProjection(gui::Combobox*, int);
 	void changeOpacity(gui::Scrollbar*, int);
-	void changeTriplanar(gui::Button*);
 	void changeScaleX(gui::Scrollbar*, int);
 	void changeScaleY(gui::Scrollbar*, int);
 	void changeHeightParam(gui::Scrollbar*, int);
