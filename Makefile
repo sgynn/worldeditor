@@ -12,7 +12,7 @@ SED = sed -e 's/error/\x1b[31;1merror\x1b[0m/g' -e 's/warning/\x1b[33;1mwarning\
 
 
 ifeq ($(OS),Windows_NT)
-LDFLAGS = -lbase -lgdi32 -lopengl32 -static-libgcc -static-libstdc++
+LDFLAGS = -lbase -lgdi32 -lopengl32 -static-libgcc -static-libstdc++ -mwindows
 LDFLAGS += -DWIN32
 else
 CFLAGS += -DLINUX

@@ -34,6 +34,13 @@ using namespace base;
 
 #define INIFILE "settings.cfg"
 
+#ifdef WIN32	// No console in windows version : needs -mwindows cflag
+int main(int argc, char* argv[]);
+int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine,int nCmdShow) {
+	freopen("editor.log", "w", stdout);	// Redirect stdout as no console
+	return main(0,0);	// ToDo: convert command line parameters
+}
+#endif
 
 // Application entry point
 int main(int argc, char* argv[]) {
