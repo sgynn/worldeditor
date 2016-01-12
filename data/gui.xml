@@ -65,10 +65,10 @@
 		<icon name="flatten" rect="224 0  32 32"/>
 		<icon name="noise"   rect="128 32 32 32"/>
 
-		<icon name="_red"     rect="1  13 2 2"/>
-		<icon name="_green"   rect="5  13 2 2"/>
-		<icon name="_blue"    rect="9  13 2 2"/>
-		<icon name="_alpha"   rect="13 13 2 2"/>
+		<icon name="red"     rect="0 16 8 8"/>
+		<icon name="green"   rect="8 16 8 8"/>
+		<icon name="blue"    rect="0 24 8 8"/>
+		<icon name="alpha"   rect="8 24 8 8"/>
 
 		<icon name="layer_a" rect="64 64 16 16"/>
 		<icon name="layer_w" rect="80 64 16 16"/>

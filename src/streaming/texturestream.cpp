@@ -46,7 +46,7 @@ int TextureStream::setPixels(const Rect& rect, void* data) {
 }
 
 Texture& TextureStream::getGlobalTexture() {
-	if(m_global.width()==0) createGlobalTexture(2048);
+	if(m_global.width()==0) createGlobalTexture(128);
 	return m_global;
 }
 
@@ -114,11 +114,6 @@ void TextureStream::createGlobalTexture(int size) {
 		return;
 	}
 
-	// transparent
-	char d[4*4*4]; memset(d, 0, 4*4*4);
-	m_global = Texture::create(4, 4, Texture::RGBA8, d);
-	return;
-
 	// lets just use nearest pixel for now (super slow - perhaps back thread it)
 	char* data = new char[ size * size * pixelSize() ];
 	for(int x=0; x<size; ++x) for(int y=0; y<size; ++y) {
@@ -126,7 +121,7 @@ void TextureStream::createGlobalTexture(int size) {
 		getPixel(x*width()/size, y*height()/size, p);
 	}
 	m_global = Texture::create(size, size, (Texture::Format)channels(), data);
-	printf("Global texture created\n");
+	printf("Global texture created (%dx%d)\n", size, size);
 	delete [] data;
 }
 
@@ -223,7 +218,11 @@ bool MaterialStream::addStream(const char* name, TextureStream* texture) {
 	}
 
 	// Add global texture
-	if(m_global) m_global->setTexture(name, texture->getGlobalTexture() );
+	if(m_global) {
+		float info[4] = { m_offset.x, m_offset.y, m_size.x, m_size.y };
+		m_global->setTexture(stream.name, texture->getGlobalTexture() );
+		m_global->setFloat4(stream.infoName, info);
+	}
 	return true;
 }
 void MaterialStream::removeStream(TextureStream* s) {

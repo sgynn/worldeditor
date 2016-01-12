@@ -401,7 +401,9 @@ void WorldEditor::selectToolGroup(Combobox* c, int index) {
 	p->add( g->getPanel() );
 	g->getPanel()->setPosition( c->getPosition().x + c->getSize().x + 4, 0 );
 	m_editor->setTool(0);
-	g->getPanel()->getWidget(0)->setSelected(false);
+	if(g->getPanel()->getWidgetCount()>0) {
+		g->getPanel()->getWidget(0)->setSelected(false);
+	}
 }
 
 void WorldEditor::selectTool(ToolInstance* t) {
