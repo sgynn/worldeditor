@@ -39,12 +39,15 @@ class WorldEditor : public base::SceneState {
 
 	private:
 	gui::Root* m_gui;
+	gui::Widget* m_mapMarker;
+
 	void showNewDialog(gui::Button*);
 	void showOpenDialog(gui::Button*);
 	void showSaveDialog(gui::Button*);
 	void showOptionsDialog(gui::Button*);
 	void showMaterialList(gui::Button*);
 	void showTextureList(gui::Button*);
+	void showWorldMap(gui::Button*);
 
 	void createNewTerrain(gui::Button*);
 	void cancelNewTerrain(gui::Button*);
@@ -64,6 +67,7 @@ class WorldEditor : public base::SceneState {
 	void changeBrushSlider(gui::Scrollbar*, int);
 	void updateBrushSliders();
 
+	void moveWorldMap(gui::Widget*, const Point&, int);
 	void setTerrainMaterial(DynamicMaterial*);
 
 	private:

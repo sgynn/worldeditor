@@ -423,11 +423,12 @@ void MaterialEditor::setTexture(const char* file) {
 	// Local file?
 	char buffer[1024];
 	base::Directory::getRelativePath(file, buffer, 1024);
+	if(strncmp(buffer, "..", 2)!=0) file = buffer;
 
 	// Update relevant textbox
 	gui::Widget* w = m_textureList->getWidget(m_browseTarget & 0xff );
 	const char* name = m_browseTarget&0x100? "normal": "diffuse";
-	w->getWidget<gui::Textbox>(name)->setText(buffer);
+	w->getWidget<gui::Textbox>(name)->setText(file);
 
 	// Load texture
 	ArrayTexture* array = m_browseTarget&0x100? &m_normalMaps: &m_diffuseMaps;
@@ -435,9 +436,9 @@ void MaterialEditor::setTexture(const char* file) {
 	if(dds.format != DDS::INVALID) {
 		array->setTexture(m_browseTarget&0xff, dds);
 		int r = array->build();
-		if(r) printf("Error: Texture %s is incompatible\n", buffer);
+		if(r) printf("Error: Texture %s is incompatible\n", file);
 		m_materials[m_selectedMaterial]->setTextures(this);
-	} else printf("Error: Failed to load %s\n", buffer);
+	} else printf("Error: Failed to load %s\n", file);
 }
 
 void MaterialEditor::reloadTexture(gui::Button*) {

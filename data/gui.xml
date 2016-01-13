@@ -245,6 +245,13 @@
 	<!-- Brush quickbar -->
 	<!-- Brush dialog -->
 
+	<!-- WorldMap dialog -->
+	<widget caption="Map" template="dialog" name="worldmap" rect="800 100 140 160" visible="0">
+		<widget name="mapimage" rect="1 1 128 128" anchor="tlrb">
+			<widget name="mapmarker" rect="0 0 16 16" class="Icon" iconlist="icons" icon="options"/>
+		</widget>
+	</widget>
+
 	<!-- Materials dialog -->
 	<widget caption="Materials" template="dialog" name="materials" rect="400 100 400 500" visible="0">
 		<widget class="Label" rect="8 8 64 20" caption="Material"/>

@@ -47,6 +47,7 @@ class MaterialStream {
 	bool addStream(const char* name, TextureStream*);			// Add a texture layer
 	void removeStream(TextureStream*);							// remove a texture layer
 
+	void setOverlayTexture(const char* name, const Texture&);	// add texture as overlay, like streams
 	void setTexture(const char* name, const Texture& texture);	// Set non-streamed texture
 	void copyParam(const char* name);							// Copy a variable from template to all generated materials
 	void updateShader();										// Copy shader program from template

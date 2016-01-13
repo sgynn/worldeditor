@@ -104,6 +104,9 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	m_gui->getWidget<Button>("materialbutton")->eventPressed.bind(this, &WorldEditor::showMaterialList);
 	m_gui->getWidget<Button>("texturebutton")->eventPressed.bind(this, &WorldEditor::showTextureList);
 
+	m_gui->getWidget<Widget>("mapimage")->eventMouseDown.bind(this, &WorldEditor::moveWorldMap);
+	m_gui->getWidget<Widget>("mapimage")->eventMouseMove.bind(this, &WorldEditor::moveWorldMap);
+
 
 	m_gui->getWidget<Scrollbar>("brushsize")->eventChanged.bind(this, &WorldEditor::changeBrushSlider);
 	m_gui->getWidget<Scrollbar>("brushstrength")->eventChanged.bind(this, &WorldEditor::changeBrushSlider);
@@ -210,6 +213,14 @@ void WorldEditor::update() {
 	cam->grabMouse( (mb&4) && !m_options.tabletMode );
 	cam->update();
 
+	// Map marker
+	if(m_mapMarker) {
+		vec2 p = (m_camera->getPosition().xz() - m_terrainOffset) / m_terrainSize;
+		const Point& ms = m_mapMarker->getParent()->getAbsoluteClientRect().size();
+		const Point& ps = m_mapMarker->getSize(); 
+		m_mapMarker->setPosition(p.x * ms.x - ps.x/2, p.y * ms.y - ps.y/2);
+	}
+
 	// Collide with terrain
 	if(m_heightMap && m_options.collide) {
 		vec3 p = m_camera->getPosition();
@@ -235,6 +246,7 @@ void WorldEditor::update() {
 	if(Game::Pressed(KEY_P)) showOptionsDialog(0);
 	if(Game::Pressed(KEY_O) && shift==2) showOpenDialog(0);
 	if(Game::Pressed(KEY_S) && shift==2) showSaveDialog(0);
+	if(Game::Pressed(KEY_M)) showWorldMap(0);
 
 	// Update any objects
 	for(base::HashMap<Object*>::iterator i=m_objects.begin(); i!=m_objects.end(); ++i) {
@@ -373,6 +385,27 @@ void WorldEditor::saveSettings(gui::Window*) {
 	settings.set("tablet",   m_options.tabletMode);
 	settings.set("collision",m_options.collide);
 	ini.save(INIFILE);
+}
+
+// ----------------------------------------------------------- //
+
+void WorldEditor::showWorldMap(Button*) {
+	Widget* w = m_gui->getWidget<Widget>("worldmap");
+	if(m_heightMap && !w->isVisible()) showDialog(w);
+	else w->setVisible(false);
+	m_mapMarker = w->isVisible()? w->getWidget<Widget>("mapmarker"): 0;
+}
+
+void WorldEditor::moveWorldMap(Widget* w, const Point& p, int b) {
+	if(b==1) {
+		vec2 pos(p.x, p.y);
+		pos.x /= w->getAbsoluteClientRect().width;
+		pos.y /= w->getAbsoluteClientRect().height;
+		pos = pos * m_terrainSize + m_terrainOffset;
+		vec3 camPos(pos.x, 0, pos.y);
+		camPos.y = m_camera->getPosition().y;
+		m_camera->setPosition(camPos);
+	}
 }
 
 // ----------------------------------------------------------- //

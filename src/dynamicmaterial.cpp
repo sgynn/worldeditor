@@ -166,7 +166,10 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 		EditableTexture* map = src->getMap(*i);
 		if(map) {
 			m_material->setTexture(*i, map->getTexture());
-			if(m_stream) m_stream->addStream(*i, map->getTextureStream());
+			if(m_stream) {
+				if(map->getTextureStream()) m_stream->addStream(*i, map->getTextureStream());
+				else m_stream->setOverlayTexture(*i, map->getTexture());
+			}
 		}
 	}
 }

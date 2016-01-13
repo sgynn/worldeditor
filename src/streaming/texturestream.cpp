@@ -170,6 +170,17 @@ void MaterialStream::setTexture(const char* name, const Texture& tex) {
 	}
 }
 
+void MaterialStream::setOverlayTexture(const char* name, const Texture& tex) {
+	char buf[64];
+	sprintf(buf, "%sMap", name);
+	setTexture(buf, tex);
+	// Coordinaes
+	sprintf(buf, "%sInfo", name);
+	float info[4] = { m_offset.x, m_offset.y, 1.f/m_size.x, 1.f/m_size.y };
+	m_template->setFloat4(buf, info);
+	copyParam(buf);
+}
+
 void MaterialStream::copyParam(const char* name) {
 	float values[4];
 	int n = m_template->getFloatv(name, values);
@@ -219,7 +230,7 @@ bool MaterialStream::addStream(const char* name, TextureStream* texture) {
 
 	// Add global texture
 	if(m_global) {
-		float info[4] = { m_offset.x, m_offset.y, m_size.x, m_size.y };
+		float info[4] = { m_offset.x, m_offset.y, 1.f/m_size.x, 1.f/m_size.y };
 		m_global->setTexture(stream.name, texture->getGlobalTexture() );
 		m_global->setFloat4(stream.infoName, info);
 	}
@@ -292,7 +303,7 @@ Material* MaterialStream::getTemplate() const {
 Material* MaterialStream::getGlobal() {
 	if(!m_global) {
 		m_global = new Material(*m_template);
-		float info[4] = { m_offset.x, m_offset.y, m_size.x, m_size.y };
+		float info[4] = { m_offset.x, m_offset.y, 1.f/m_size.x, 1.f/m_size.y };
 		for(uint i=0; i<m_streams.size(); ++i) {
 			m_global->setTexture(m_streams[i].name, m_streams[i].texture->getGlobalTexture() );
 			m_global->setFloat4(m_streams[i].infoName, info);
