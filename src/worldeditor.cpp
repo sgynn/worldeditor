@@ -85,6 +85,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	cam->setEnabled(false);
 	cam->lookat( vec3(10, 50, 10), vec3(100,0,100));
 	m_camera = cam;
+	m_mapMarker = 0;
 
 	// Set up gui
 	Root::registerClass<FileDialog>();

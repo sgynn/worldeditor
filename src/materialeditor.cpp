@@ -360,6 +360,7 @@ void MaterialEditor::addTextureGUI(TerrainTexture* tex) {
 	m_textureList->setPaneSize( m_textureList->getClientRect().width, top + w->getSize().y);
 	// Initial values
 	w->getWidget<gui::Textbox>("texturename")->setText(tex->name);
+	w->getWidget<gui::Textbox>("texturename")->eventSubmit.bind(this, &MaterialEditor::renameTexture);
 	w->getWidget<gui::Button>("browse_diffuse")->eventPressed.bind(this, &MaterialEditor::browseTexture);
 	w->getWidget<gui::Button>("browse_normal")->eventPressed.bind(this, &MaterialEditor::browseTexture);
 	w->getWidget<gui::Textbox>("diffuse")->setText( tex->diffuse );
@@ -476,6 +477,8 @@ void MaterialEditor::selectTexture(gui::Widget* w) {
 void MaterialEditor::renameTexture(gui::Textbox* t) {
 	int i = getItemIndex(t, m_textureList);
 	m_textures[i]->name = t->getText();
+	m_textureSelector->setItemName(i+1, t->getText());
+	m_textureList->setFocus();
 }
 
 
@@ -578,6 +581,7 @@ void MaterialEditor::expandLayer(gui::Button* b) {
 void MaterialEditor::moveLayer(int from, int to) {
 	if(from == to) return;
 	m_materials[m_selectedMaterial]->moveLayer( from, to );
+	m_selectedLayer = to;
 	rebuildMaterial();
 }
 
