@@ -85,7 +85,6 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	cam->setEnabled(false);
 	cam->lookat( vec3(10, 50, 10), vec3(100,0,100));
 	m_camera = cam;
-	m_mapMarker = 0;
 
 	// Set up gui
 	Root::registerClass<FileDialog>();
@@ -94,24 +93,25 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	m_gui = new Root(Game::width(), Game::height());
 	m_gui->setRenderer( new gui::Renderer() );
 	m_gui->load("data/gui.xml");
+	m_mapMarker = 0;
 
 	// Setup event callbacks
-	m_gui->getWidget<Button>("newmap")->eventPressed.bind(this, &WorldEditor::showNewDialog);
-	m_gui->getWidget<Button>("openmap")->eventPressed.bind(this, &WorldEditor::showOpenDialog);
-	m_gui->getWidget<Button>("savemap")->eventPressed.bind(this, &WorldEditor::showSaveDialog);
-	m_gui->getWidget<Button>("options")->eventPressed.bind(this, &WorldEditor::showOptionsDialog);
+	#define BIND(Type, name, event, callback) { Type* w = m_gui->getWidget<Type>(name); if(w) w->event.bind(this, &WorldEditor::callback); else printf("Missing widget %s\n", name); }
+	BIND(Button, "newmap",  eventPressed, showNewDialog);
+	BIND(Button, "openmap", eventPressed, showOpenDialog);
+	BIND(Button, "savemap", eventPressed, showSaveDialog);
+	BIND(Button, "options", eventPressed, showOptionsDialog);
 
-	m_gui->getWidget<Combobox>("toollist")->eventSelected.bind(this, &WorldEditor::selectToolGroup);
-	m_gui->getWidget<Button>("materialbutton")->eventPressed.bind(this, &WorldEditor::showMaterialList);
-	m_gui->getWidget<Button>("texturebutton")->eventPressed.bind(this, &WorldEditor::showTextureList);
+	BIND(Combobox, "toollist", eventSelected, selectToolGroup);
+	BIND(Button, "materialbutton", eventPressed, showMaterialList);
+	BIND(Button, "texturebutton",  eventPressed, showTextureList);
 
-	m_gui->getWidget<Widget>("mapimage")->eventMouseDown.bind(this, &WorldEditor::moveWorldMap);
-	m_gui->getWidget<Widget>("mapimage")->eventMouseMove.bind(this, &WorldEditor::moveWorldMap);
+	BIND(Widget, "mapimage", eventMouseDown, moveWorldMap);
+	BIND(Widget, "mapimage", eventMouseMove, moveWorldMap);
 
-
-	m_gui->getWidget<Scrollbar>("brushsize")->eventChanged.bind(this, &WorldEditor::changeBrushSlider);
-	m_gui->getWidget<Scrollbar>("brushstrength")->eventChanged.bind(this, &WorldEditor::changeBrushSlider);
-	m_gui->getWidget<Scrollbar>("brushfalloff")->eventChanged.bind(this, &WorldEditor::changeBrushSlider);
+	BIND(Scrollbar, "brushsize",     eventChanged, changeBrushSlider);
+	BIND(Scrollbar, "brushstrength", eventChanged, changeBrushSlider);
+	BIND(Scrollbar, "brushfalloff",  eventChanged, changeBrushSlider);
 
 	// New map dialog
 	Widget* newPanel = m_gui->getWidget<Widget>("newdialog");
@@ -121,12 +121,12 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	newPanel->getWidget<Button>("sourcebutton")->eventPressed.bind(this, &WorldEditor::browseTerrainSource);
 
 	// Settings
-	m_gui->getWidget<Scrollbar>("viewdistance")->eventChanged.bind(this, &WorldEditor::changeViewDistance);
-	m_gui->getWidget<Scrollbar>("terraindetail")->eventChanged.bind(this, &WorldEditor::changeDetail);
-	m_gui->getWidget<Scrollbar>("cameraspeed")->eventChanged.bind(this, &WorldEditor::changeSpeed);
-	m_gui->getWidget<Checkbox>("tabletmode")->eventChanged.bind(this, &WorldEditor::changeTabletMode);
-	m_gui->getWidget<Checkbox>("collision")->eventChanged.bind(this, &WorldEditor::changeCollision);
-	m_gui->getWidget<gui::Window>("settings")->eventClosed.bind(this, &WorldEditor::saveSettings);
+	BIND(Scrollbar, "viewdistance",  eventChanged, changeViewDistance);
+	BIND(Scrollbar, "terraindetail", eventChanged, changeDetail);
+	BIND(Scrollbar, "cameraspeed",   eventChanged, changeSpeed);
+	BIND(Checkbox,  "tabletmode",    eventChanged, changeTabletMode);
+	BIND(Checkbox,  "collision",     eventChanged, changeCollision);
+	BIND(gui::Window, "settings",    eventClosed,  saveSettings);
 
 	m_gui->getWidget<Scrollbar>("viewdistance")->setValue((m_options.distance - 1000) / 10);
 	m_gui->getWidget<Scrollbar>("cameraspeed")->setValue(m_options.speed * 100);

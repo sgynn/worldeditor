@@ -122,6 +122,7 @@ int ArrayTexture::build() {
 	DDS* firstLayer = m_layers[0]? m_layers[0]: m_blankLayer;
 	for(size_t i=1; i<m_layers.size(); ++i) {
 		DDS* layer = m_layers[i]? m_layers[i]: m_blankLayer;
+		if(!layer) continue;
 		if(layer->isCompressed() != firstLayer->isCompressed()) decompressAll();
 		if(layer->format != firstLayer->format) return i | 0x100; // Different formats
 	}
@@ -130,6 +131,7 @@ int ArrayTexture::build() {
 	int mips = 99;
 	for(size_t i=0; i<m_layers.size(); ++i) {
 		DDS* layer = m_layers[i]? m_layers[i]: m_blankLayer;
+		if(!layer) continue;
 		if(mips > layer->mipmaps) mips = layer->mipmaps;
 	}
 
@@ -138,6 +140,7 @@ int ArrayTexture::build() {
 	int h = firstLayer->height >> (firstLayer->mipmaps-mips);
 	for(size_t i=1; i<m_layers.size(); ++i) {
 		DDS* layer = m_layers[i]? m_layers[i]: m_blankLayer;
+		if(!layer) continue;
 		int shift = layer->mipmaps - mips;
 		if(layer->width >> shift != w || layer->height>>shift != h) return i | 0x200; // invalid size
 	}
@@ -159,17 +162,19 @@ int ArrayTexture::build() {
 	// Copy data - ToDo - Texture::setPixels() functions for this. Also use pixel buffer objects for speed. see ogre.
 	for(size_t i=0; i<m_layers.size(); ++i) {
 		DDS* layer = m_layers[i]? m_layers[i]: m_blankLayer;
-		int shift = layer->mipmaps - mips;
-		for(int mip=0; mip<mips; ++mip) {
-			int mw = w>>mip? w>>mip: 1;
-			int mh = h>>mip? h>>mip: 1;
-			if(layer->isCompressed()) {
-				unsigned size = Texture::getMemorySize(format, mw, mh);
-				glCompressedTexSubImage3D(GL_TEXTURE_2D_ARRAY, mip, 0, 0, i, mw, mh, 1, glFormat, size, layer->data[mip + shift]);
-			} else {
-				glTexSubImage3D(GL_TEXTURE_2D_ARRAY, mip, 0, 0, i, mw, mh, 1, glFormat, GL_UNSIGNED_BYTE, layer->data[mip + shift]);
+		if(layer) {
+			int shift = layer->mipmaps - mips;
+			for(int mip=0; mip<mips; ++mip) {
+				int mw = w>>mip? w>>mip: 1;
+				int mh = h>>mip? h>>mip: 1;
+				if(layer->isCompressed()) {
+					unsigned size = Texture::getMemorySize(format, mw, mh);
+					glCompressedTexSubImage3D(GL_TEXTURE_2D_ARRAY, mip, 0, 0, i, mw, mh, 1, glFormat, size, layer->data[mip + shift]);
+				} else {
+					glTexSubImage3D(GL_TEXTURE_2D_ARRAY, mip, 0, 0, i, mw, mh, 1, glFormat, GL_UNSIGNED_BYTE, layer->data[mip + shift]);
+				}
+				GL_CHECK_ERROR;
 			}
-			GL_CHECK_ERROR;
 		}
 	}
 	m_changed = 0;

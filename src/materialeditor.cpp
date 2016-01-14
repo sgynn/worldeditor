@@ -19,8 +19,8 @@ MaterialEditor::MaterialEditor(gui::Root* gui, Library* lib, bool stream): m_str
 
 	// Set up gui callbacks
 	setupGui();
-	m_diffuseMaps.createBlankTexture(0xffffffff, 4);
-	m_normalMaps.createBlankTexture(0xff8080ff, 4);
+	//m_diffuseMaps.createBlankTexture(0xffffffff, 4);	// Dont work properly
+	//m_normalMaps.createBlankTexture(0xff8080ff, 4);
 }
 MaterialEditor::~MaterialEditor() {
 	// Clear persistant gui lists
@@ -172,7 +172,7 @@ XMLElement MaterialEditor::serialiseMaterial(int index) {
 		if(l->opacity<1)           layer.setAttribute("opacity", l->opacity);
 		if(l->texture>=0)          layer.setAttribute("texture", l->texture);
 		else                       layer.setAttribute("colour", l->colour, true);
-		if(l->projection)          layer.setAttribute("mode", projections[l->projection]);
+		if(l->projection)          layer.setAttribute("projection", projections[l->projection]);
 
 		// Scale can have different formats
 		if(l->scale.x == l->scale.y && l->scale.y == l->scale.z) sprintf(buffer, "%g", l->scale.x);
@@ -229,7 +229,7 @@ void MaterialEditor::destroyTexture(int index) {
 
 bool MaterialEditor::loadTexture(ArrayTexture* array, const char* file) const {
 	static char path[512];
-	if(file[0]) {
+	if(file && file[0]) {
 		if(m_library->findFile(file, path)) {
 			DDS dds = DDS::load(path);
 			if(dds.format != DDS::INVALID) {
@@ -430,6 +430,11 @@ void MaterialEditor::setTexture(const char* file) {
 	gui::Widget* w = m_textureList->getWidget(m_browseTarget & 0xff );
 	const char* name = m_browseTarget&0x100? "normal": "diffuse";
 	w->getWidget<gui::Textbox>(name)->setText(file);
+
+	// Update texture object
+	TerrainTexture* tex = m_textures[m_browseTarget & 0xff];
+	if(m_browseTarget&0x100) tex->normal = file;
+	else tex->diffuse = file;
 
 	// Load texture
 	ArrayTexture* array = m_browseTarget&0x100? &m_normalMaps: &m_diffuseMaps;
