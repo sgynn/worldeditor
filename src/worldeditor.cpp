@@ -187,6 +187,7 @@ void WorldEditor::update() {
 	m_gui->update();
 
 	bool guiHasMouse = m_gui->getRootWidget()->getWidget(mouse) != m_gui->getRootWidget();
+	bool editingText = m_gui->getFocusedWidget()->cast<Textbox>();
 
 	int shift = 0;
 	if(Game::Key(KEY_LSHIFT) || Game::Key(KEY_RSHIFT)) shift |= 1;
@@ -210,6 +211,7 @@ void WorldEditor::update() {
 
 	// Update camera
 	FPSCamera* cam = static_cast<base::FPSCamera*>(m_camera);
+	cam->setSpeed( editingText? 0: m_options.speed, 0.004 );
 	cam->setEnabled( mb&4 );
 	cam->grabMouse( (mb&4) && !m_options.tabletMode );
 	cam->update();
@@ -242,12 +244,14 @@ void WorldEditor::update() {
 	}
 
 	// Other shortcuts
-	if(Game::Pressed(KEY_T)) showTextureList(0);
-	if(Game::Pressed(KEY_R)) showMaterialList(0);
-	if(Game::Pressed(KEY_P)) showOptionsDialog(0);
+	if(!editingText) {
+		if(Game::Pressed(KEY_T)) showTextureList(0);
+		if(Game::Pressed(KEY_R)) showMaterialList(0);
+		if(Game::Pressed(KEY_P)) showOptionsDialog(0);
+		if(Game::Pressed(KEY_M)) showWorldMap(0);
+	}
 	if(Game::Pressed(KEY_O) && shift==2) showOpenDialog(0);
 	if(Game::Pressed(KEY_S) && shift==2) showSaveDialog(0);
-	if(Game::Pressed(KEY_M)) showWorldMap(0);
 
 	// Update any objects
 	for(base::HashMap<Object*>::iterator i=m_objects.begin(); i!=m_objects.end(); ++i) {
