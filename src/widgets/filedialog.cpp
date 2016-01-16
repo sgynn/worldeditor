@@ -34,7 +34,8 @@ void FileDialog::initialise(const Root* r, const PropertyMap& p) {
 	m_list->eventSelected.bind(this, &FileDialog::selectFile);
 	m_list->eventMouseDown.bind(this, &FileDialog::clickFile);
 	m_confirm->eventPressed.bind(this, &FileDialog::pressConfirm);
-	m_file->eventSubmit.bind(this, &FileDialog::changedFileName);
+	m_file->eventChanged.bind(this, &FileDialog::changedFileName);
+	m_file->eventSubmit.bind(this, &FileDialog::submitFileName);
 	m_dir->eventSubmit.bind(this, &FileDialog::changedDirectory);
 	
 	
@@ -90,6 +91,7 @@ void FileDialog::setDirectory(const char* dir) {
 	// Update directory textbox
 	if(m_dir) m_dir->setText(d);
 	if(m_file) m_file->setText("");
+	changedFileName(0,"");
 
 	// Refresh
 	refreshFileList();
@@ -171,6 +173,8 @@ void FileDialog::showOpen() {
 	setVisible(true);
 	refreshFileList();
 	m_list->setFocus();
+	m_confirm->setEnabled(false);
+	m_saveMode = false;
 	raise();
 }
 void FileDialog::showSave() {
@@ -179,14 +183,17 @@ void FileDialog::showSave() {
 	setVisible(true);
 	refreshFileList();
 	m_file->setFocus();
+	m_confirm->setEnabled(false);
+	m_saveMode = true;
 	raise();
 }
 
 
 void FileDialog::selectFile(Listbox* list, int index) {
 	m_file->setText( list->getItem(index) );
-	if(list->getItemIcon(index) != m_folderIcon) {
-		m_confirm->setEnabled( true );
+	m_confirm->setEnabled( true );
+	if(m_saveMode) {
+		m_confirm->setCaption( list->getItemIcon(index) == m_folderIcon? "Open": "Save" );
 	}
 }
 
@@ -203,7 +210,12 @@ void FileDialog::changedDirectory(Textbox* t) {
 	printf("change dir\n");
 	setDirectory(t->getText());
 }
-void FileDialog::changedFileName(Textbox*) {
+void FileDialog::changedFileName(Textbox*, const char* t) {
+	m_confirm->setEnabled(t[0]);
+	if(m_saveMode) m_confirm->setCaption("Save");
+}
+void FileDialog::submitFileName(Textbox*) {
+	pressConfirm(0);
 }
 
 void FileDialog::pressUp(Button*) {

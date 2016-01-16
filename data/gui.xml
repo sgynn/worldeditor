@@ -12,12 +12,12 @@
 		<state coord="0 9 0 0"/>
 	</skin>
 	<skin name="button">
-		<font name="helvetica" size="16"/>
+		<font name="helvetica" size="16" align="centre middle"/>
 		<image file="data/gui.png"/>
 		<state name="normal"    coord="0 0 4 4" border="2 2 2 2"/>
 		<state name="highlight" coord="4 0 4 4" border="2 2 2 2"/>
 		<state name="pressed"   coord="0 4 4 4" border="2 2 2 2"/>
-		<state name="disabled"  coord="4 4 4 4" border="2 2 2 2"/>
+		<state name="disabled"  coord="4 4 4 4" border="2 2 2 2" colour="#404040"/>
 		<state name="selected normal"    coord="8  0 4 4" border="2 2 2 2"/>
 		<state name="selected highlight" coord="12 0 4 4" border="2 2 2 2"/>
 		<state name="selected pressed"   coord="8  4 4 4" border="2 2 2 2"/>
@@ -172,7 +172,7 @@
 		<widget name="fwd"  template="iconbutton" rect="468 0 20 20" anchor="tr" icon="file_forward"/>
 		<widget name="filelist" template="iconlistbox" rect="0 20 490 160" anchor="tlrb"/>
 		<widget name="filename" class="Textbox" rect="0 180 408 20" anchor="blr"/>
-		<widget name="confirm" class="Button" rect="408 180 80 20" caption="Open" anchor="br"/>
+		<widget name="confirm" class="Button" rect="408 180 80 20" skin="button" caption="Open" anchor="br"/>
 	</widget>
 
 

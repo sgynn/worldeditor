@@ -486,7 +486,7 @@ void WorldEditor::messageBox(const char* c, const char* m, ...) {
 	gui::Window* box = base->clone()->cast<gui::Window>();
 	Label* msg = box->getWidget<Label>("message");
 	Button* btn = box->getWidget<Button>("button");
-	Point s = msg->getSkin()->m_font->getSize(buffer, msg->getSkin()->m_fontSize);
+	Point s = msg->getSkin()->getFont()->getSize(buffer, msg->getSkin()->getFontSize());
 
 	msg->setCaption(buffer);
 	btn->setCaption("  Ok  ");
