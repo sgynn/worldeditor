@@ -772,6 +772,8 @@ void WorldEditor::loadWorld(const char* file) {
 }
 void WorldEditor::saveWorld(const char* file) {
 	if(m_file!=file) m_file = file;
+	char path[512]; directory(file, path);
+	char buffer[1024];
 
 	// Flush all streams
 	for(uint i=0; i<m_streams.size(); ++i) m_streams[i]->flush();
@@ -812,11 +814,14 @@ void WorldEditor::saveWorld(const char* file) {
 		map.setAttribute("file", m_imageMaps[i]->file);
 		map.setAttribute("usage", U[m_imageMaps[i]->usage]);
 		if(m_imageMaps[i]->map->getMode() >= EditableTexture::STREAM) map.setAttribute("stream", 1);
-		m_imageMaps[i]->map->save( m_imageMaps[i]->file );
+
+		if(Directory::isRelative( m_imageMaps[i]->file)) {
+			sprintf(buffer, "%s/%s", path, (const char*)m_imageMaps[i]->file);
+			m_imageMaps[i]->map->save( buffer );
+		} else m_imageMaps[i]->map->save( m_imageMaps[i]->file );
 	}
 
 	// Save
-	char buffer[1024];
 	if(strcmp(file+strlen(file)-4, ".xml")) {
 		sprintf(buffer, "%s.xml", file);
 		file = buffer;

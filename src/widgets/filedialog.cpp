@@ -12,7 +12,7 @@ using namespace base;
 using namespace gui;
 
 
-FileDialog::FileDialog(const Rect& r, Skin* s) : Window(r, s), m_filename(0), m_historyIndex(0), m_lastClick(0), m_folderIcon(0), m_fileIcon(0) {
+FileDialog::FileDialog(const Rect& r, Skin* s) : Window(r, s), m_filename(0), m_historyIndex(0), m_lastClick(0), m_folderIcon(0), m_fileIcon(0), m_saveMode(false) {
 	m_extension[0]=0;
 	m_filter[0]=0;
 }
