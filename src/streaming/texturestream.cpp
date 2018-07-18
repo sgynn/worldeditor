@@ -161,11 +161,11 @@ MaterialStream::~MaterialStream() {
 }
 
 void MaterialStream::setTexture(const char* name, const Texture& tex) {
-	if(m_template) m_template->setTexture(name, tex);
-	if(m_global) m_global->setTexture(name, tex);
+	if(m_template) m_template->getPass(0)->setTexture(name, &tex);
+	if(m_global) m_global->getPass(0)->setTexture(name, &tex);
 	if(m_materials) {
 		for(int i=0; i<m_divisions*m_divisions; ++i) {
-			if(m_materials[i].material) m_materials[i].material->setTexture(name, tex);
+			if(m_materials[i].material) m_materials[i].material->getPass(0)->setTexture(name, &tex);
 		}
 	}
 }
@@ -177,27 +177,15 @@ void MaterialStream::setOverlayTexture(const char* name, const Texture& tex) {
 	// Coordinaes
 	sprintf(buf, "%sInfo", name);
 	float info[4] = { m_offset.x, m_offset.y, 1.f/m_size.x, 1.f/m_size.y };
-	m_template->setFloat4(buf, info);
-	copyParam(buf);
-}
-
-void MaterialStream::copyParam(const char* name) {
-	float values[4];
-	int n = m_template->getFloatv(name, values);
-	if(n==0) return;
-	if(m_global) m_global->setFloatv(name, n, values);
-	if(m_materials) {
-		for(int i=0; i<m_divisions*m_divisions; ++i) {
-			if(m_materials[i].ref) m_materials[i].material->setFloatv(name, n, values);
-		}
-	}
+	m_template->getPass(0)->getParameters().set(buf, 4, 1, info); // FIXME: Shared variable 
 }
 
 void MaterialStream::updateShader() {
-	if(m_global) m_global->setShader( m_template->getShader() );
+	// All sub-materials should already have the correct shader pointer
+	if(m_global) m_global->getPass(0)->compile();
 	if(m_materials) {
 		for(int i=0; i<m_divisions*m_divisions; ++i) {
-			if(m_materials[i].ref) m_materials[i].material->setShader( m_template->getShader() );
+			if(m_materials[i].ref) m_materials[i].material->getPass(0)->compile();
 		}
 	}
 }
@@ -231,8 +219,8 @@ bool MaterialStream::addStream(const char* name, TextureStream* texture) {
 	// Add global texture
 	if(m_global) {
 		float info[4] = { m_offset.x, m_offset.y, 1.f/m_size.x, 1.f/m_size.y };
-		m_global->setTexture(stream.name, texture->getGlobalTexture() );
-		m_global->setFloat4(stream.infoName, info);
+		m_global->getPass(0)->setTexture(stream.name, &texture->getGlobalTexture() );
+		m_global->getPass(0)->getParameters().set(stream.infoName, 4, 1, info);
 	}
 	return true;
 }
@@ -302,12 +290,13 @@ Material* MaterialStream::getTemplate() const {
 
 Material* MaterialStream::getGlobal() {
 	if(!m_global) {
-		m_global = new Material(*m_template);
+		m_global = m_template->clone();
 		float info[4] = { m_offset.x, m_offset.y, 1.f/m_size.x, 1.f/m_size.y };
 		for(uint i=0; i<m_streams.size(); ++i) {
-			m_global->setTexture(m_streams[i].name, m_streams[i].texture->getGlobalTexture() );
-			m_global->setFloat4(m_streams[i].infoName, info);
+			m_global->getPass(0)->setTexture(m_streams[i].name, &m_streams[i].texture->getGlobalTexture() );
+			m_global->getPass(0)->getParameters().set(m_streams[i].infoName, 4, 1, info);
 		}
+		m_global->getPass(0)->compile();
 	}
 	return m_global;
 }
@@ -318,12 +307,14 @@ Material* MaterialStream::getMaterial(int x, int y) {
 	SubMaterial& m = m_materials[k];
 	if(!m.material) {
 		// Create material
-		m.material = new Material(*m_template);
+		m.material = m_template->clone();
 
 		// Add streamed sub textures
 		for(uint i=0; i<m_streams.size(); ++i) {
 			setStreamTexture(m.material, m_streams[i], x, y);
 		}
+
+		m.material->getPass(0)->compile();
 	}
 	++m.ref;
 	return m.material;
@@ -363,14 +354,14 @@ void MaterialStream::dropMaterial(SubMaterial& m) {
 
 void MaterialStream::setStreamTexture(Material* m, const Stream& stream, int x, int y) {
 	int d = m_divisions / stream.texture->getDivisions();
-	m->setTexture( stream.name, stream.texture->getTexture(x/d, y/d) );
+	m->getPass(0)->setTexture( stream.name, &stream.texture->getTexture(x/d, y/d) );
 	// Offet values - ToDo: fix for overlap
 	float info[4];
 	info[0] = (float) (x/d) * d / m_divisions * m_size.x + m_offset.x;
 	info[1] = (float) (y/d) * d / m_divisions * m_size.y + m_offset.y;
 	info[2] = stream.texture->getDivisions() / m_size.x;
 	info[3] = stream.texture->getDivisions() / m_size.y;
-	m->setFloat4( stream.infoName, info );
+	m->getPass(0)->getParameters().set( stream.infoName, 4, 1, info );
 }
 
 

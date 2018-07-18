@@ -6,7 +6,7 @@
 #include "gui/gui.h"
 #include "object.h"
 #include "resource/library.h"
-#include "render/render.h"
+#include "scene/scene.h"
 #include "terraineditor/editor.h"
 #include "toolgroup.h"
 #include <list>
@@ -71,7 +71,7 @@ class WorldEditor : public base::SceneState {
 	void setTerrainMaterial(DynamicMaterial*);
 
 	private:
-	Render* m_renderer;
+	Scene*   m_scene;
 	Library* m_library;
 
 	// Terrain properies

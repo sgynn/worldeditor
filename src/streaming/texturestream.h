@@ -2,11 +2,12 @@
 #define _TEXTURE_STREAM_
 
 #include "bufferedstream.h"
-#include <base/material.h>
+#include <scene/material.h>
+#include <base/texture.h>
 #include <vector>
 
 using base::Texture;
-using base::Material;
+using scene::Material;
 
 
 class TextureStream : public BufferedStream {
@@ -49,7 +50,6 @@ class MaterialStream {
 
 	void setOverlayTexture(const char* name, const Texture&);	// add texture as overlay, like streams
 	void setTexture(const char* name, const Texture& texture);	// Set non-streamed texture
-	void copyParam(const char* name);							// Copy a variable from template to all generated materials
 	void updateShader();										// Copy shader program from template
 	void build();												// Ensure submaterias are created
 

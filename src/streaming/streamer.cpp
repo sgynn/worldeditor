@@ -1,10 +1,12 @@
 #include "streamer.h"
 #include "landscape.h"
 #include "tiff.h"
-#include "render/render.h"
+#include "scene/scene.h"
+#include "base/camera.h"
 #include "texturestream.h"
 #include "dynamicmaterial.h"
 
+#include "scene/shader.h"
 #include <base/opengl.h>
 #include <cstdio>
 
@@ -127,35 +129,39 @@ void Streamer::updatePatchMaterial(PatchGeometry* g) {
 
 
 
-void Streamer::addToScene(Render* r)      { if(m_drawable) r->add(m_drawable); }
-void Streamer::removeFromScene(Render* r) { if(m_drawable) r->remove(m_drawable); }
+void Streamer::addToScene(Scene* r)      { if(m_drawable) r->add(m_drawable); }
+void Streamer::removeFromScene(Scene* r) { if(m_drawable) r->remove(m_drawable); }
 
 StreamerDrawable::StreamerDrawable(Landscape* land) : m_land(land) {}
 void StreamerDrawable::draw( RenderInfo& r) {
 
 	// Update terrain lod stuff - Note: only needs to be called one per frame
-	vec3 cp = lodCameraPosition = r.getCamera()->getPosition();
+	lodCameraPosition = r.getCamera()->getPosition();
 	m_land->update( r.getCamera() );
 	m_land->visitAllPatches(Streamer::updatePatchMaterial);
 
 	// View frustum culling
 	m_land->cull( r.getCamera() );
 
+	scene::Shader::current().enableAttributeArray(0);
+	scene::Shader::current().enableAttributeArray(1);
+
 	const int stride = 10 * sizeof(float);
-	r.state(VERTEX_ARRAY | NORMAL_ARRAY);
+	r.state(0); //VERTEX_ARRAY | NORMAL_ARRAY);
 //	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	for(uint i=0; i<m_land->getGeometry().size(); ++i) {
 		const PatchGeometry* g = m_land->getGeometry()[i];
 		const PatchTag* tag = static_cast<const PatchTag*>(g->tag);
 
 		r.material( tag->material );
-		base::Shader::current().Uniform3f("cameraPos", cp.x, cp.y, cp.z);
-
-		glVertexPointer(3, GL_FLOAT, stride, g->vertices);
-		glNormalPointer(GL_FLOAT, stride, g->vertices+3);
+		scene::Shader::current().setAttributePointer(0, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices);
+		scene::Shader::current().setAttributePointer(1, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices+3);
 		glDrawElements(GL_TRIANGLE_STRIP, g->indexCount, GL_UNSIGNED_SHORT, g->indices);
 	}
 //	glPolygonMode(GL_FRONT, GL_FILL);
+//
+	scene::Shader::current().disableAttributeArray(0);
+	scene::Shader::current().disableAttributeArray(1);
 }
 
 // ========================================================================================= //

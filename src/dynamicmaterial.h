@@ -5,7 +5,7 @@
 #include <vector>
 #include "gui/gui.h"
 
-namespace base { class Material; }
+namespace scene { class Material; class ShaderProgram; class ShaderVars; }
 using gui::String;
 class MaterialStream;
 class MaterialEditor;
@@ -61,13 +61,16 @@ class DynamicMaterial {
 	bool			needsCompiling() const;	// do we need to recompile
 	void			flagRecompile();		// Flag material to be compiled when activated
 
-	base::Material* getMaterial() const;	// Get material pointer
+	scene::Material* getMaterial() const;	// Get material pointer
 	MaterialStream* getStream() const;		// Get material stream
 
 	protected:
 	String m_name;
 	std::vector<MaterialLayer*> m_layers;
-	base::Material* m_material;
+	scene::Material*   m_material;
+	scene::ShaderVars* m_vars;
+	scene::ShaderProgram* m_vertexShader;
+	scene::ShaderProgram* m_fragmentShader;
 	MaterialStream* m_stream;
 	bool            m_streaming;
 	bool            m_needsCompile;

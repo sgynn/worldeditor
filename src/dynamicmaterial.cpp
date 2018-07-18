@@ -2,25 +2,39 @@
 #include "materialeditor.h"
 #include "streaming/texturestream.h"
 #include "terraineditor/editabletexture.h"
-#include <base/material.h>
+#include "scene/material.h"
+#include "scene/shader.h"
 #include <base/colour.h>
 
 #include <cstdio>
 #include <string>
 #include <set>
 
-using base::Shader;
-using base::FragmentShader;
-using base::VertexShader;
-using base::Material;
 using base::Texture;
+using scene::ShaderProgram;
+using scene::Material;
+using scene::Shader;
+using scene::Pass;
 
 DynamicMaterial::DynamicMaterial(bool stream) : m_material(0), m_stream(0), m_streaming(stream), m_needsCompile(true) {
+	Shader* shader = new Shader();
+	m_vertexShader = new ShaderProgram(scene::ShaderProgram::VERTEX_SHADER);
+	m_fragmentShader = new ShaderProgram(scene::ShaderProgram::FRAGMENT_SHADER);
+	shader->attach(m_vertexShader);
+	shader->attach(m_fragmentShader);
+	m_vars = new scene::ShaderVars();
+	m_material = new Material();
+	m_material->addPass()->setShader(shader);
+	m_material->getPass(0)->addShared(m_vars);
 }
 
 DynamicMaterial::~DynamicMaterial() {
 	for(size_t i=0; i<m_layers.size(); ++i) delete m_layers[i];
-	if(m_material) delete m_material;
+	delete m_material->getPass(0)->getShader();
+	delete m_vars;
+	delete m_material;
+	delete m_vertexShader;
+	delete m_fragmentShader;
 }
 
 
@@ -112,14 +126,10 @@ void DynamicMaterial::update(int index) {
 
 	// Set all the variables
 	MaterialLayer* layer = m_layers[index];
-	m_material->setFloat( addIndex("opacity",index), layer->visible? layer->opacity: 0);
-	if(layer->projection == PROJECTION_FLAT) m_material->setFloatv( addIndex("scale",index), 2, 1.0 / layer->scale.xy());
-	else m_material->setFloatv( addIndex("scale",index), 3, 1.0 / layer->scale);
+	m_vars->set( addIndex("opacity",index), layer->visible? layer->opacity: 0);
+	if(layer->projection == PROJECTION_FLAT) m_vars->set( addIndex("scale",index), 1.0 / layer->scale.xy());
+	else m_vars->set( addIndex("scale",index), 1.0 / layer->scale);
 
-	if(m_stream) {
-		m_stream->copyParam( addIndex("opacity",index) );
-		m_stream->copyParam( addIndex("scale",index) );
-	}
 	
 	if(layer->type == LAYER_AUTO) {
 		vec3 min(layer->height.min, layer->slope.min, layer->concavity.min);
@@ -128,16 +138,10 @@ void DynamicMaterial::update(int index) {
 		for(int i=0; i<3; ++i) if(blend[i]<=0) blend[i] = 0.001; // avoid div0
 
 		//vec3 noise(layer->height.noise, layer->slope.noise, layer->concavity.noise);
-		m_material->setFloat3( addIndex("autoMin",index), min);
-		m_material->setFloat3( addIndex("autoMax",index), max);
-		m_material->setFloat3( addIndex("autoBlend",index), blend);
-		//m_material->setFloat3( addIndex("autoNoise",index), noise);
-		
-		if(m_stream) {
-			m_stream->copyParam( addIndex("autoMin",index) );
-			m_stream->copyParam( addIndex("autoMax",index) );
-			m_stream->copyParam( addIndex("autoBlend",index) );
-		}
+		m_vars->set( addIndex("autoMin",index), min);
+		m_vars->set( addIndex("autoMax",index), max);
+		m_vars->set( addIndex("autoBlend",index), blend);
+		//m_vars->set( addIndex("autoNoise",index), noise);
 	}
 }
 
@@ -146,8 +150,8 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 	if(m_stream) m_stream->build();
 
 	// Textures
-	m_material->setTexture("diffuseArray", src->getDiffuseArray());
-	m_material->setTexture("normalArray", src->getNormalArray());
+	m_material->getPass(0)->setTexture("diffuseArray", &src->getDiffuseArray());
+	m_material->getPass(0)->setTexture("normalArray", &src->getNormalArray());
 	if(m_stream) {
 		m_stream->setTexture("diffuseArray", src->getDiffuseArray());
 		m_stream->setTexture("normalArray", src->getNormalArray());
@@ -165,7 +169,7 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 	for(MapList::iterator i=maps.begin(); i!=maps.end(); ++i) {
 		EditableTexture* map = src->getMap(*i);
 		if(map) {
-			m_material->setTexture(*i, map->getTexture());
+			m_material->getPass(0)->setTexture(*i, &map->getTexture());
 			if(m_stream) {
 				if(map->getTextureStream()) m_stream->addStream(*i, map->getTextureStream());
 				else m_stream->setOverlayTexture(*i, map->getTexture());
@@ -176,7 +180,7 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 
 // ------------------------------------------------------------------------------------------------------ //
 
-base::Material* DynamicMaterial::getMaterial() const {
+Material* DynamicMaterial::getMaterial() const {
 	return m_material;
 }
 MaterialStream* DynamicMaterial::getStream() const {
@@ -387,29 +391,31 @@ bool DynamicMaterial::compile() {
 	// Lighting (basic diffuse);
 	source +=  "	// Lighting\n";
 	source +=  "	gl_FragColor = diffuse * 0.1 + diffuse * 0.9 * dot(worldNormal, lightDirection);\n";
-	source +=  "	gl_FragColor = vec4(diffuse.rgb, 1);\n";
+	//source +=  "	gl_FragColor = vec4(diffuse.rgb, 1);\n";
 	source += "}\n";
 
 	// Vertex shader - todo: add concavity attribute
 	static const char* vertexShader = 
-	"varying vec3 worldNormal;\n"
-	"varying vec3 worldPos;\n"
+	"#version 130\n"
+	"in vec4 vertex;\n"
+	"in vec3 normal;\n"
+	"out vec3 worldNormal;\n"
+	"out vec3 worldPos;\n"
 	"void main() {\n"
-	"	gl_Position = ftransform();\n"
-	"	worldPos = gl_Vertex.xyz;\n"
-	"	worldNormal = gl_Normal;\n"
+	"	gl_Position = gl_ModelViewProjectionMatrix * vertex;\n"
+	"	worldPos = vertex.xyz;\n"
+	"	worldNormal = normal;\n"
 	"}\n";
 
 	// Compile shader
-	const char* fragmentShader = source.c_str();
-	VertexShader vert = Shader::createVertex(&vertexShader);
-	FragmentShader frag = Shader::createFragment(&fragmentShader);
-	Shader shader = Shader::link(vert, frag);
+	Shader* shader = m_material->getPass(0)->getShader();
+	m_vertexShader->setSource(vertexShader);
+	m_fragmentShader->setSource( source.c_str() );
+	shader->bindAttributeLocation("vertex", 0);
+	shader->bindAttributeLocation("normal", 1);
+	m_vars->set("lightDirection", 1,1,1);
+	m_material->getPass(0)->compile();
 
-
-	// Setup material
-	if(!m_material) m_material = new Material();
-	m_material->setShader(shader);
 
 	// Streamed material
 	if(m_streaming) {
@@ -424,7 +430,7 @@ bool DynamicMaterial::compile() {
 
 	
 	// DEBUG: save generated shader
-	FILE* fp = fopen("shader.glsl", "w");
+	FILE* fp = fopen("shader_cache.glsl", "w");
 	if(fp) fwrite(source.c_str(), 1, source.length(), fp);
 	if(fp) fclose(fp);
 	printf("Compiled shader\n");

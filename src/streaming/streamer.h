@@ -3,9 +3,10 @@
 
 #include "object.h"
 #include "bufferedstream.h"
-#include "render/drawable.h"
 #include <base/texture.h>
 #include <base/thread.h>
+
+#include "scene/drawable.h"
 
 #include "terraineditor/editor.h"
 
@@ -48,12 +49,12 @@ class Streamer : public Object, public BufferedStream {
 	int height() const { return BufferedStream::height(); }
 
 	public: // Object functions
-	void addToScene(Render* r);
-	void removeFromScene(Render* r);
+	void addToScene(Scene* r);
+	void removeFromScene(Scene* r);
 	void setMaterial(const DynamicMaterial* m);
 
 	void addTexture(const char* name, TextureStream*);
-	void addTexture(const char* name, const Texture&);
+	void addTexture(const char* name, const base::Texture&);
 
 	protected:
 	float         m_heightScale;

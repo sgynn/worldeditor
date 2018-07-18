@@ -12,7 +12,6 @@
 #include "streaming/streamer.h"
 #include "streaming/texturestream.h"
 
-
 #include "gui/skin.h"
 #include "gui/font.h"
 #include "gui/widgets.h"
@@ -64,10 +63,10 @@ int main(int argc, char* argv[]) {
 }
 
 
-/** Make a world - this file will be a complete mess while I test stuff */
+//// Make a world - this file will be a complete mess while I test stuff ////
 
 WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_materials(0) {
-	m_renderer = new Render;
+	m_scene = new Scene;
 	m_library = new Library;
 	m_library->addPath("data");
 
@@ -149,7 +148,7 @@ WorldEditor::~WorldEditor() {
 void WorldEditor::clear() {
 	// Remove and delete all objects
 	for(base::HashMap<Object*>::iterator i=m_objects.begin(); i!=m_objects.end(); ++i) {
-		(*i)->removeFromScene(m_renderer);
+		(*i)->removeFromScene(m_scene);
 		delete *i;
 	}
 	// Delete the editor module
@@ -260,15 +259,18 @@ void WorldEditor::update() {
 }
 
 void WorldEditor::drawScene() {
-	m_renderer->collect(m_camera);
-	m_renderer->render();
-
+	m_scene->collect(m_camera);
+	m_scene->render();
 
 	// Draw editor stuff
 	if(m_editor) m_editor->draw();
 }
 
 void WorldEditor::drawHUD() {
+	scene::Material m;
+	m.addPass()->blendMode = scene::BLEND_ALPHA;
+	m.getPass(0)->bind();
+
 	m_gui->draw();
 }
 
@@ -575,7 +577,7 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 		Streamer* map = new Streamer(scale);
 		map->createStream("tmp.tiff", size, size, 1, 16);
 		map->setLod( m_options.detail );
-		map->addToScene(m_renderer);
+		map->addToScene(m_scene);
 		m_heightMap = new StreamingHeightmapEditor(map);
 		m_objects["terrain"] = map;
 		m_streaming = true;
@@ -583,7 +585,7 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 	} else {
 		SimpleHeightmap* map = new SimpleHeightmap();
 		map->create(size, size, res, 0.f);
-		map->addToScene(m_renderer);
+		map->addToScene(m_scene);
 		m_heightMap = new SimpleHeightmapEditor(map);
 		m_objects["terrain"] = map;
 		m_streaming = false;
@@ -591,6 +593,7 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 	// Set up editor
 	m_editor = new TerrainEditor();
 	m_editor->setHeightmap(m_heightMap);
+	setupHeightTools(res, m_terrainOffset);
 }
 
 void WorldEditor::loadWorld(const char* file) {
@@ -635,7 +638,7 @@ void WorldEditor::loadWorld(const char* file) {
 	if(info.attribute("stream", 0)) {
 		streamer = new Streamer(scale);
 		if(streamer->openStream( m_terrainFile )) {
-			streamer->addToScene(m_renderer);
+			streamer->addToScene(m_scene);
 			streamer->setLod( m_options.detail );
 			m_heightMap = new StreamingHeightmapEditor(streamer);
 			m_objects["terrain"] = streamer;
@@ -656,7 +659,7 @@ void WorldEditor::loadWorld(const char* file) {
 			simple = new SimpleHeightmap();
 			File data = File::load( m_terrainFile );
 			simple->create(size, size, res, (const float*) data.contents());
-			simple->addToScene(m_renderer);
+			simple->addToScene(m_scene);
 			m_heightMap = new SimpleHeightmapEditor(simple);
 			m_terrainOffset = vec2();
 			m_objects["terrain"] = simple;
