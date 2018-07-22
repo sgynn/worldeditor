@@ -597,6 +597,11 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 	m_editor = new TerrainEditor();
 	m_editor->setHeightmap(m_heightMap);
 	setupHeightTools(res, m_terrainOffset);
+
+	// Setup material editor
+	m_materials = new MaterialEditor(m_gui, m_library, m_streaming);
+	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
+	m_materials->addMaterial(0);
 }
 
 void WorldEditor::loadWorld(const char* file) {

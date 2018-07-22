@@ -261,6 +261,7 @@
 			<item>Mapped</item>
 			<item>Colour</item>
 			<item>Indexed</item>
+			<item>Gradient</item>
 		</widget>
 		<widget caption="Delete Layer" class="Button" name="removelayer" rect="288 448 96 20" skin="button" anchor="br"/>
 	</widget>

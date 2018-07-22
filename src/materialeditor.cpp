@@ -55,7 +55,7 @@ MaterialEditor::~MaterialEditor() {
 
 
 
-static const char* layerTypes[] = { "auto", "weight", "colour", "indexed" };
+static const char* layerTypes[] = { "auto", "weight", "colour", "indexed", "gradient" };
 static const char* blendModes[] = { "normal", "height", "multiply", "add" };
 static const char* projections[] = { "flat", "triplanar", "vertical" };
 static const char* channels[]   = { "r", "g", "b", "a", "x" };
@@ -196,6 +196,9 @@ XMLElement MaterialEditor::serialiseMaterial(int index) {
 		case LAYER_INDEXED:
 			layer.setAttribute("weightmap", l->map);
 			layer.setAttribute("heightmap", l->map2);
+			break;
+		case LAYER_GRADIENT:
+			printf("TODO: save gradient layer\n");
 			break;
 		}
 
@@ -491,9 +494,10 @@ void MaterialEditor::renameTexture(gui::Textbox* t) {
 
 
 void MaterialEditor::addMaterial(gui::Button*) {
-	createMaterial("New Material");
+	DynamicMaterial* m = createMaterial("New Material");
 	m_materialList->selectItem( m_materials.size()-1 );
 	selectMaterial(0, m_materials.size()-1);
+	m->compile();
 }
 
 void MaterialEditor::selectMaterial(gui::Combobox*, int index) {
@@ -629,7 +633,7 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 
 
 	// Setup
-	const char* icons[] = { "layer_a", "layer_w", "layer_c", "layer_i" };
+	const char* icons[] = { "layer_a", "layer_w", "layer_c", "layer_i", "layer_g" };
 	w->getWidget<gui::Icon>("typeicon")->setIcon( icons[layer->type] );
 	w->getWidget<gui::Textbox>("layername")->setText( layer->name );
 	w->getWidget<gui::Textbox>("layername")->eventSubmit.bind(this, &MaterialEditor::renameLayer);
@@ -745,6 +749,14 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 			slider[i]->eventChanged.bind(this, &MaterialEditor::changeConvexParam);
 		}
 		*/
+	}
+
+	// Gradient
+	if(layer->type == LAYER_GRADIENT) {
+		gui::Combobox* input = addLayerWidget<gui::Combobox>(m_gui, w, "Input", "droplist");
+		input->addItem("Height");
+		input->addItem("Normal");
+		// Need a gradient editor widget
 	}
 
 	// Layer selection

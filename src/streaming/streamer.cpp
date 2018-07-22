@@ -148,7 +148,7 @@ void StreamerDrawable::draw( RenderInfo& r) {
 
 	const int stride = 10 * sizeof(float);
 	r.state(0); //VERTEX_ARRAY | NORMAL_ARRAY);
-//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	for(uint i=0; i<m_land->getGeometry().size(); ++i) {
 		const PatchGeometry* g = m_land->getGeometry()[i];
 		const PatchTag* tag = static_cast<const PatchTag*>(g->tag);
@@ -158,7 +158,7 @@ void StreamerDrawable::draw( RenderInfo& r) {
 		scene::Shader::current().setAttributePointer(1, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices+3);
 		glDrawElements(GL_TRIANGLE_STRIP, g->indexCount, GL_UNSIGNED_SHORT, g->indices);
 	}
-//	glPolygonMode(GL_FRONT, GL_FILL);
+	//glPolygonMode(GL_FRONT, GL_FILL);
 //
 	scene::Shader::current().disableAttributeArray(0);
 	scene::Shader::current().disableAttributeArray(1);

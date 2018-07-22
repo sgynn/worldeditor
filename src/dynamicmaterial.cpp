@@ -202,7 +202,8 @@ bool DynamicMaterial::compile() {
 	source +=
 	"#version 130\n\n"
 	"in vec3 worldNormal;\n"
-	"in vec3 worldPos;\n\n"
+	"in vec3 worldPos;\n"
+	"out vec4 fragment;\n\n"
 	"uniform vec3 lightDirection;\n\n";
 	
 	// Samplers
@@ -390,8 +391,8 @@ bool DynamicMaterial::compile() {
 
 	// Lighting (basic diffuse);
 	source +=  "	// Lighting\n";
-	source +=  "	gl_FragColor = diffuse * 0.1 + diffuse * 0.9 * dot(worldNormal, lightDirection);\n";
-	//source +=  "	gl_FragColor = vec4(diffuse.rgb, 1);\n";
+	source +=  "	fragment = diffuse * 0.1 + diffuse * 0.9 * dot(worldNormal, lightDirection);\n";
+	//source +=  "	fragment = vec4(diffuse.rgb, 1);\n";
 	source += "}\n";
 
 	// Vertex shader - todo: add concavity attribute
@@ -416,6 +417,12 @@ bool DynamicMaterial::compile() {
 	m_vars->set("lightDirection", 1,1,1);
 	m_material->getPass(0)->compile();
 
+	char buffer[2048]; buffer[0] = 0;
+	shader->getLog(buffer, sizeof(buffer));
+	printf(buffer);
+
+	if(!shader->isCompiled()) printf("Shader not actually compiled\n");
+
 
 	// Streamed material
 	if(m_streaming) {
@@ -433,7 +440,7 @@ bool DynamicMaterial::compile() {
 	FILE* fp = fopen("shader_cache.glsl", "w");
 	if(fp) fwrite(source.c_str(), 1, source.length(), fp);
 	if(fp) fclose(fp);
-	printf("Compiled shader\n");
+	printf("Compiled shader %p\n", shader);
 
 
 	m_needsCompile = false;
