@@ -573,6 +573,7 @@ inline const char* cat(const char* a, const char* b, const char* c=0, const char
 }
 
 void WorldEditor::create(int size, float res, float scale, bool streamed) {
+	clear();
 	if(streamed) {
 		Streamer* map = new Streamer(scale);
 		map->createStream("tmp.tiff", size, size, 1, 16);
@@ -581,6 +582,7 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 		m_heightMap = new StreamingHeightmapEditor(map);
 		m_objects["terrain"] = map;
 		m_streaming = true;
+		printf("Created %dx%d heightmap stream as %s\n", size,size, "tmp.tiff");
 
 	} else {
 		SimpleHeightmap* map = new SimpleHeightmap();
@@ -589,6 +591,7 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 		m_heightMap = new SimpleHeightmapEditor(map);
 		m_objects["terrain"] = map;
 		m_streaming = false;
+		printf("Created %dx%d heightmap\n", size,size);
 	}
 	// Set up editor
 	m_editor = new TerrainEditor();

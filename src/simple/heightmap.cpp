@@ -77,11 +77,8 @@ void SimpleHeightmap::calculateNormals(const Rect& r) {
 	}
 }
 
-void SimpleHeightmap::createMesh(float* vx) {
-	int w = m_width, h = m_height;
-	// Create index array
+template<typename T> int createIndices(int w, int h, T* ix) {
 	int i = 0;
-	uint16* ix = new uint16[w * h * 2 + 2 * h];
 	for(int y=1; y<h; ++y) {
 		for(int x=0; x<w; ++x) {
 			ix[i]     = x + y * w - w;
@@ -92,7 +89,14 @@ void SimpleHeightmap::createMesh(float* vx) {
 		ix[i+1] = y*w;
 		i += 2;
 	}
+	return i;
+}
+void SimpleHeightmap::createMesh(float* vx) {
+	int w = m_width, h = m_height;
+	// Create index array
 
+
+	// Create mesh
 	if(!m_mesh) m_mesh = new base::bmodel::Mesh();
 	m_mesh->setPolygonMode(base::bmodel::TRIANGLE_STRIP);
 	base::HardwareVertexBuffer* vbuf = new base::HardwareVertexBuffer();
@@ -101,9 +105,24 @@ void SimpleHeightmap::createMesh(float* vx) {
 	vbuf->setAttribute(base::VA_NORMAL, base::VA_FLOAT3, 3*sizeof(float));
 	m_mesh->setVertexBuffer(vbuf);
 
-	base::HardwareIndexBuffer* ibuf = new base::HardwareIndexBuffer();
-	ibuf->setData(ix, i-2, true);
+	// Creae index buffer
+	base::HardwareIndexBuffer* ibuf;
+	int i = m_width * (m_height-1) * 2 + m_height * 2;
+	if(i<65536) {
+		uint16* ix = new uint16[i];
+		i = createIndices(m_width, m_height, ix);
+		ibuf = new base::HardwareIndexBuffer(16);
+		ibuf->setData(ix, i, true);
+	}
+	else {
+		uint* ix = new uint[i];
+		i = createIndices(m_width, m_height, ix);
+		ibuf = new base::HardwareIndexBuffer(32);
+		ibuf->setData(ix, i, true);
+	}
 	m_mesh->setIndexBuffer(ibuf);
+
+	// Normals
 	calculateNormals( Rect(0,0,w,h) );
 
 	// Drawable
