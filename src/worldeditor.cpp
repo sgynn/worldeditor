@@ -322,11 +322,11 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	int size = panel->getWidget<Combobox>("size")->getSelectedData().getValue(128);
 	float height = panel->getWidget<Spinbox>("height")->getValue();
 	switch(mode) {
-	case 0: create(size, 1, 1, false); break;
-	case 1: create(size, 1, height/255.0, false); break;
-	case 2: create(size, 1, height/65535.0, false); break;
-	case 3: create(size, 1, height/255.0, true); break;
-	case 4: create(size, 1, height/65535.0, true); break;
+	case 0: create(size, 1, height, false); break;
+	case 1: create(size, 1, height, false); break;
+	case 2: create(size, 1, height, false); break;
+	case 3: create(size, 1, height, true); break;
+	case 4: create(size, 1, height, true); break;
 	}
 	// ToDo: convert source
 }
@@ -581,7 +581,11 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 		map->addToScene(m_scene);
 		m_heightMap = new StreamingHeightmapEditor(map);
 		m_objects["terrain"] = map;
+		m_terrainOffset = map->getOffset().xz();
+		m_terrainScale = scale;
+		m_terrainSize.x = m_terrainSize.y = size-1;
 		m_streaming = true;
+		m_streams.push_back(map);
 		printf("Created %dx%d heightmap stream as %s\n", size,size, "tmp.tiff");
 
 	} else {
@@ -590,6 +594,9 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 		map->addToScene(m_scene);
 		m_heightMap = new SimpleHeightmapEditor(map);
 		m_objects["terrain"] = map;
+		m_terrainOffset = vec2();
+		m_terrainScale = scale;
+		m_terrainSize.x = m_terrainSize.y = size-1;
 		m_streaming = false;
 		printf("Created %dx%d heightmap\n", size,size);
 	}

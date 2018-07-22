@@ -173,16 +173,18 @@ inline uint16 clamp16(float v) { return v<0? 0: v>65535? 65535: v; }
 
 int StreamingHeightmapEditor::getHeights(const Rect& r, float* array) const {
 	// Read + Convert pixels
-	uint16* data = new uint16[r.width*r.height];
+	int count = r.width * r.height;
+	uint16* data = new uint16[count];
 	m_map->getPixels(r, data);
-	for(int i=0; i<r.width*r.height; ++i) array[i] = data[i] * m_map->m_decode;
+	for(int i=0; i<count; ++i) array[i] = data[i] * m_map->m_decode;
 	delete [] data;
 	return 1;
 }
 int StreamingHeightmapEditor::setHeights(const Rect& r, const float* array) {
 	// Convert + Write pixels
-	uint16* data = new uint16[r.width*r.height];
-	for(int i=0; i<r.width*r.height; ++i) data[i] = clamp16(array[i] * m_map->m_encode);
+	int count = r.width * r.height;
+	uint16* data = new uint16[count];
+	for(int i=0; i<count; ++i) data[i] = clamp16(array[i] * m_map->m_encode);
 	m_map->setPixels(r, data);
 	delete [] data;
 
