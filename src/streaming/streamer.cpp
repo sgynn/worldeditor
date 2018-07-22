@@ -105,7 +105,7 @@ void Streamer::updatePatchMaterial(PatchGeometry* g) {
 	// Switch material lod
 	vec3 cp = g->bounds->clamp( lodCameraPosition );
 	float d = lodCameraPosition.distance2(cp);
-	Material* global = s_streamer->m_material->getGlobal();
+	Material* global = s_streamer&&s_streamer->m_material? s_streamer->m_material->getGlobal(): 0;
 
 	if(g->bounds->size().x > -s_streamer->m_offset.x * 0.5) d = 1e20f;
 
