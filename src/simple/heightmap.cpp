@@ -71,6 +71,7 @@ void SimpleHeightmap::calculateNormals(const Rect& r) {
 
 		float* vp = m_mesh->getVertexBuffer()->getVertex(k);
 		vec3& normal = *reinterpret_cast<vec3*>(vp + normalOffset);
+		normal.set(0,0,0);
 		for(int i=0, j=5; i<6; j=i, ++i)
 			if(ap[i] && ap[j]) normal += (*ap[i] - p).cross( *ap[j] - p );
 		normal.normalise();
