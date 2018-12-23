@@ -27,6 +27,7 @@
 
 #include "dynamicmaterial.h"
 #include "materialeditor.h"
+#include "minimap.h"
 
 using namespace gui;
 using namespace base;
@@ -100,6 +101,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	BIND(Button, "openmap", eventPressed, showOpenDialog);
 	BIND(Button, "savemap", eventPressed, showSaveDialog);
 	BIND(Button, "options", eventPressed, showOptionsDialog);
+	BIND(Button, "minimap", eventPressed, showWorldMap);
 
 	BIND(Combobox, "toollist", eventSelected, selectToolGroup);
 	BIND(Button, "materialbutton", eventPressed, showMaterialList);
@@ -138,6 +140,13 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	Widget* shelf = m_gui->getWidget<Widget>("toolshelf");
 	if(brush) brush->setPosition( Game::width() - brush->getSize().x, 0);
 	if(shelf) shelf->setSize( Game::width() - shelf->getPosition().x - brush->getSize().x - 8, shelf->getSize().y);
+
+	// Initialise minimap
+	m_minimap = new MiniMap();
+	base::Texture& mapTex = m_minimap->getTexture();
+	int id = m_gui->getRenderer()->addImage("minimap", mapTex.width(), mapTex.height(), mapTex.unit());
+	Widget* ww = m_gui->getWidget<Widget>("mapimage");
+	m_gui->getWidget<Image>("mapimage")->setImage(id);
 
 }
 
@@ -220,7 +229,9 @@ void WorldEditor::update() {
 		vec2 p = (m_camera->getPosition().xz() - m_terrainOffset) / m_terrainSize;
 		const Point& ms = m_mapMarker->getParent()->getAbsoluteClientRect().size();
 		const Point& ps = m_mapMarker->getSize(); 
+		const vec3& dir = cam->getDirection();
 		m_mapMarker->setPosition(p.x * ms.x - ps.x/2, p.y * ms.y - ps.y/2);
+		m_mapMarker->cast<gui::Icon>()->setAngle( -atan2(dir.x, dir.z) );
 	}
 
 	// Collide with terrain
@@ -401,6 +412,7 @@ void WorldEditor::showWorldMap(Button*) {
 	if(m_heightMap && !w->isVisible()) showDialog(w);
 	else w->setVisible(false);
 	m_mapMarker = w->isVisible()? w->getWidget<Widget>("mapmarker"): 0;
+	if(w->isVisible()) m_minimap->build();
 }
 
 void WorldEditor::moveWorldMap(Widget* w, const Point& p, int b) {
@@ -787,6 +799,12 @@ void WorldEditor::loadWorld(const char* file) {
 
 	// Set initial material
 	m_materials->selectMaterial(0,0);
+
+
+	// Minimap
+	m_minimap->setWorld(m_heightMap, m_terrainSize, m_terrainOffset);
+	m_minimap->setRange(100);
+	m_minimap->build();
 }
 void WorldEditor::saveWorld(const char* file) {
 	if(m_file!=file) m_file = file;

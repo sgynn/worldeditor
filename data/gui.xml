@@ -58,6 +58,9 @@
 		<icon name="Foliage" rect="64 32 32 32"/>
 		<icon name="Objects" rect="96 32 32 32"/>
 		<icon name="material" rect="128 64 32 32"/> 
+		<icon name="map"     rect="160 64 32 32"/> 
+
+		<icon name="direction" rect="0 96 16 16"/>
 
 		<icon name="raise"   rect="128 0  32 32"/>
 		<icon name="smooth"  rect="160 0  32 32"/>
@@ -212,14 +215,15 @@
 
 
 	<!-- Main menu (new/open/save) (options) -->
-	<widget name="mainmenu" rect="0 0 140 36">
+	<widget name="mainmenu" rect="0 0 172 36">
 		<widget name="newmap" template="iconbutton" rect="2 2 32 32" icon="new"/>
 		<widget name="openmap" template="iconbutton" rect="36 2 32 32" icon="open"/>
 		<widget name="savemap" template="iconbutton" rect="70 2 32 32" icon="save"/>
 		<widget name="options" template="iconbutton" rect="104 2 32 32" icon="options"/>
+		<widget name="minimap" template="iconbutton" rect="138 2 32 32" icon="map"/>
 	</widget>
 	
-	<widget name="toolshelf" rect="142 0 800 36">
+	<widget name="toolshelf" rect="174 0 800 36">
 		<widget name="materialbutton" template="iconbutton" rect="2 2 32 32" icon="material"/>
 		<widget name="texturebutton" template="iconbutton" rect="36 2 32 32" icon="texture"/>
 		<widget name="toollist" template="toolgrouplist" rect="70 2 160 32"/>
@@ -245,8 +249,8 @@
 
 	<!-- WorldMap dialog -->
 	<widget caption="Map" template="dialog" name="worldmap" rect="800 100 140 160" visible="0">
-		<widget name="mapimage" rect="1 1 128 128" anchor="tlrb">
-			<widget name="mapmarker" rect="0 0 16 16" class="Icon" iconlist="icons" icon="options"/>
+		<widget class="Image" name="mapimage" rect="1 1 128 128" anchor="tlrb">
+			<widget name="mapmarker" rect="0 0 16 16" class="Icon" iconlist="icons" icon="direction"/>
 		</widget>
 	</widget>
 

@@ -14,6 +14,7 @@
 class EditableTexture;
 class DynamicMaterial;
 class MaterialEditor;
+class MiniMap;
 
 namespace gui { class Button; class Combobox; class Scrollbar; class Window; }
 namespace base { class INIFile; }
@@ -88,6 +89,8 @@ class WorldEditor : public base::SceneState {
 	HeightmapEditorInterface* m_heightMap;	// Terrain object
 	std::vector<ToolGroup*> m_groups;		// Terrain tool groups
 	MaterialEditor* m_materials;			// Terrain material editor
+
+	MiniMap* m_minimap;						// Minimap data
 
 	// List of streams that need flushing on save ?
 	std::vector<BufferedStream*> m_streams;

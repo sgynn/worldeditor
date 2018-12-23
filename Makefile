@@ -1,7 +1,7 @@
 exec = editor
 
 OBJDIR = obj
-CFLAGS =  -g -Wall -Isrc
+CFLAGS =  -g -Wall -Isrc -Wno-nonnull-compare
 LDFLAGS = -lbase -lGL -lX11 -lXxf86vm -lpthread
 
 headers = $(wildcard src/*.h src/*/*.h)
