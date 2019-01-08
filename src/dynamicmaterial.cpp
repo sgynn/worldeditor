@@ -94,7 +94,7 @@ size_t DynamicMaterial::size() const {
 
 #define MakeString(format, value) static char b[32]; sprintf(b,format,value); return b;
 std::string str(int v) { MakeString("%d", v); }
-std::string str(size_t v) { MakeString("%lu", v); }
+std::string str(size_t v) { MakeString("%u", v); }
 std::string str(float v) { MakeString("%g", v); }
 std::string str(const char* s) { return s; }
 std::string str(const String& s) { return (const char*)s; }

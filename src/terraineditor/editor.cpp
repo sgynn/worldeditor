@@ -77,6 +77,11 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 		}
 		// Paint
 		float distance = m_brush.position.distance(lp);
+		if(distance > 40) {
+			printf("Warning: long brush stroke : (%g, %g) - (%g, %g)\n", lp.x, lp.y, m_brush.position.x, m_brush.position.y);
+			lb = btn;
+			return;
+		}
 		float spacing = fmin(m_brush.getRadius(0.8), m_brush.radius * 0.4);
 		int samples = (int) floor(distance / spacing) + 1;
 		vec2 step = (lp - m_brush.position) / distance * spacing;

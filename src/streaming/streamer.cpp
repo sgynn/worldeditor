@@ -132,7 +132,6 @@ void Streamer::removeFromScene(Render* r) { if(m_drawable) r->remove(m_drawable)
 
 StreamerDrawable::StreamerDrawable(Landscape* land) : m_land(land) {}
 void StreamerDrawable::draw( RenderInfo& r) {
-
 	// Update terrain lod stuff - Note: only needs to be called one per frame
 	vec3 cp = lodCameraPosition = r.getCamera()->getPosition();
 	m_land->update( r.getCamera() );
@@ -170,6 +169,7 @@ int StreamingHeightmapEditor::getHeights(const Rect& r, float* array) const {
 	uint16* data = new uint16[r.width*r.height];
 	m_map->getPixels(r, data);
 	for(int i=0; i<r.width*r.height; ++i) array[i] = data[i] * m_map->m_decode;
+	delete [] data;
 	return 1;
 }
 int StreamingHeightmapEditor::setHeights(const Rect& r, const float* array) {
@@ -177,6 +177,7 @@ int StreamingHeightmapEditor::setHeights(const Rect& r, const float* array) {
 	uint16* data = new uint16[r.width*r.height];
 	for(int i=0; i<r.width*r.height; ++i) data[i] = clamp16(array[i] * m_map->m_encode);
 	m_map->setPixels(r, data);
+	delete [] data;
 
 	// Update any active geometries
 	BoundingBox box(r.left(), 0, r.top(), r.right(), 0, r.bottom());

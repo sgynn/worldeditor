@@ -246,6 +246,7 @@ size_t TiffStream::setPixel(int x, int y, void* data) {
 
 
 size_t TiffStream::readBlock(int x, int y, int width, int height, void* data) const {
+	if(x<=-width || y<=-height || x>=(int)m_width || y>=(int)m_height) return 0;	// fully outside image
 	// assume data is correctly allocated
 	uint bytes = m_bitsPerSample/8 * m_samplesPerPixel;
 	size_t offset = x<0? -x: 0;
@@ -261,6 +262,7 @@ size_t TiffStream::readBlock(int x, int y, int width, int height, void* data) co
 	return count;
 }
 size_t TiffStream::writeBlock(int x, int y, int width, int height, void* data) {
+	if(x<=-width || y<=-height || x>=(int)m_width || y>=(int)m_height) return 0;	// fully outside image
 	uint bytes = m_bitsPerSample/8 * m_samplesPerPixel;
 	size_t offset = x<0? -x: 0;
 	size_t len = x+width > (int)m_width? m_width-x-offset: width-offset;

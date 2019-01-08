@@ -73,14 +73,15 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 
 	// Load editor options
 	INIFile::Section options = ini["settings"];
-	m_options.speed      = options.get("speed", 4);
-	m_options.detail     = options.get("detail", 4);
+	m_options.speed      = options.get("speed", 4.0f);
+	m_options.detail     = options.get("detail", 4.0f);
 	m_options.collide    = options.get("collision", true);
 	m_options.tabletMode = options.get("tablet", true);
 	m_options.distance   = options.get("distance", 10000);
+	m_options.fov        = options.get("fov", 90.0f);
 
 	// Run an fps camera for now
-	base::FPSCamera* cam = new base::FPSCamera(90, base::Game::aspect(), 0.01, m_options.distance);
+	base::FPSCamera* cam = new base::FPSCamera(m_options.fov, base::Game::aspect(), 0.01, m_options.distance);
 	cam->setSpeed(m_options.speed, 0.004);
 	cam->setEnabled(false);
 	cam->lookat( vec3(10, 50, 10), vec3(100,0,100));
@@ -187,6 +188,7 @@ void WorldEditor::update() {
 	m_gui->update();
 
 	bool guiHasMouse = m_gui->getRootWidget()->getWidget(mouse) != m_gui->getRootWidget();
+	bool editingText = m_gui->getFocusedWidget()->cast<Textbox>();
 
 	int shift = 0;
 	if(Game::Key(KEY_LSHIFT) || Game::Key(KEY_RSHIFT)) shift |= 1;
@@ -210,6 +212,7 @@ void WorldEditor::update() {
 
 	// Update camera
 	FPSCamera* cam = static_cast<base::FPSCamera*>(m_camera);
+	cam->setSpeed( editingText? 0: m_options.speed, 0.004 );
 	cam->setEnabled( mb&4 );
 	cam->grabMouse( (mb&4) && !m_options.tabletMode );
 	cam->update();
@@ -242,12 +245,14 @@ void WorldEditor::update() {
 	}
 
 	// Other shortcuts
-	if(Game::Pressed(KEY_T)) showTextureList(0);
-	if(Game::Pressed(KEY_R)) showMaterialList(0);
-	if(Game::Pressed(KEY_P)) showOptionsDialog(0);
+	if(!editingText) {
+		if(Game::Pressed(KEY_T)) showTextureList(0);
+		if(Game::Pressed(KEY_R)) showMaterialList(0);
+		if(Game::Pressed(KEY_P)) showOptionsDialog(0);
+		if(Game::Pressed(KEY_M)) showWorldMap(0);
+	}
 	if(Game::Pressed(KEY_O) && shift==2) showOpenDialog(0);
 	if(Game::Pressed(KEY_S) && shift==2) showSaveDialog(0);
-	if(Game::Pressed(KEY_M)) showWorldMap(0);
 
 	// Update any objects
 	for(base::HashMap<Object*>::iterator i=m_objects.begin(); i!=m_objects.end(); ++i) {
@@ -385,6 +390,7 @@ void WorldEditor::saveSettings(gui::Window*) {
 	settings.set("detail",   m_options.detail);
 	settings.set("tablet",   m_options.tabletMode);
 	settings.set("collision",m_options.collide);
+	settings.set("fov",      m_options.fov);
 	ini.save(INIFILE);
 }
 
@@ -486,7 +492,7 @@ void WorldEditor::messageBox(const char* c, const char* m, ...) {
 	gui::Window* box = base->clone()->cast<gui::Window>();
 	Label* msg = box->getWidget<Label>("message");
 	Button* btn = box->getWidget<Button>("button");
-	Point s = msg->getSkin()->m_font->getSize(buffer, msg->getSkin()->m_fontSize);
+	Point s = msg->getSkin()->getFont()->getSize(buffer, msg->getSkin()->getFontSize());
 
 	msg->setCaption(buffer);
 	btn->setCaption("  Ok  ");
@@ -765,6 +771,21 @@ void WorldEditor::loadWorld(const char* file) {
 
 	// Set initial material
 	m_materials->selectMaterial(0,0);
+
+	// Camera
+	const XMLElement& cam = xml.getRoot().find("camera");
+	if(cam.name()) {
+		vec3 cp, cd;
+		cp.x = cam.attribute("x", 0.0);
+		cp.y = cam.attribute("y", 50.0);
+		cp.z = cam.attribute("z", 0.0);
+		cd.x = cam.attribute("dx", 1.0);
+		cd.y = cam.attribute("dy", -0.5);
+		cd.z = cam.attribute("dz", 1.0);
+		m_camera->lookat( cp, cp+cd*100 );
+	}
+
+
 }
 void WorldEditor::saveWorld(const char* file) {
 	if(m_file!=file) m_file = file;
@@ -810,6 +831,16 @@ void WorldEditor::saveWorld(const char* file) {
 		if(m_imageMaps[i]->map->getMode() >= EditableTexture::STREAM) map.setAttribute("stream", 1);
 		m_imageMaps[i]->map->save( m_imageMaps[i]->file );
 	}
+
+	// Save editor camera position (temp)
+	XMLElement& cam = xml.getRoot().add("camera");
+	cam.setAttribute("x", m_camera->getPosition().x);
+	cam.setAttribute("y", m_camera->getPosition().y);
+	cam.setAttribute("z", m_camera->getPosition().z);
+	cam.setAttribute("dx", -m_camera->getDirection().x);
+	cam.setAttribute("dy", -m_camera->getDirection().y);
+	cam.setAttribute("dz", -m_camera->getDirection().z);
+
 
 	// Save
 	char buffer[1024];

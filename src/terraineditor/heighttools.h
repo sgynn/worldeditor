@@ -32,6 +32,7 @@ class LevelTool : public HeightTool {
 	public:
 	LevelTool(HeightmapEditorInterface* h) : HeightTool(h), target(-1e8f) {}
 	virtual void paint(const Brush&, int flags);
+	virtual void end() { HeightTool::end(); target=-1e8f; }
 	float target;
 };
 
@@ -40,6 +41,7 @@ class FlattenTool : public HeightTool {
 	public:
 	FlattenTool(HeightmapEditorInterface* h) : HeightTool(h), target(-1e8f) {}
 	virtual void paint(const Brush&, int flags);
+	virtual void end() { HeightTool::end(); target=-1e8f; }
 	vec3 normal;
 	float target;
 };

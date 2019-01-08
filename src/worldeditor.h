@@ -105,6 +105,7 @@ class WorldEditor : public base::SceneState {
 		float detail;		// Terrain lod parameter
 		bool  collide;		// Camera collides with terrain
 		bool  tabletMode;	// Mouse is not grabbed
+		float fov;			// Camera field of view
 	} m_options;
 	
 };
