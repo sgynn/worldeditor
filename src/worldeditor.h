@@ -6,7 +6,7 @@
 #include "gui/gui.h"
 #include "object.h"
 #include "resource/library.h"
-#include "render/render.h"
+#include "scene/scene.h"
 #include "terraineditor/editor.h"
 #include "toolgroup.h"
 #include <list>
@@ -14,6 +14,7 @@
 class EditableTexture;
 class DynamicMaterial;
 class MaterialEditor;
+class MiniMap;
 
 namespace gui { class Button; class Combobox; class Scrollbar; class Window; }
 namespace base { class INIFile; }
@@ -71,7 +72,7 @@ class WorldEditor : public base::SceneState {
 	void setTerrainMaterial(DynamicMaterial*);
 
 	private:
-	Render* m_renderer;
+	Scene*   m_scene;
 	Library* m_library;
 
 	// Terrain properies
@@ -88,6 +89,8 @@ class WorldEditor : public base::SceneState {
 	HeightmapEditorInterface* m_heightMap;	// Terrain object
 	std::vector<ToolGroup*> m_groups;		// Terrain tool groups
 	MaterialEditor* m_materials;			// Terrain material editor
+
+	MiniMap* m_minimap;						// Minimap data
 
 	// List of streams that need flushing on save ?
 	std::vector<BufferedStream*> m_streams;

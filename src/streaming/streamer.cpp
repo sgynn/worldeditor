@@ -1,10 +1,12 @@
 #include "streamer.h"
 #include "landscape.h"
 #include "tiff.h"
-#include "render/render.h"
+#include "scene/scene.h"
+#include "base/camera.h"
 #include "texturestream.h"
 #include "dynamicmaterial.h"
 
+#include "scene/shader.h"
 #include <base/opengl.h>
 #include <cstdio>
 
@@ -103,7 +105,7 @@ void Streamer::updatePatchMaterial(PatchGeometry* g) {
 	// Switch material lod
 	vec3 cp = g->bounds->clamp( lodCameraPosition );
 	float d = lodCameraPosition.distance2(cp);
-	Material* global = s_streamer->m_material->getGlobal();
+	Material* global = s_streamer&&s_streamer->m_material? s_streamer->m_material->getGlobal(): 0;
 
 	if(g->bounds->size().x > -s_streamer->m_offset.x * 0.5) d = 1e20f;
 
@@ -127,34 +129,38 @@ void Streamer::updatePatchMaterial(PatchGeometry* g) {
 
 
 
-void Streamer::addToScene(Render* r)      { if(m_drawable) r->add(m_drawable); }
-void Streamer::removeFromScene(Render* r) { if(m_drawable) r->remove(m_drawable); }
+void Streamer::addToScene(Scene* r)      { if(m_drawable) r->add(m_drawable); }
+void Streamer::removeFromScene(Scene* r) { if(m_drawable) r->remove(m_drawable); }
 
 StreamerDrawable::StreamerDrawable(Landscape* land) : m_land(land) {}
 void StreamerDrawable::draw( RenderInfo& r) {
 	// Update terrain lod stuff - Note: only needs to be called one per frame
-	vec3 cp = lodCameraPosition = r.getCamera()->getPosition();
+	lodCameraPosition = r.getCamera()->getPosition();
 	m_land->update( r.getCamera() );
 	m_land->visitAllPatches(Streamer::updatePatchMaterial);
 
 	// View frustum culling
 	m_land->cull( r.getCamera() );
 
+	scene::Shader::current().enableAttributeArray(0);
+	scene::Shader::current().enableAttributeArray(1);
+
 	const int stride = 10 * sizeof(float);
-	r.state(VERTEX_ARRAY | NORMAL_ARRAY);
-//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	r.state(0); //VERTEX_ARRAY | NORMAL_ARRAY);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	for(uint i=0; i<m_land->getGeometry().size(); ++i) {
 		const PatchGeometry* g = m_land->getGeometry()[i];
 		const PatchTag* tag = static_cast<const PatchTag*>(g->tag);
 
 		r.material( tag->material );
-		base::Shader::current().Uniform3f("cameraPos", cp.x, cp.y, cp.z);
-
-		glVertexPointer(3, GL_FLOAT, stride, g->vertices);
-		glNormalPointer(GL_FLOAT, stride, g->vertices+3);
+		scene::Shader::current().setAttributePointer(0, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices);
+		scene::Shader::current().setAttributePointer(1, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices+3);
 		glDrawElements(GL_TRIANGLE_STRIP, g->indexCount, GL_UNSIGNED_SHORT, g->indices);
 	}
-//	glPolygonMode(GL_FRONT, GL_FILL);
+	//glPolygonMode(GL_FRONT, GL_FILL);
+//
+	scene::Shader::current().disableAttributeArray(0);
+	scene::Shader::current().disableAttributeArray(1);
 }
 
 // ========================================================================================= //
@@ -166,16 +172,18 @@ inline uint16 clamp16(float v) { return v<0? 0: v>65535? 65535: v; }
 
 int StreamingHeightmapEditor::getHeights(const Rect& r, float* array) const {
 	// Read + Convert pixels
-	uint16* data = new uint16[r.width*r.height];
+	int count = r.width * r.height;
+	uint16* data = new uint16[count];
 	m_map->getPixels(r, data);
-	for(int i=0; i<r.width*r.height; ++i) array[i] = data[i] * m_map->m_decode;
+	for(int i=0; i<count; ++i) array[i] = data[i] * m_map->m_decode;
 	delete [] data;
 	return 1;
 }
 int StreamingHeightmapEditor::setHeights(const Rect& r, const float* array) {
 	// Convert + Write pixels
-	uint16* data = new uint16[r.width*r.height];
-	for(int i=0; i<r.width*r.height; ++i) data[i] = clamp16(array[i] * m_map->m_encode);
+	int count = r.width * r.height;
+	uint16* data = new uint16[count];
+	for(int i=0; i<count; ++i) data[i] = clamp16(array[i] * m_map->m_encode);
 	m_map->setPixels(r, data);
 	delete [] data;
 

@@ -12,12 +12,12 @@
 		<state coord="0 9 0 0"/>
 	</skin>
 	<skin name="button">
-		<font name="helvetica" size="16"/>
+		<font name="helvetica" size="16" align="centre middle"/>
 		<image file="data/gui.png"/>
 		<state name="normal"    coord="0 0 4 4" border="2 2 2 2"/>
 		<state name="highlight" coord="4 0 4 4" border="2 2 2 2"/>
 		<state name="pressed"   coord="0 4 4 4" border="2 2 2 2"/>
-		<state name="disabled"  coord="4 4 4 4" border="2 2 2 2"/>
+		<state name="disabled"  coord="4 4 4 4" border="2 2 2 2" colour="#404040"/>
 		<state name="selected normal"    coord="8  0 4 4" border="2 2 2 2"/>
 		<state name="selected highlight" coord="12 0 4 4" border="2 2 2 2"/>
 		<state name="selected pressed"   coord="8  4 4 4" border="2 2 2 2"/>
@@ -58,6 +58,9 @@
 		<icon name="Foliage" rect="64 32 32 32"/>
 		<icon name="Objects" rect="96 32 32 32"/>
 		<icon name="material" rect="128 64 32 32"/> 
+		<icon name="map"     rect="160 64 32 32"/> 
+
+		<icon name="direction" rect="0 96 16 16"/>
 
 		<icon name="raise"   rect="128 0  32 32"/>
 		<icon name="smooth"  rect="160 0  32 32"/>
@@ -157,9 +160,7 @@
 
 	<template name="scrollpane" class="Scrollpane" rect="0 0 100 100" autosize="1">
 		<widget name="_vscroll" template="vscroll" rect="84 0 16 100" anchor="trb"/>
-		<widget name="_view" rect="0 0 84 100" anchor="tlrb">
-			<widget name="_client" rect="0 0 84 84"/>
-		</widget>
+		<widget name="_client" rect="0 0 84 100" anchor="tlrb"/>
 	</template>
 
 
@@ -172,7 +173,7 @@
 		<widget name="fwd"  template="iconbutton" rect="468 0 20 20" anchor="tr" icon="file_forward"/>
 		<widget name="filelist" template="iconlistbox" rect="0 20 490 160" anchor="tlrb"/>
 		<widget name="filename" class="Textbox" rect="0 180 408 20" anchor="blr"/>
-		<widget name="confirm" class="Button" rect="408 180 80 20" caption="Open" anchor="br"/>
+		<widget name="confirm" class="Button" rect="408 180 80 20" skin="button" caption="Open" anchor="br"/>
 	</widget>
 
 
@@ -214,14 +215,15 @@
 
 
 	<!-- Main menu (new/open/save) (options) -->
-	<widget name="mainmenu" rect="0 0 140 36">
+	<widget name="mainmenu" rect="0 0 172 36">
 		<widget name="newmap" template="iconbutton" rect="2 2 32 32" icon="new"/>
 		<widget name="openmap" template="iconbutton" rect="36 2 32 32" icon="open"/>
 		<widget name="savemap" template="iconbutton" rect="70 2 32 32" icon="save"/>
 		<widget name="options" template="iconbutton" rect="104 2 32 32" icon="options"/>
+		<widget name="minimap" template="iconbutton" rect="138 2 32 32" icon="map"/>
 	</widget>
 	
-	<widget name="toolshelf" rect="142 0 800 36">
+	<widget name="toolshelf" rect="174 0 800 36">
 		<widget name="materialbutton" template="iconbutton" rect="2 2 32 32" icon="material"/>
 		<widget name="texturebutton" template="iconbutton" rect="36 2 32 32" icon="texture"/>
 		<widget name="toollist" template="toolgrouplist" rect="70 2 160 32"/>
@@ -247,8 +249,8 @@
 
 	<!-- WorldMap dialog -->
 	<widget caption="Map" template="dialog" name="worldmap" rect="800 100 140 160" visible="0">
-		<widget name="mapimage" rect="1 1 128 128" anchor="tlrb">
-			<widget name="mapmarker" rect="0 0 16 16" class="Icon" iconlist="icons" icon="options"/>
+		<widget class="Image" name="mapimage" rect="1 1 128 128" anchor="tlrb">
+			<widget name="mapmarker" rect="0 0 16 16" class="Icon" iconlist="icons" icon="direction"/>
 		</widget>
 	</widget>
 
@@ -263,6 +265,7 @@
 			<item>Mapped</item>
 			<item>Colour</item>
 			<item>Indexed</item>
+			<item>Gradient</item>
 		</widget>
 		<widget caption="Delete Layer" class="Button" name="removelayer" rect="288 448 96 20" skin="button" anchor="br"/>
 	</widget>

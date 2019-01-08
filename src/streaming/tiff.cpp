@@ -139,7 +139,7 @@ TiffStream* TiffStream::openStream( const char* file, Mode mode) {
 
 TiffStream* TiffStream::createStream(const char* file, int w, int h, int ch, int bpc, Mode mode, void* data, size_t len) {
 	// Create a tiff file
-	const char* modes[3] = { "rb", "wb", "w+b" };
+	const char* modes[] = { 0, "rb", "wb", "w+b" };
 	FILE* fp = fopen(file, modes[mode]);
 	if(!fp) return 0;
 
@@ -197,7 +197,8 @@ TiffStream* TiffStream::createStream(const char* file, int w, int h, int ch, int
 
 	// Write descriptors
 	dword next = 0;
-	fwrite(desc, sizeof(Tiff_IFD), 1, fp);
+	fwrite(&count, sizeof(word), 1, fp);
+	fwrite(desc, sizeof(Tiff_IFD), count, fp);
 	fwrite(&next, sizeof(dword), 1, fp);
 
 	// Write data

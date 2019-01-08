@@ -2,6 +2,7 @@
 #define _TIFF_
 
 #include <base/math.h>
+#include <cstdio>
 
 /** Image base class - move this into base */
 class Image {

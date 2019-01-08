@@ -12,7 +12,6 @@
 #include "streaming/streamer.h"
 #include "streaming/texturestream.h"
 
-
 #include "gui/skin.h"
 #include "gui/font.h"
 #include "gui/widgets.h"
@@ -28,6 +27,7 @@
 
 #include "dynamicmaterial.h"
 #include "materialeditor.h"
+#include "minimap.h"
 
 using namespace gui;
 using namespace base;
@@ -64,10 +64,10 @@ int main(int argc, char* argv[]) {
 }
 
 
-/** Make a world - this file will be a complete mess while I test stuff */
+//// Make a world - this file will be a complete mess while I test stuff ////
 
 WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_materials(0) {
-	m_renderer = new Render;
+	m_scene = new Scene;
 	m_library = new Library;
 	m_library->addPath("data");
 
@@ -102,6 +102,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	BIND(Button, "openmap", eventPressed, showOpenDialog);
 	BIND(Button, "savemap", eventPressed, showSaveDialog);
 	BIND(Button, "options", eventPressed, showOptionsDialog);
+	BIND(Button, "minimap", eventPressed, showWorldMap);
 
 	BIND(Combobox, "toollist", eventSelected, selectToolGroup);
 	BIND(Button, "materialbutton", eventPressed, showMaterialList);
@@ -141,6 +142,13 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	if(brush) brush->setPosition( Game::width() - brush->getSize().x, 0);
 	if(shelf) shelf->setSize( Game::width() - shelf->getPosition().x - brush->getSize().x - 8, shelf->getSize().y);
 
+	// Initialise minimap
+	m_minimap = new MiniMap();
+	base::Texture& mapTex = m_minimap->getTexture();
+	int id = m_gui->getRenderer()->addImage("minimap", mapTex.width(), mapTex.height(), mapTex.unit());
+	Widget* ww = m_gui->getWidget<Widget>("mapimage");
+	m_gui->getWidget<Image>("mapimage")->setImage(id);
+
 }
 
 WorldEditor::~WorldEditor() {
@@ -150,7 +158,7 @@ WorldEditor::~WorldEditor() {
 void WorldEditor::clear() {
 	// Remove and delete all objects
 	for(base::HashMap<Object*>::iterator i=m_objects.begin(); i!=m_objects.end(); ++i) {
-		(*i)->removeFromScene(m_renderer);
+		(*i)->removeFromScene(m_scene);
 		delete *i;
 	}
 	// Delete the editor module
@@ -222,7 +230,9 @@ void WorldEditor::update() {
 		vec2 p = (m_camera->getPosition().xz() - m_terrainOffset) / m_terrainSize;
 		const Point& ms = m_mapMarker->getParent()->getAbsoluteClientRect().size();
 		const Point& ps = m_mapMarker->getSize(); 
+		const vec3& dir = cam->getDirection();
 		m_mapMarker->setPosition(p.x * ms.x - ps.x/2, p.y * ms.y - ps.y/2);
+		m_mapMarker->cast<gui::Icon>()->setAngle( -atan2(dir.x, dir.z) );
 	}
 
 	// Collide with terrain
@@ -261,15 +271,18 @@ void WorldEditor::update() {
 }
 
 void WorldEditor::drawScene() {
-	m_renderer->collect(m_camera);
-	m_renderer->render();
-
+	m_scene->collect(m_camera);
+	m_scene->render();
 
 	// Draw editor stuff
 	if(m_editor) m_editor->draw();
 }
 
 void WorldEditor::drawHUD() {
+	scene::Material m;
+	m.addPass()->blendMode = scene::BLEND_ALPHA;
+	m.getPass(0)->bind();
+
 	m_gui->draw();
 }
 
@@ -321,11 +334,11 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	int size = panel->getWidget<Combobox>("size")->getSelectedData().getValue(128);
 	float height = panel->getWidget<Spinbox>("height")->getValue();
 	switch(mode) {
-	case 0: create(size, 1, 1, false); break;
-	case 1: create(size, 1, height/255.0, false); break;
-	case 2: create(size, 1, height/65535.0, false); break;
-	case 3: create(size, 1, height/255.0, true); break;
-	case 4: create(size, 1, height/65535.0, true); break;
+	case 0: create(size, 1, height, false); break;
+	case 1: create(size, 1, height, false); break;
+	case 2: create(size, 1, height, false); break;
+	case 3: create(size, 1, height, true); break;
+	case 4: create(size, 1, height, true); break;
 	}
 	// ToDo: convert source
 }
@@ -401,6 +414,7 @@ void WorldEditor::showWorldMap(Button*) {
 	if(m_heightMap && !w->isVisible()) showDialog(w);
 	else w->setVisible(false);
 	m_mapMarker = w->isVisible()? w->getWidget<Widget>("mapmarker"): 0;
+	if(w->isVisible()) m_minimap->build();
 }
 
 void WorldEditor::moveWorldMap(Widget* w, const Point& p, int b) {
@@ -573,26 +587,42 @@ inline const char* cat(const char* a, const char* b, const char* c=0, const char
 }
 
 void WorldEditor::create(int size, float res, float scale, bool streamed) {
+	clear();
 	if(streamed) {
 		Streamer* map = new Streamer(scale);
 		map->createStream("tmp.tiff", size, size, 1, 16);
 		map->setLod( m_options.detail );
-		map->addToScene(m_renderer);
+		map->addToScene(m_scene);
 		m_heightMap = new StreamingHeightmapEditor(map);
 		m_objects["terrain"] = map;
+		m_terrainOffset = map->getOffset().xz();
+		m_terrainScale = scale;
+		m_terrainSize.x = m_terrainSize.y = size-1;
 		m_streaming = true;
+		m_streams.push_back(map);
+		printf("Created %dx%d heightmap stream as %s\n", size,size, "tmp.tiff");
 
 	} else {
 		SimpleHeightmap* map = new SimpleHeightmap();
 		map->create(size, size, res, 0.f);
-		map->addToScene(m_renderer);
+		map->addToScene(m_scene);
 		m_heightMap = new SimpleHeightmapEditor(map);
 		m_objects["terrain"] = map;
+		m_terrainOffset = vec2();
+		m_terrainScale = scale;
+		m_terrainSize.x = m_terrainSize.y = size-1;
 		m_streaming = false;
+		printf("Created %dx%d heightmap\n", size,size);
 	}
 	// Set up editor
 	m_editor = new TerrainEditor();
 	m_editor->setHeightmap(m_heightMap);
+	setupHeightTools(res, m_terrainOffset);
+
+	// Setup material editor
+	m_materials = new MaterialEditor(m_gui, m_library, m_streaming);
+	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
+	m_materials->addMaterial(0);
 }
 
 void WorldEditor::loadWorld(const char* file) {
@@ -637,7 +667,7 @@ void WorldEditor::loadWorld(const char* file) {
 	if(info.attribute("stream", 0)) {
 		streamer = new Streamer(scale);
 		if(streamer->openStream( m_terrainFile )) {
-			streamer->addToScene(m_renderer);
+			streamer->addToScene(m_scene);
 			streamer->setLod( m_options.detail );
 			m_heightMap = new StreamingHeightmapEditor(streamer);
 			m_objects["terrain"] = streamer;
@@ -658,7 +688,7 @@ void WorldEditor::loadWorld(const char* file) {
 			simple = new SimpleHeightmap();
 			File data = File::load( m_terrainFile );
 			simple->create(size, size, res, (const float*) data.contents());
-			simple->addToScene(m_renderer);
+			simple->addToScene(m_scene);
 			m_heightMap = new SimpleHeightmapEditor(simple);
 			m_terrainOffset = vec2();
 			m_objects["terrain"] = simple;
@@ -786,9 +816,15 @@ void WorldEditor::loadWorld(const char* file) {
 	}
 
 
+	// Minimap
+	m_minimap->setWorld(m_heightMap, m_terrainSize, m_terrainOffset);
+	m_minimap->setRange(100);
+	m_minimap->build();
 }
 void WorldEditor::saveWorld(const char* file) {
 	if(m_file!=file) m_file = file;
+	char path[512]; directory(file, path);
+	char buffer[1024];
 
 	// Flush all streams
 	for(uint i=0; i<m_streams.size(); ++i) m_streams[i]->flush();
@@ -829,7 +865,11 @@ void WorldEditor::saveWorld(const char* file) {
 		map.setAttribute("file", m_imageMaps[i]->file);
 		map.setAttribute("usage", U[m_imageMaps[i]->usage]);
 		if(m_imageMaps[i]->map->getMode() >= EditableTexture::STREAM) map.setAttribute("stream", 1);
-		m_imageMaps[i]->map->save( m_imageMaps[i]->file );
+
+		if(Directory::isRelative( m_imageMaps[i]->file)) {
+			sprintf(buffer, "%s/%s", path, (const char*)m_imageMaps[i]->file);
+			m_imageMaps[i]->map->save( buffer );
+		} else m_imageMaps[i]->map->save( m_imageMaps[i]->file );
 	}
 
 	// Save editor camera position (temp)
@@ -843,7 +883,6 @@ void WorldEditor::saveWorld(const char* file) {
 
 
 	// Save
-	char buffer[1024];
 	if(strcmp(file+strlen(file)-4, ".xml")) {
 		sprintf(buffer, "%s.xml", file);
 		file = buffer;

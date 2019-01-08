@@ -50,7 +50,15 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 	int r = m_heightmap->castRay(rayStart, rayDir, hitDistance);
 	vec3 position = rayStart + rayDir * hitDistance;
 	if(r) m_brush.position = position.xz();
-	else { m_ring0.clear(); m_ring1.clear(); }
+	else {
+		// y=0 plane outside
+		float t = -rayStart.y / rayDir.y;
+		position = rayStart + rayDir * t;
+		if(t<0) m_ring0.clear(), m_ring1.clear();
+		else r = true; // Perhaps limit to heightmap bounds + brush radius ?
+	}
+
+
 
 	// Change brush size
 	if(wheel) {
@@ -61,7 +69,7 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 	}
 
 	// Update rings
-	if(wheel || r) {
+	if(r) {
 		updateRing(m_ring0, position, m_brush.radius);
 		updateRing(m_ring1, position, m_brush.getRadius(0.5));
 	}

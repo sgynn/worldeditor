@@ -1,7 +1,7 @@
 #ifndef _OBJECT_
 #define _OBJECT_
 
-class Render;
+class Scene;
 
 /** Object base class
  * This is for all game objects
@@ -13,9 +13,9 @@ class Object {
 	virtual ~Object() {}
 
 	/** Add contained drawables to the scene */
-	virtual void addToScene(Render* r) {}
+	virtual void addToScene(Scene* r) {}
 	/** Renove from scene */
-	virtual void removeFromScene(Render* r) {}
+	virtual void removeFromScene(Scene* r) {}
 
 	/** Update object (needs to be in update list) */
 	virtual void update() {};

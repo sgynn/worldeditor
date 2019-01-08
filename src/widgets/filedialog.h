@@ -56,10 +56,12 @@ class FileDialog : public gui::Window {
 	gui::Button*  m_confirm;
 	int m_folderIcon;
 	int m_fileIcon;
+	bool m_saveMode;
 
 	void selectFile(gui::Listbox*, int);
 	void clickFile(gui::Widget*, const Point&, int);
-	void changedFileName(gui::Textbox*);
+	void submitFileName(gui::Textbox*);
+	void changedFileName(gui::Textbox*, const char*);
 	void changedDirectory(gui::Textbox*);
 	void pressUp(gui::Button*);
 	void pressBack(gui::Button*);
