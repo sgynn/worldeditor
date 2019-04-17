@@ -3,6 +3,7 @@
 #include "resource/library.h"
 #include "widgets/filedialog.h"
 #include "widgets/orderableitem.h"
+#include "widgets/colourpicker.h"
 #include <base/directory.h>
 #include <base/xml.h>
 #include <base/dds.h>
@@ -817,10 +818,31 @@ void MaterialEditor::changeTexture(gui::Combobox* w, int i) {
 	getLayer(w)->texture = i - 1;
 	if(i==0) {
 		// Open colour picker
-		getLayer(w)->colour = 0xff8000;
-		w->setText("#ff8000");
+		ColourPicker* picker = m_gui->getWidget<ColourPicker>("picker");
+		if(picker) {
+			picker->setColour( getLayer(w)->colour );
+			picker->setVisible(true);
+			picker->raise();
+
+			m_layerForColourPicker = getLayer(w);
+			m_boxForColourPicker = w;
+			picker->eventChanged.bind(this, &MaterialEditor::colourPicked);
+			picker->eventSubmit.bind(this, &MaterialEditor::colourFinish);
+			picker->eventCancel.bind(this, &MaterialEditor::colourFinish);
+		}
 	}
+	else rebuildMaterial();
+}
+void MaterialEditor::colourPicked(const Colour& c) {
+	char buf[32];
+	sprintf(buf, "Colour: #%06X", c.toRGB());
+	m_layerForColourPicker->colour = c;
+	m_boxForColourPicker->setText(buf);
 	rebuildMaterial();
+}
+void MaterialEditor::colourFinish(const Colour& c) {
+	ColourPicker* picker = m_gui->getWidget<ColourPicker>("picker");
+	picker->eventChanged.unbind();
 }
 void MaterialEditor::changeBlendMode(gui::Combobox* w, int i) {
 	getLayer(w)->blend = (BlendMode)i;

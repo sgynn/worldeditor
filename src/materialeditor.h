@@ -111,6 +111,8 @@ class MaterialEditor {
 	void updateMaterial(gui::Widget*);
 	void rebuildMaterial(bool bind=false);
 
+	void colourPicked(const Colour&);
+	void colourFinish(const Colour&);
 
 	protected:	// Data
 	ArrayTexture m_diffuseMaps;
@@ -121,6 +123,9 @@ class MaterialEditor {
 	bool         m_streaming;		// Use streamed textures
 	Library*     m_library;			// Library to get data
 	gui::Root*   m_gui;				// Gui
+
+	MaterialLayer* m_layerForColourPicker;
+	gui::Combobox* m_boxForColourPicker;
 
 
 };

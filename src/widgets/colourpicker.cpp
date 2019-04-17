@@ -112,6 +112,7 @@ void ColourPicker::setColour(const Colour& c) {
 	if(m_gradient) m_gradient->setColour( getRGB( vec3(hsv.x, hsv.y, 1) ) );
 
 	m_freeze = false;
+	if(eventChanged) eventChanged(c);
 }
 const Colour& ColourPicker::getColour() const {
 	return m_colour;
@@ -157,10 +158,12 @@ void ColourPicker::changeHex(Textbox* t) {
 
 void ColourPicker::pressedOK(Button*) {
 	setVisible(false);
+	if(eventSubmit) eventSubmit(m_colour);
 }
 void ColourPicker::pressedCancel(Button*) {
 	setColour(m_lastColour);
 	setVisible(false);
+	if(eventCancel) eventCancel(m_lastColour);
 }
 
 

@@ -16,6 +16,8 @@ class ColourPicker : public gui::Window {
 
 	public:
 	DelegateS<void(const Colour&)> eventChanged;
+	DelegateS<void(const Colour&)> eventSubmit;
+	DelegateS<void(const Colour&)> eventCancel;
 
 	private:
 	void pressedOK(gui::Button*);
