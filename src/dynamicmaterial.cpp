@@ -345,6 +345,9 @@ bool DynamicMaterial::compile() {
 		case LAYER_INDEXED:
 			// ToDo this one
 			break;
+		case LAYER_GRADIENT:
+			// Totally cant remember what I indended to do with this one
+			break;
 		}
 		if(!valid) {
 			printf("Error: Layer %s references an invalid map\n", (const char*)layer->name);

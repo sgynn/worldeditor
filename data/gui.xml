@@ -46,6 +46,10 @@
 		<state coord="0 0 4 4" border="2 2 2 2"/>
 		<state name="selected normal" coord="8 8 4 4" border="2 2 2 2"/>
 	</skin>
+	<skin name="white">
+		<image file="data/gui.png"/>
+		<state coord="13 13 2 2"/>
+	</skin>
 
 	<!--============= ICONS ====================-->
 
@@ -319,5 +323,28 @@
 		<widget class="Image" rect="0 0 64 64" name="textureicon" tangible="0"/>
 	</template>
 
+	<!-- Colour picker -->
+	<widget class="ColourPicker" template="dialogfixed" name="picker" rect="200 300 368 208" caption="Colour Picker" visible="0">
+		<widget class="Image" rect="8 8 160 160" name="swatch"/>
+		<widget class="Image" rect="168 8 24 160" name="lum"/>
+		<widget class="Widget" rect="208 8 48 24" name="colour" skin="white"/>
+		<widget class="Widget" rect="256 8 48 24" name="previous" skin="white"/>
+		<widget class="Label" rect="208 40 16 20" caption="R" />
+		<widget class="Label" rect="208 64 16 20" caption="G" />
+		<widget class="Label" rect="208 88 16 20" caption="B" />
+		<widget class="Label" rect="280 40 16 20" caption="H" />
+		<widget class="Label" rect="280 64 16 20" caption="S" />
+		<widget class="Label" rect="280 88 16 20" caption="V" />
+		<widget class="Textbox" rect="224 120 120 20" name="hex"  text="000000"/>
+		<widget class="Label" rect="208 120 16 20" caption="#" />
+		<widget class="Button" rect="208 152 60 21" name="ok"  caption="OK" skin="button"/>
+		<widget class="Button" rect="272 152 72 20" name="cancel"  caption="Cancel" skin="button"/>
+		<widget template="spinbox" name="r" rect="224 40 48 20" max="255"/>
+		<widget template="spinbox" name="g" rect="224 64 48 20" max="255"/>
+		<widget template="spinbox" name="b" rect="224 88 48 20" max="255"/>
+		<widget template="spinbox" name="h" rect="296 40 48 20" max="360"/>
+		<widget template="spinbox" name="s" rect="296 64 48 20" max="100"/>
+		<widget template="spinbox" name="v" rect="296 88 48 20" max="100"/>
+	</widget>
 
 </gui>

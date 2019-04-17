@@ -20,6 +20,7 @@
 #include "widgets/filedialog.h"
 #include "widgets/toolbutton.h"
 #include "widgets/orderableitem.h"
+#include "widgets/colourpicker.h"
 
 #include <cstdarg>
 
@@ -92,6 +93,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	Root::registerClass<FileDialog>();
 	Root::registerClass<ToolButton>();
 	Root::registerClass<OrderableItem>();
+	Root::registerClass<ColourPicker>();
 	m_gui = new Root(Game::width(), Game::height());
 	m_gui->setRenderer( new gui::Renderer() );
 	m_gui->load("data/gui.xml");
