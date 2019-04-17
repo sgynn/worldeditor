@@ -249,7 +249,7 @@
 		<widget name="minimap" template="iconbuttondark" rect="138 2 32 32" icon="map"/>
 	</widget>
 	
-	<widget name="toolshelf" rect="174 0 800 36">
+	<widget name="toolshelf" rect="174 0 800 36" anchor="tlr">
 		<widget name="materialbutton" template="iconbuttondark" rect="2 2 32 32" icon="material"/>
 		<widget name="texturebutton" template="iconbuttondark" rect="36 2 32 32" icon="texture"/>
 		<widget name="toollist" template="toolgrouplist" rect="70 2 160 32"/>
@@ -257,7 +257,7 @@
 	</widget>
 
 	<!-- Brush sliders -->
-	<widget name="brushinfo" rect="700 0 200 56">
+	<widget name="brushinfo" rect="700 0 200 56" anchor="tr">
 		<widget class="Label" caption="Size" rect="2 2 60 20"/>
 		<widget class="Label" caption="Weight" rect="2 20 60 20"/>
 		<widget class="Label" caption="Falloff" rect="2 38 60 20"/>

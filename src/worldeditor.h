@@ -29,6 +29,7 @@ class WorldEditor : public base::SceneState {
 	void drawHUD();
 
 
+	void resized();
 	void clear();
 	void create(int size, float res, float scale, bool streamed);
 	void loadWorld(const char* file);

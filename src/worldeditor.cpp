@@ -4,6 +4,7 @@
 #include <base/fpscamera.h>
 #include <base/png.h>
 #include <base/directory.h>
+#include <base/opengl.h>
 
 #include <base/inifile.h>
 
@@ -184,6 +185,12 @@ void WorldEditor::clear() {
 	}
 }
 
+void WorldEditor::resized() {
+	Point size = Game::getSize();
+	m_gui->resize(size.x, size.y);
+	glViewport(0,0,size.x, size.y);
+}
+
 void WorldEditor::update() {
 	// Update GUI
 	Point mouse;
@@ -193,6 +200,9 @@ void WorldEditor::update() {
 	m_gui->mouseEvent(mouse, mb, mw);
 	if(Game::LastKey()) m_gui->keyEvent(Game::LastKey(), Game::LastChar());
 	m_gui->update();
+
+	// Resized window
+	if(Game::getSize() != m_gui->getRootWidget()->getSize()) resized();
 
 	bool guiHasMouse = m_gui->getRootWidget()->getWidget(mouse) != m_gui->getRootWidget();
 	bool editingText = m_gui->getFocusedWidget()->cast<Textbox>();
