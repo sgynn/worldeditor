@@ -11,13 +11,30 @@
 		<image file="data/gui.png"/>
 		<state coord="0 9 0 0"/>
 	</skin>
-	<skin name="button">
-		<font name="helvetica" size="16" align="centre middle"/>
+	<skin name="titlebar">
+		<font name="helvetica" size="16" align="centre,middle"/>
 		<image file="data/gui.png"/>
-		<state name="normal"    coord="0 0 4 4" border="2 2 2 2"/>
-		<state name="highlight" coord="4 0 4 4" border="2 2 2 2"/>
+		<state name="normal"    coord="0 8  4 4" border="2 2 2 2"/>
+	</skin>
+	<skin name="darkbutton">
+		<font name="helvetica" size="16" align="centre,middle"/>
+		<image file="data/gui.png"/>
+		<state name="normal"    coord="0 0  4 4" border="2 2 2 2"/>
+		<state name="highlight" coord="4 0  4 4" border="2 2 2 2"/>
 		<state name="pressed"   coord="0 4 4 4" border="2 2 2 2"/>
-		<state name="disabled"  coord="4 4 4 4" border="2 2 2 2" colour="#404040"/>
+		<state name="disabled"  coord="4 4 4 4" border="2 2 2 2"/>
+		<state name="selected normal"    coord="8  0 4 4" border="2 2 2 2"/>
+		<state name="selected highlight" coord="12 0 4 4" border="2 2 2 2"/>
+		<state name="selected pressed"   coord="8  4 4 4" border="2 2 2 2"/>
+		<state name="selected disabled"  coord="12 4 4 4" border="2 2 2 2"/>
+	</skin>
+	<skin name="button">
+		<font name="helvetica" size="16" align="centre,middle"/>
+		<image file="data/gui.png"/>
+		<state name="normal"    coord="0 8  4 4" border="2 2 2 2" colour="#80c0ff"/>
+		<state name="highlight" coord="4 8  4 4" border="2 2 2 2" colour="#ffa0a0"/>
+		<state name="pressed"   coord="0 12 4 4" border="2 2 2 2" colour="#4080a0"/>
+		<state name="disabled"  coord="4 12 4 4" border="2 2 2 2" colour="#607080"/>
 		<state name="selected normal"    coord="8  0 4 4" border="2 2 2 2"/>
 		<state name="selected highlight" coord="12 0 4 4" border="2 2 2 2"/>
 		<state name="selected pressed"   coord="8  4 4 4" border="2 2 2 2"/>
@@ -84,22 +101,31 @@
 	<template name="iconbutton" class="Button" rect="0 0 32 32" skin="button">
 		<widget name="_icon" class="Icon" rect="0 0 32 32" anchor="tlrb" iconlist="icons"/>
 	</template>
-	<template name="menuoption" class="ToolButton" iconlist="icons" skin="button" rect="0 0 32 32">
+	<template name="iconbuttondark" class="Button" rect="0 0 32 32" skin="darkbutton">
+		<widget name="_icon" class="Icon" rect="0 0 32 32" anchor="tlrb" iconlist="icons"/>
+	</template>
+	<template name="menuoption" class="ToolButton" iconlist="icons" skin="darkbutton" rect="0 0 32 32">
 		<widget name="_icon" class="Icon" rect="0 0 32 32" anchor="tlrb" iconlist="icons"/>
 	</template>
 
 	<template name="dialog" class="Window" rect="0 0 100 100">
 		<widget name="_close" template="iconbutton" rect="84 0 16 16" anchor="tr" icon="close_dialog"/>
-		<widget name="_caption" class="Button" rect="10 0 70 20" anchor="tlr"/>
+		<widget name="_caption" class="Button" rect="10 0 70 20" anchor="tlr" skin="titlebar"/>
 		<widget name="_client" rect="5 22 90 73" anchor="tlrb"/>
 		<widget name="_sizebr" rect="90 90 10 10" anchor="br" skin="button"/>
+	</template>
+
+	<template name="dialogfixed" class="Window" rect="0 0 100 100">
+		<widget name="_close" template="iconbutton" rect="84 0 16 16" anchor="tr" icon="close_dialog"/>
+		<widget name="_caption" class="Button" rect="10 0 70 20" anchor="tlr" skin="titlebar"/>
+		<widget name="_client" rect="5 22 90 73" anchor="tlrb"/>
 	</template>
 
 	<template name="vscroll" class="Scrollbar" rect="0 0 16 100">
 		<widget name="_scrollUp" template="iconbutton" rect="0 0 16 16" anchor="tlr" icon="scroll_up"/>
 		<widget name="_scrollDown" template="iconbutton" rect="0 84 16 16" anchor="blr" icon="scroll_down"/>
 		<widget name="_track" rect="0 16 16 68" anchor="tlrb">
-			<widget name="_scrollBlock" class="Button" rect="0 0 16 24" anchor="lr"/>
+			<widget name="_scrollBlock" class="Button" rect="0 0 16 24" anchor="lr" skin="button"/>
 		</widget>
 	</template>
 
@@ -142,7 +168,7 @@
 		</widget>
 	</template>
 
-	<template name="toolgrouplist" class="Combobox" rect="0 0 100 32" skin="button">
+	<template name="toolgrouplist" class="Combobox" rect="0 0 100 32" skin="darkbutton">
 		<widget name="_icon" class="Icon" rect="4 0 32 32" iconlist="icons" icon="-1"/>
 		<widget name="_text" class="Label" rect="38 6 62 20"/>
 		<widget name="_list" class="Listbox" rect="0 32 100 100" anchor="blr">
@@ -178,14 +204,14 @@
 
 
 	<!-- New dialog  -->
-	<widget caption="New Terrain" template="dialog" name="newdialog" rect="100 100 224 168" visible="0">
+	<widget caption="New Terrain" template="dialogfixed" name="newdialog" rect="100 100 224 168" visible="0">
 		<widget class="Label" rect="8 40 56 20" caption="Size" />
 		<widget class="Label" rect="8 16 48 20" caption="Mode" />
-		<widget class="Button" rect="80 114 56 20" name="create"  caption="Create" anchor="tr"/>
-		<widget class="Button" rect="144 114 56 20" name="cancel"  caption="Cancel" anchor="tr"/>
+		<widget class="Button" rect="80 114 56 20" name="create"  caption="Create" anchor="tr" skin="button"/>
+		<widget class="Button" rect="144 114 56 20" name="cancel"  caption="Cancel" anchor="tr" skin="button"/>
 		<widget class="Label" rect="8 64 56 20" caption="Source" />
 		<widget class="Textbox" rect="64 64 120 20" name="source"  text="" anchor="tlr"/>
-		<widget class="Button" rect="184 64 16 20" name="sourcebutton"  caption="..." anchor="tr"/>
+		<widget class="Button" rect="184 64 16 20" name="sourcebutton"  caption="..." anchor="tr" skin="button"/>
 		<widget template="droplist" rect="64 16 136 20" name="mode" anchor="tlr">
 			<item>Raw Float</item>
 			<item>8 bit texture</item>
@@ -200,7 +226,7 @@
 
 
 	<!-- Options dialog -->
-	<widget caption="Settings" template="dialog" name="settings" rect="100 100 280 160" visible="0">
+	<widget caption="Settings" template="dialogfixed" name="settings" rect="100 100 280 160" visible="0">
 		<widget class="Label" rect="8 8 104 20" caption="View Distance"/> 
 		<widget class="Label" rect="8 32 100 20" caption="Terrain Detail"/>
 		<widget class="Label" rect="8 56 104 20" caption="Camera speed" />
@@ -216,16 +242,16 @@
 
 	<!-- Main menu (new/open/save) (options) -->
 	<widget name="mainmenu" rect="0 0 172 36">
-		<widget name="newmap" template="iconbutton" rect="2 2 32 32" icon="new"/>
-		<widget name="openmap" template="iconbutton" rect="36 2 32 32" icon="open"/>
-		<widget name="savemap" template="iconbutton" rect="70 2 32 32" icon="save"/>
-		<widget name="options" template="iconbutton" rect="104 2 32 32" icon="options"/>
-		<widget name="minimap" template="iconbutton" rect="138 2 32 32" icon="map"/>
+		<widget name="newmap" template="iconbuttondark" rect="2 2 32 32" icon="new"/>
+		<widget name="openmap" template="iconbuttondark" rect="36 2 32 32" icon="open"/>
+		<widget name="savemap" template="iconbuttondark" rect="70 2 32 32" icon="save"/>
+		<widget name="options" template="iconbuttondark" rect="104 2 32 32" icon="options"/>
+		<widget name="minimap" template="iconbuttondark" rect="138 2 32 32" icon="map"/>
 	</widget>
 	
 	<widget name="toolshelf" rect="174 0 800 36">
-		<widget name="materialbutton" template="iconbutton" rect="2 2 32 32" icon="material"/>
-		<widget name="texturebutton" template="iconbutton" rect="36 2 32 32" icon="texture"/>
+		<widget name="materialbutton" template="iconbuttondark" rect="2 2 32 32" icon="material"/>
+		<widget name="texturebutton" template="iconbuttondark" rect="36 2 32 32" icon="texture"/>
 		<widget name="toollist" template="toolgrouplist" rect="70 2 160 32"/>
 		<!-- Other tools here -->
 	</widget>
@@ -290,7 +316,7 @@
 		<widget class="Button" rect="192 24 16 20" name="browse_diffuse" skin="button" caption="..." anchor="tr"/>
 		<widget class="Textbox" rect="64 42 128 20" name="normal" text="normal map" anchor="tlr"/>
 		<widget class="Button" rect="192 42 16 20" name="browse_normal" skin="button" caption="..." anchor="tr"/>
-		<widget class="Icon" rect="0 0 64 64" name="textureicon"/>
+		<widget class="Image" rect="0 0 64 64" name="textureicon" tangible="0"/>
 	</template>
 
 
