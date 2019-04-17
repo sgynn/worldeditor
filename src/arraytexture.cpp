@@ -136,6 +136,7 @@ int ArrayTexture::build() {
 	}
 
 	// Check sizes
+	if(!firstLayer) return 0; // Invalid
 	int w = firstLayer->width >> (firstLayer->mipmaps-mips);
 	int h = firstLayer->height >> (firstLayer->mipmaps-mips);
 	for(size_t i=1; i<m_layers.size(); ++i) {

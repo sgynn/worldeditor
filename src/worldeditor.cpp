@@ -146,7 +146,6 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	m_minimap = new MiniMap();
 	base::Texture& mapTex = m_minimap->getTexture();
 	int id = m_gui->getRenderer()->addImage("minimap", mapTex.width(), mapTex.height(), mapTex.unit());
-	Widget* ww = m_gui->getWidget<Widget>("mapimage");
 	m_gui->getWidget<Image>("mapimage")->setImage(id);
 
 }
@@ -623,6 +622,11 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 	m_materials = new MaterialEditor(m_gui, m_library, m_streaming);
 	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
 	m_materials->addMaterial(0);
+
+	// Minimap
+	m_minimap->setWorld(m_heightMap, m_terrainSize, m_terrainOffset);
+	m_minimap->setRange(100);
+	m_minimap->build();
 }
 
 void WorldEditor::loadWorld(const char* file) {

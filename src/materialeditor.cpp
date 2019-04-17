@@ -7,6 +7,7 @@
 #include <base/xml.h>
 #include <base/dds.h>
 #include <base/png.h>
+#include "gui/skin.h"
 
 using namespace base;
 
@@ -447,6 +448,18 @@ void MaterialEditor::setTexture(const char* file) {
 		int r = array->build();
 		if(r) printf("Error: Texture %s is incompatible\n", file);
 		m_materials[m_selectedMaterial]->setTextures(this);
+
+		// Image icon
+		int id = w->getRoot()->getRenderer()->getImage(file);
+		if(id<0) {
+			void** data = (void**)dds.data;
+			static const Texture::Format formats[] = { Texture::NONE, Texture::R8, Texture::RG8, Texture::RGB8, Texture::RGBA8, Texture::DXT1, Texture::DXT3, Texture::DXT5 };
+			base::Texture tex = base::Texture::create(Texture::TEX2D, dds.width, dds.height, 1, formats[dds.format], data, dds.mipmaps+1);
+			tex.setFilter(Texture::TRILINEAR);
+			id = w->getRoot()->getRenderer()->addImage(file, dds.width, dds.height, tex.unit());
+		}
+		w->getWidget<gui::Image>("textureicon")->setImage(id);
+
 	} else printf("Error: Failed to load %s\n", file);
 }
 
