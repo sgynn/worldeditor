@@ -58,15 +58,15 @@ void ColourTool::paint(const Brush& b, int flags) {
 		w = getValue(b, x, y);
 		if(w==0) continue;
 
-		texture->getPixel(x, y, pixel);
-		float* buf = buffer->value(x, y);
-		float v = w - *buf;
-		*buf = w;
+		float& buf = *buffer->value(x, y);
+		float v = w - buf;
+		if(w > buf) buf = w;
+		else continue;
 
+		texture->getPixel(x, y, pixel);
 		pixel[0] = pixel[0] + v * (c[0] - pixel[0]);
 		pixel[1] = pixel[1] + v * (c[1] - pixel[1]);
 		pixel[2] = pixel[2] + v * (c[2] - pixel[2]);
-
 		texture->setPixel(x, y, pixel);
 	}
 }

@@ -129,7 +129,8 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	BIND(Combobox, "editormode", eventSelected, validateNewEditor);
 	BIND(Combobox, "editorsize", eventSelected, validateNewEditor);
 	BIND(Button, "editorcreate", eventPressed, createNewEditor);
-	BIND(Button, "editorcancel", eventPressed, createNewEditor);
+	BIND(Button, "editorcancel", eventPressed, cancelNewEditor);
+	BIND(gui::Window, "neweditor", eventClosed, cancelNewEditor);
 	BIND(Button, "editorsourcebutton", eventPressed, browseNewEditor);
 
 	// Settings
@@ -403,7 +404,7 @@ void WorldEditor::setTerrainSource(const char* file) {
 
 
 void WorldEditor::createNewEditor(gui::Button* b) {
-	cancelNewEditor(0); // to hide window
+	cancelNewEditor(); // to hide window
 	Widget* panel = b->getParent();
 	int mode = panel->getWidget<Combobox>("editormode")->getSelectedIndex();
 	//const char* source = panel->getWidget<Textbox>("editorsource")->getText();
@@ -462,7 +463,12 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 void WorldEditor::cancelNewEditor(gui::Button*) {
 	Widget* w = m_gui->getWidget<Widget>("neweditor");
 	if(w) w->setVisible(false);
+
+	Combobox* list = m_gui->getWidget<Combobox>("toollist");
+	list->selectItem(0);
+	selectToolGroup(list, 0);
 }
+void WorldEditor::cancelNewEditor(gui::Window*) { cancelNewEditor(); }
 void WorldEditor::browseNewEditor(gui::Button*) {
 	FileDialog* d = m_gui->getWidget<FileDialog>("filedialog");
 	d->eventConfirm.bind(this, &WorldEditor::setEditorSource);

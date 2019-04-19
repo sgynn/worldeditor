@@ -59,7 +59,8 @@ class WorldEditor : public base::SceneState {
 
 	void validateNewEditor(gui::Combobox*, int);
 	void createNewEditor(gui::Button*);
-	void cancelNewEditor(gui::Button*);
+	void cancelNewEditor(gui::Button* = 0);
+	void cancelNewEditor(gui::Window*);
 	void browseNewEditor(gui::Button*);
 	void setEditorSource(const char* file);
 
