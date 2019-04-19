@@ -17,6 +17,7 @@ class ToolGroup {
 
 	virtual void          setup(gui::Root* gui);
 	virtual void          setResolution(const vec2& offset, const vec2& size, float res) = 0;
+	virtual void          setActive();
 	virtual ToolInstance* getTool() const;	// Get selected tool in this group
 	virtual gui::Widget*  getPanel() const;	// Get gui panel for this tool group
 	const char*           getName() const;	// Get name
@@ -25,8 +26,8 @@ class ToolGroup {
 	DelegateS<void(ToolInstance*)> eventToolSelected;
 
 	protected:
-	void addButton(const char* icon=0);
-	void addTool(Tool*, int, int);
+	gui::Button* addButton(const char* icon=0);
+	void addTool(Tool*, int flags, int shift);
 	void selectTool(gui::Button*);
 	gui::Root* m_root;
 	gui::Widget* m_panel;
@@ -49,11 +50,14 @@ class ColourToolGroup : public ToolGroup {
 	public:
 	ColourToolGroup(const char* name, EditableTexture*);
 	~ColourToolGroup();
+	void setActive();
 	void setup(gui::Root* gui);
 	void openPicker(gui::Button*);
 	void setResolution(const vec2& offset, const vec2& size, float res);
 	protected:
+	void colourChanged(const Colour&);
 	ColourTool* m_tool;
+	Colour m_colour;
 };
 
 class WeightToolGroup : public ToolGroup {

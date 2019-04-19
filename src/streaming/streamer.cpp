@@ -53,6 +53,7 @@ void Streamer::setMaterial(const DynamicMaterial* m) {
 	float size = m_stream->width() & ~1;
 	m_material = m->getStream();
 	m_material->setCoordinates(vec2(size,size), m_offset.xz());
+	m->setCoordinates(vec2(size, size), m_offset.xz());
 	// Change materials in existing patches
 	GL_CHECK_ERROR;
 	m_swapMaterialFlag = true;

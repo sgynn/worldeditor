@@ -51,6 +51,14 @@ MaterialEditor::~MaterialEditor() {
 	delete m_mapSelector;
 }
 
+void MaterialEditor::selectMaterial(DynamicMaterial* m) {
+	for(size_t i=0; i<m_materials.size(); ++i) {
+		if(m == m_materials[i]) {
+			selectMaterial(m_materialList, i);
+			return;
+		}
+	}
+}
 
 
 // ------------------------------------------------------------------------------ //
@@ -769,7 +777,7 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 	if(layer->type == LAYER_GRADIENT) {
 		gui::Combobox* input = addLayerWidget<gui::Combobox>(m_gui, w, "Input", "droplist");
 		input->addItem("Height");
-		input->addItem("Normal");
+		input->addItem("Slope");
 		// Need a gradient editor widget
 	}
 

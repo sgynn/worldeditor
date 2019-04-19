@@ -256,6 +256,7 @@ int SimpleHeightmapEditor::getHeights(const Rect& r, float* data) const {
 
 void SimpleHeightmapEditor::setMaterial(const DynamicMaterial* m) {
 	m_map->setMaterial( m->getMaterial() );
+	m->setCoordinates( vec2(m_map->m_width*m_map->m_resolution, m_map->m_height*m_map->m_resolution), vec2(0,0) );
 }
 
 

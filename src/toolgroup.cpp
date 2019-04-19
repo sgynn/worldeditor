@@ -1,5 +1,6 @@
 #include "toolgroup.h"
 #include "gui/widgets.h"
+#include "widgets/colourpicker.h"
 #include "toolgroup.h"
 
 using namespace gui;
@@ -36,7 +37,7 @@ const char* ToolGroup::getName() const {
 	return m_name;
 }
 
-void ToolGroup::addButton(const char* icon) {
+Button* ToolGroup::addButton(const char* icon) {
 	// Create gui button
 	int index = m_panel->getWidgetCount();
 	Button* button = m_root->createWidget<Button>("menuoption");
@@ -45,6 +46,7 @@ void ToolGroup::addButton(const char* icon) {
 	button->eventPressed.bind(this, &ToolGroup::selectTool);
 	m_panel->add(button);
 	m_panel->setSize(index * 34 + 36, 36);
+	return button;
 }
 
 void ToolGroup::selectTool(Button* b) {
@@ -61,6 +63,10 @@ void ToolGroup::addTool(Tool* tool, int flags, int shift) {
 	inst->flags = flags;
 	inst->shift = shift;
 	m_tools.push_back(inst);
+}
+
+void ToolGroup::setActive() {
+	if(m_panel->getWidgetCount()) m_panel->getWidget(0)->setSelected(false);
 }
 
 // --------------------------------------------------------------------------------------------- //
@@ -136,16 +142,39 @@ void MaterialToolGroup::setResolution(const vec2& offset, const vec2& size, floa
 
 ColourToolGroup::ColourToolGroup(const char* name, EditableTexture* image) : ToolGroup(name) {
 	m_tool = new ColourTool(image);
+	addTool(m_tool, 0xffffff, 0);
+	m_colour = white;
 }
 ColourToolGroup::~ColourToolGroup() {
 	delete m_tool;
 }
 void ColourToolGroup::setup(Root* r) {
 	ToolGroup::setup(r);
+	Button* b = addButton( "white" );
+	b->eventPressed.bind(this, &ColourToolGroup::openPicker);
 }
 void ColourToolGroup::setResolution(const vec2& offset, const vec2& size, float res) {
 	res = (float) size.x / m_tool->texture->getWidth();
 	m_tool->setResolution(res, offset);
 }
 
+void ColourToolGroup::openPicker(Button* b) {
+	ColourPicker* picker = m_root->getWidget<ColourPicker>("picker");
+	if(picker) {
+		picker->setColour( m_colour );
+		picker->setVisible(true);
+		picker->eventSubmit.bind(this, &ColourToolGroup::colourChanged);
+	}
+	selectTool(b);
+}
+void ColourToolGroup::colourChanged(const Colour& c) {
+	m_colour = c;
+	m_panel->getWidget(0)->cast<Button>()->setIconColour(c);
+	getTool()->flags = c.toRGB();
+}
+
+void ColourToolGroup::setActive() {
+	Button* b = m_panel->getWidget(0)->cast<Button>();
+	selectTool(b);
+}
 

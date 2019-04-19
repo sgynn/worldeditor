@@ -3,6 +3,8 @@
 #include <cstring>
 #include <cstdio>
 
+#include <base/game.h>
+
 inline float clamp(float f, float min=0, float max=1) {
 	if(f<min) return min;
 	if(f>max) return max;
@@ -90,18 +92,22 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 			lb = btn;
 			return;
 		}
-		float spacing = fmin(m_brush.getRadius(0.8), m_brush.radius * 0.4);
+		float spacing = fmin(m_brush.getRadius(0.8), m_brush.radius * 0.4) * 0.5;
 		int samples = (int) floor(distance / spacing) + 1;
 		vec2 step = (lp - m_brush.position) / distance * spacing;
+		int num = 0;
+		uint64 ticks = base::Game::getTicks();
 		if(samples==1) step.set(0,0);
 		for(uint i=0; i<m_tool.size(); ++i) {
 			ToolInstance* t = m_tool[i];
 			for(int j=0; j<samples; ++j) {
 				m_brush.position = position.xz() + step * j;
 				t->tool->paint(m_brush, shift&1? t->shift: t->flags);
+				++num;
 			}
 			t->tool->commit();
 		}
+		printf("Paint %d samples in %fms\n", num, (base::Game::getTicks()-ticks) *   (1000.0f / base::Game::getTickFrequency()));
 		lp = position.xz();
 	} else if(lb&1) {
 		// End

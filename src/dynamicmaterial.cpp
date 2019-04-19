@@ -46,6 +46,13 @@ const char* DynamicMaterial::getName() const {
 	return m_name;
 }
 
+void DynamicMaterial::setCoordinates(const vec2& s, const vec2& o) const {
+	m_coords[0] = o.x;
+	m_coords[1] = o.y;
+	m_coords[2] = 1.f / s.x;
+	m_coords[3] = 1.f / s.y;
+}
+
 // ------------------------------------------------------------------------------------------------------ //
 
 MaterialLayer* DynamicMaterial::addLayer(LayerType type) {
@@ -127,10 +134,24 @@ void DynamicMaterial::update(int index) {
 	// Set all the variables
 	MaterialLayer* layer = m_layers[index];
 	m_vars->set( addIndex("opacity",index), layer->visible? layer->opacity: 0);
-	if(layer->projection == PROJECTION_FLAT) m_vars->set( addIndex("scale",index), 1.0 / layer->scale.xy());
-	else m_vars->set( addIndex("scale",index), 1.0 / layer->scale);
 
-	
+	// Map coordinates
+	if(layer->map) {
+		char buffer[32];
+		sprintf(buffer, "%sInfo", layer->map.str());
+		m_vars->set(buffer, 0.f, 0.f, 0.01f, 0.01f);
+		sprintf(buffer, "%sMap", layer->map.str());
+		m_material->getPass(0)->getParameters().set(buffer, 0);
+	}
+
+
+	// Splat texture scaling
+	if(layer->type != LAYER_COLOUR) {
+		if(layer->projection == PROJECTION_FLAT) m_vars->set( addIndex("scale",index), 1.0 / layer->scale.xy());
+		else m_vars->set( addIndex("scale",index), 1.0 / layer->scale);
+	}
+
+	// Auto parameters
 	if(layer->type == LAYER_AUTO) {
 		vec3 min(layer->height.min, layer->slope.min, layer->concavity.min);
 		vec3 max(layer->height.max, layer->slope.max, layer->concavity.max);
@@ -159,6 +180,7 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 	}
 
 	// Bind all the maps
+	char buffer[32];
 	typedef std::set<const char*> MapList;
 	MapList maps;
 	for(size_t i=0; i<m_layers.size(); ++i) {
@@ -169,7 +191,12 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 	for(MapList::iterator i=maps.begin(); i!=maps.end(); ++i) {
 		EditableTexture* map = src->getMap(*i);
 		if(map) {
-			m_material->getPass(0)->setTexture(*i, &map->getTexture());
+			const Texture& tex = map->getTexture();
+			sprintf(buffer, "%sMap", *i);
+			m_material->getPass(0)->setTexture(buffer, &tex);
+			sprintf(buffer, "%sInfo", *i);
+			m_vars->set(buffer, 4, 1, m_coords);
+
 			if(m_stream) {
 				if(map->getTextureStream()) m_stream->addStream(*i, map->getTextureStream());
 				else m_stream->setOverlayTexture(*i, map->getTexture());
@@ -393,10 +420,12 @@ bool DynamicMaterial::compile() {
 	}
 
 	// Lighting (basic diffuse);
-	source +=  "	// Lighting\n";
-	source +=  "	fragment = diffuse * 0.1 + diffuse * 0.9 * dot(worldNormal, lightDirection);\n";
-	//source +=  "	fragment = vec4(diffuse.rgb, 1);\n";
-	source += "}\n";
+	source +=
+	"	// Lighting\n"
+	"	float l = dot( normalize(worldNormal), normalize(lightDirection) );\n"
+	"	float s = (l+1)/1.3 * 0.2 + 0.1;\n"
+	"	fragment = diffuse * max(l, s);\n"
+	"}\n";
 
 	// Vertex shader - todo: add concavity attribute
 	static const char* vertexShader = 
@@ -437,6 +466,8 @@ bool DynamicMaterial::compile() {
 	for(size_t i=0; i<m_layers.size(); ++i) {
 		update(i);
 	}
+
+	m_material->getPass(0)->compile();
 
 	
 	// DEBUG: save generated shader

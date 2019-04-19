@@ -125,6 +125,13 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	newPanel->getWidget<Combobox>("mode")->eventSelected.bind(this, &WorldEditor::changeTerrainMode);
 	newPanel->getWidget<Button>("sourcebutton")->eventPressed.bind(this, &WorldEditor::browseTerrainSource);
 
+	// New editor dialog
+	BIND(Combobox, "editormode", eventSelected, validateNewEditor);
+	BIND(Combobox, "editorsize", eventSelected, validateNewEditor);
+	BIND(Button, "editorcreate", eventPressed, createNewEditor);
+	BIND(Button, "editorcancel", eventPressed, createNewEditor);
+	BIND(Button, "editorsourcebutton", eventPressed, browseNewEditor);
+
 	// Settings
 	BIND(Scrollbar, "viewdistance",  eventChanged, changeViewDistance);
 	BIND(Scrollbar, "terraindetail", eventChanged, changeDetail);
@@ -139,7 +146,15 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	m_gui->getWidget<Checkbox>("tabletmode")->setSelected(m_options.tabletMode);
 	m_gui->getWidget<Checkbox>("collision")->setSelected(m_options.collide);
 
-	// Initail slignment - would be good to do this in the xml somehow
+	// Disable some buttons
+	#define DISABLE_BUTTON(name) { Button* b = m_gui->getWidget<Button>(name); if(b) b->setEnabled(false), b->setIconColour(0x606060); }
+	DISABLE_BUTTON( "savemap" );
+	DISABLE_BUTTON( "minimap" );
+	DISABLE_BUTTON( "materialbutton" )
+	DISABLE_BUTTON( "texturebutton" )
+	
+
+	// Initial alignment - would be good to do this in the xml somehow
 	Widget* brush = m_gui->getWidget<Widget>("brushinfo");
 	Widget* shelf = m_gui->getWidget<Widget>("toolshelf");
 	if(brush) brush->setPosition( Game::width() - brush->getSize().x, 0);
@@ -181,7 +196,8 @@ void WorldEditor::clear() {
 
 	// delete tools from dropdown list
 	Combobox* list = m_gui->getWidget<Combobox>("toollist");
-	if(list) { list->clearItems();
+	if(list) {
+		list->clearItems();
 		Widget* panel = list->getParent();
 		if(panel->getWidgetCount() > 3) panel->remove( panel->getWidget(3) );
 	}
@@ -369,6 +385,7 @@ void WorldEditor::changeTerrainMode(gui::Combobox* list, int index) {
 		sizes->addItem(buffer, 1<<i);
 	}
 	sizes->selectItem(0);
+	list->getParent()->getWidget<gui::Button>("create")->setEnabled( true );
 }
 void WorldEditor::browseTerrainSource(gui::Button*) {
 	FileDialog* d = m_gui->getWidget<FileDialog>("filedialog");
@@ -380,6 +397,88 @@ void WorldEditor::browseTerrainSource(gui::Button*) {
 void WorldEditor::setTerrainSource(const char* file) {
 	Textbox* w = m_gui->getWidget<Textbox>("source");
 	if(w) w->setText(file);
+}
+
+// ----------------------------------------------------------- //
+
+
+void WorldEditor::createNewEditor(gui::Button* b) {
+	cancelNewEditor(0); // to hide window
+	Widget* panel = b->getParent();
+	int mode = panel->getWidget<Combobox>("editormode")->getSelectedIndex();
+	//const char* source = panel->getWidget<Textbox>("editorsource")->getText();
+	int size = atoi(panel->getWidget<Combobox>("editorsize")->getSelectedItem());
+	EditableTexture* tex = 0;
+	ToolGroup* group = 0;
+	const char* name = 0;
+	char safeName[32];
+	int usage = 0;
+	static int key=0;
+	if(size <= 8192) {
+		tex = new EditableTexture(size, size, 4, true);
+	}
+	else return; // TODO: streaming textures
+
+	switch(mode) {
+	case 0: // Colour layer
+		name = "Colour map";
+		sprintf(safeName, "colourMap%d", ++key);
+		group = new ColourToolGroup(name, tex);
+		usage = 1;
+		break;
+	case 1: // Weight layer
+		name = "Weight map";
+		sprintf(safeName, "weightMap%d", ++key);
+		group = new WeightToolGroup(name, tex);
+		usage = 0;
+		break;
+	case 2: // Indexed layer - needs 2 textures?
+		break;
+	}
+
+	// Add texture to world
+	if(tex && group) {
+		m_materials->addMap(safeName, tex);
+		ImageMapData* map = new ImageMapData();
+		map->map = tex;
+		map->file = 0;
+		map->name = safeName;
+		map->link = 0;
+		map->usage = usage;
+		m_imageMaps.push_back(map);
+		group->setup(m_gui);
+		group->setResolution(m_terrainOffset, m_terrainSize, 1);
+		addGroup(group, "texture", true);
+
+		// Set up a material for it ?
+		DynamicMaterial* mat = m_materials->createMaterial(name);
+		mat->setCoordinates(m_terrainSize, m_terrainOffset);
+		MaterialLayer* layer = mat->addLayer(LAYER_COLOUR);
+		layer->name = "Colour";
+		layer->map = safeName;
+		m_materials->selectMaterial(mat);
+	}
+}
+void WorldEditor::cancelNewEditor(gui::Button*) {
+	Widget* w = m_gui->getWidget<Widget>("neweditor");
+	if(w) w->setVisible(false);
+}
+void WorldEditor::browseNewEditor(gui::Button*) {
+	FileDialog* d = m_gui->getWidget<FileDialog>("filedialog");
+	d->eventConfirm.bind(this, &WorldEditor::setEditorSource);
+	d->setFilter("*.png,*.tif,*.tiff");
+	d->setFileName("");
+	d->showOpen();
+}
+void WorldEditor::setEditorSource(const char* file) {
+	Textbox* w = m_gui->getWidget<Textbox>("editorsource");
+	if(w) w->setText(file);
+}
+void WorldEditor::validateNewEditor(gui::Combobox* c, int) {
+	Combobox* mode = m_gui->getWidget<Combobox>("editormode");
+	Combobox* size = m_gui->getWidget<Combobox>("editorsize");
+	bool valid = mode->getSelectedIndex()>=0 && size->getSelectedIndex()>=0;
+	m_gui->getWidget<gui::Button>("editorcreate")->setEnabled(valid);
 }
 
 // ----------------------------------------------------------- //
@@ -460,14 +559,21 @@ void WorldEditor::setTerrainMaterial(DynamicMaterial* m) {
 
 
 void WorldEditor::selectToolGroup(Combobox* c, int index) {
-	ToolGroup* g = *c->getItemData(index).cast<ToolGroup*>();
+	ToolGroup* group = 0;
+	c->getItemData(index).read(group);
+	m_editor->setTool(0);
 	Widget* p = c->getParent();
 	if(p->getWidgetCount() > 3) p->remove( p->getWidget(3) );
-	p->add( g->getPanel() );
-	g->getPanel()->setPosition( c->getPosition().x + c->getSize().x + 4, 0 );
-	m_editor->setTool(0);
-	if(g->getPanel()->getWidgetCount()>0) {
-		g->getPanel()->getWidget(0)->setSelected(false);
+	// Set up toolbar for editor
+	if(group) {
+		p->add( group->getPanel() );
+		group->getPanel()->setPosition( c->getPosition().x + c->getSize().x + 4, 0 );
+		group->setActive();
+	}
+	// New group
+	else {
+		gui::Window* panel = m_gui->getWidget<gui::Window>("neweditor");
+		if(panel) panel->setVisible(true);
 	}
 }
 
@@ -538,21 +644,28 @@ void WorldEditor::setupHeightTools(float res, const vec2& offset) {
 	group->addTool("level",   new LevelTool(m_heightMap), 0, 1);
 	group->addTool("flatten", new FlattenTool(m_heightMap), 0, 1);
 	group->setResolution(offset, offset * -2, res);
-	addGroup(group, "terrain");
-}
+	addGroup(group, "terrain", true);
 
-void WorldEditor::addGroup(ToolGroup* group, const char* icon) {
-	m_groups.push_back(group);
+	// Add 'New Layer' option
 	Combobox* list = m_gui->getWidget<Combobox>("toollist");
 	if(list) {
-		int iconIndex = list->getIconList()->getIconIndex(icon);
-		list->addItem(group->getName(), group, iconIndex);
+		int iconIndex = list->getIconList()->getIconIndex("neweditor");
+		list->addItem("New Editor", group, iconIndex);
 	}
+}
+
+void WorldEditor::addGroup(ToolGroup* group, const char* icon, bool select) {
+	m_groups.push_back(group);
+	Combobox* list = m_gui->getWidget<Combobox>("toollist");
+	if(!list) return;
+	int iconIndex = list->getIconList()->getIconIndex(icon);
+	int index = list->getItemCount()? list->getItemCount()-1: 0;
+	list->insertItem(index, group->getName(), group, iconIndex);
 	group->eventToolSelected.bind(this, &WorldEditor::selectTool);
-	// Select first one
-	if(m_groups.size()==1) {
-		list->selectItem(0);
-		selectToolGroup(list, 0);
+	// Select it
+	if(select) {
+		list->selectItem(index);
+		selectToolGroup(list, index);
 	}
 }
 
@@ -639,6 +752,12 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 	m_minimap->setWorld(m_heightMap, m_terrainSize, m_terrainOffset);
 	m_minimap->setRange(100);
 	m_minimap->build();
+
+	#define ENABLE_BUTTON(name) { Button* b = m_gui->getWidget<Button>(name); if(b) b->setEnabled(true), b->setIconColour(0xffffff); }
+	ENABLE_BUTTON( "savemap" );
+	ENABLE_BUTTON( "minimap" );
+	ENABLE_BUTTON( "materialbutton" )
+	ENABLE_BUTTON( "texturebutton" )
 }
 
 void WorldEditor::loadWorld(const char* file) {
@@ -836,6 +955,12 @@ void WorldEditor::loadWorld(const char* file) {
 	m_minimap->setWorld(m_heightMap, m_terrainSize, m_terrainOffset);
 	m_minimap->setRange(100);
 	m_minimap->build();
+
+	#define ENABLE_BUTTON(name) { Button* b = m_gui->getWidget<Button>(name); if(b) b->setEnabled(true), b->setIconColour(0xffffff); }
+	ENABLE_BUTTON( "savemap" );
+	ENABLE_BUTTON( "minimap" );
+	ENABLE_BUTTON( "materialbutton" )
+	ENABLE_BUTTON( "texturebutton" )
 }
 void WorldEditor::saveWorld(const char* file) {
 	if(m_file!=file) m_file = file;

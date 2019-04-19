@@ -23,6 +23,7 @@ class MaterialEditor {
 	MaterialEditor(gui::Root* gui, Library* lib, bool streaming);
 	~MaterialEditor();
 	void setupGui();
+	void selectMaterial(DynamicMaterial*);
 
 	// Material functions
 	int              getMaterialCount() const;

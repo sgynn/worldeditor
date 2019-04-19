@@ -74,12 +74,13 @@
 		<icon name="save"    rect="96 0  32 32"/>
 		<icon name="options" rect="96 64 32 32"/>
 
-		<icon name="terrain" rect="0  32  32 32"/>
-		<icon name="texture" rect="32 32 32 32"/>
-		<icon name="Foliage" rect="64 32 32 32"/>
-		<icon name="Objects" rect="96 32 32 32"/>
-		<icon name="material" rect="128 64 32 32"/> 
-		<icon name="map"     rect="160 64 32 32"/> 
+		<icon name="terrain"   rect="0  32  32 32"/>
+		<icon name="texture"   rect="32 32 32 32"/>
+		<icon name="Foliage"   rect="64 32 32 32"/>
+		<icon name="Objects"   rect="96 32 32 32"/>
+		<icon name="material"  rect="128 64 32 32"/> 
+		<icon name="neweditor" rect="192 64 32 32"/> 
+		<icon name="map"       rect="160 64 32 32"/> 
 
 		<icon name="direction" rect="0 96 16 16"/>
 
@@ -93,6 +94,7 @@
 		<icon name="green"   rect="8 16 8 8"/>
 		<icon name="blue"    rect="0 24 8 8"/>
 		<icon name="alpha"   rect="8 24 8 8"/>
+		<icon name="white"   rect="13 13 2 2"/>
 
 		<icon name="layer_a" rect="64 64 16 16"/>
 		<icon name="layer_w" rect="80 64 16 16"/>
@@ -211,7 +213,7 @@
 	<widget caption="New Terrain" template="dialogfixed" name="newdialog" rect="100 100 224 168" visible="0">
 		<widget class="Label" rect="8 40 56 20" caption="Size" />
 		<widget class="Label" rect="8 16 48 20" caption="Mode" />
-		<widget class="Button" rect="80 114 56 20" name="create"  caption="Create" anchor="tr" skin="button"/>
+		<widget class="Button" rect="80 114 56 20" name="create"  caption="Create" anchor="tr" skin="button" enabled="0"/>
 		<widget class="Button" rect="144 114 56 20" name="cancel"  caption="Cancel" anchor="tr" skin="button"/>
 		<widget class="Label" rect="8 64 56 20" caption="Source" />
 		<widget class="Textbox" rect="64 64 120 20" name="source"  text="" anchor="tlr"/>
@@ -347,4 +349,29 @@
 		<widget template="spinbox" name="v" rect="296 88 48 20" max="100"/>
 	</widget>
 
+
+	<!-- New editor layer -->
+	<widget template="dialogfixed" rect="300 100 224 152" skin="default" caption="New Editor Layer" name="neweditor" visible="0">
+		<widget class="Label" tangible="0" rect="8 40 56 20" caption="Size" skin="default"/>
+		<widget class="Label" tangible="0" rect="8 16 48 20" caption="Type" skin="default"/>
+		<widget anchor="rt" class="Button" rect="80 96 56 20" name="editorcreate" skin="button" caption="Create" enabled="0"/>
+		<widget anchor="rt" class="Button" rect="144 96 56 20" name="editorcancel" skin="button" caption="Cancel"/>
+		<widget class="Label" tangible="0" rect="8 64 56 20" caption="Source" skin="default"/>
+		<widget anchor="lrt" class="Textbox" rect="64 64 120 20" name="editorsource" skin="default" text=""/>
+		<widget anchor="rt" class="Button" rect="184 64 16 20" name="editorsourcebutton" skin="button" caption="..."/>
+		<widget anchor="lrt" template="droplist" name="editormode" skin="default" rect="64 16 136 20">
+			<item>Colour</item>
+			<item>Weight</item>
+			<item>Index</item>
+		</widget>
+		<widget anchor="lrt" template="droplist" name="editorsize" skin="default" rect="64 40 136 20">
+			<item>1024</item>
+			<item>2048</item>
+			<item>4096</item>
+			<item>8192</item>
+			<item>16384 (streamed)</item>
+			<item>32768 (streamed)</item>
+			<item>65536 (streamed)</item>
+		</widget>
+	</widget>
 </gui>

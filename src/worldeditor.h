@@ -37,7 +37,7 @@ class WorldEditor : public base::SceneState {
 
 	void messageBox(const char* title, const char* message, ...);
 	void setupHeightTools(float resolution, const vec2& offset);
-	void addGroup(ToolGroup* group, const char* icon);
+	void addGroup(ToolGroup* group, const char* icon, bool select=false);
 
 	private:
 	gui::Root* m_gui;
@@ -56,6 +56,12 @@ class WorldEditor : public base::SceneState {
 	void changeTerrainMode(gui::Combobox*, int);
 	void browseTerrainSource(gui::Button*);
 	void setTerrainSource(const char* file);
+
+	void validateNewEditor(gui::Combobox*, int);
+	void createNewEditor(gui::Button*);
+	void cancelNewEditor(gui::Button*);
+	void browseNewEditor(gui::Button*);
+	void setEditorSource(const char* file);
 
 	void changeViewDistance(gui::Scrollbar*, int);
 	void changeDetail(gui::Scrollbar*, int);
