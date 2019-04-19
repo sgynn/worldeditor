@@ -365,15 +365,15 @@ int MaterialEditor::getListIndex(gui::ItemList* list, const char* n) {
 void MaterialEditor::addTextureGUI(TerrainTexture* tex) {
 	// Create gui item
 	gui::Widget* w = m_gui->createWidget<gui::Widget>("textureitem");
-	int count = m_textureList->getWidgetCount();
-	int top = count? m_textureList->getWidget(count-1)->getPosition().y + w->getSize().y: 0;
+	int top = m_textureList->getWidgetCount() * w->getSize().y;
 	m_textureList->add(w);
-	w->setSize(m_textureList->getClientRect().width, w->getSize().y);
 	w->setPosition(0, top);
+	w->setSize(m_textureList->getClientRect().width, w->getSize().y);
 	m_textureList->setPaneSize( m_textureList->getClientRect().width, top + w->getSize().y);
 	// Initial values
 	w->getWidget<gui::Textbox>("texturename")->setText(tex->name);
 	w->getWidget<gui::Textbox>("texturename")->eventSubmit.bind(this, &MaterialEditor::renameTexture);
+	w->getWidget<gui::Textbox>("texturename")->eventLostFocus.bind(this, &MaterialEditor::renameTexture);
 	w->getWidget<gui::Button>("browse_diffuse")->eventPressed.bind(this, &MaterialEditor::browseTexture);
 	w->getWidget<gui::Button>("browse_normal")->eventPressed.bind(this, &MaterialEditor::browseTexture);
 	w->getWidget<gui::Textbox>("diffuse")->setText( tex->diffuse );
@@ -428,8 +428,22 @@ void MaterialEditor::removeTexture(gui::Button*) {
 		w->setPosition( w->getPosition().x, w->getPosition().y - old->getSize().y);
 	}
 	m_textureList->remove( old );
+	m_textureSelector->removeItem( m_selectedTexture + 1 );
 	m_selectedTexture = -1;
 	delete old;
+}
+
+// Remove alpha blocks from a DXT3 or DXT5 texture.
+unsigned char* removeDXTAlpha(unsigned char* dxt, int w, int h) {
+	dxt += 8; // colour is second half of block
+	int blocks = (w/4) * (h/4);
+	unsigned char* out = new unsigned char[blocks*8];
+	for(int i=0; i<blocks; ++i) {
+		unsigned char* src = dxt + i * 16;
+		unsigned char* dst = out + i * 8;
+		memcpy(dst, src, 8);
+	}
+	return out;
 }
 
 void MaterialEditor::setTexture(const char* file) {
@@ -453,21 +467,26 @@ void MaterialEditor::setTexture(const char* file) {
 	ArrayTexture* array = m_browseTarget&0x100? &m_normalMaps: &m_diffuseMaps;
 	DDS dds = DDS::load(file);
 	if(dds.format != DDS::INVALID) {
+		// Image icon
+		int id = w->getRoot()->getRenderer()->getImage(file);
+		if(id<0) {
+			int skip = 0, s = dds.width>dds.height? dds.height: dds.width;
+			while(s > 100) ++skip, s>>=1;
+			unsigned char* processed = 0;
+			unsigned char* data = dds.data[skip];
+			if(dds.format == DDS::DXT5 || dds.format == DDS::DXT3) processed = data = removeDXTAlpha(dds.data[skip], dds.width>>skip, dds.height>>skip);
+			static const Texture::Format formats[] = { Texture::NONE, Texture::R8, Texture::RG8, Texture::RGB8, Texture::RGBA8, Texture::DXT1, Texture::DXT1, Texture::DXT1 };
+			base::Texture tex = base::Texture::create(Texture::TEX2D, dds.width>>skip, dds.height>>skip, 1, formats[dds.format], data, false);
+			id = w->getRoot()->getRenderer()->addImage(file, dds.width, dds.height, tex.unit());
+			delete [] processed;
+		}
+		w->getWidget<gui::Image>("textureicon")->setImage(id);
+
+		// Transfer into texture array
 		array->setTexture(m_browseTarget&0xff, dds);
 		int r = array->build();
 		if(r) printf("Error: Texture %s is incompatible\n", file);
 		m_materials[m_selectedMaterial]->setTextures(this);
-
-		// Image icon
-		int id = w->getRoot()->getRenderer()->getImage(file);
-		if(id<0) {
-			void** data = (void**)dds.data;
-			static const Texture::Format formats[] = { Texture::NONE, Texture::R8, Texture::RG8, Texture::RGB8, Texture::RGBA8, Texture::DXT1, Texture::DXT3, Texture::DXT5 };
-			base::Texture tex = base::Texture::create(Texture::TEX2D, dds.width, dds.height, 1, formats[dds.format], data, dds.mipmaps+1);
-			tex.setFilter(Texture::TRILINEAR);
-			id = w->getRoot()->getRenderer()->addImage(file, dds.width, dds.height, tex.unit());
-		}
-		w->getWidget<gui::Image>("textureicon")->setImage(id);
 
 	} else printf("Error: Failed to load %s\n", file);
 }
@@ -509,6 +528,9 @@ void MaterialEditor::renameTexture(gui::Textbox* t) {
 	m_textures[i]->name = t->getText();
 	m_textureSelector->setItemName(i+1, t->getText());
 	m_textureList->setFocus();
+}
+void MaterialEditor::renameTexture(gui::Widget* t) {
+	renameTexture(t->cast<gui::Textbox>());
 }
 
 

@@ -64,6 +64,7 @@ class MaterialEditor {
 	void reloadTexture(gui::Button*);	// reload selected texture
 	void selectTexture(gui::Widget*);	// Click on texture
 	void renameTexture(gui::Textbox*);	// Rename texture
+	void renameTexture(gui::Widget*);	// Rename texture
 	void addTextureGUI(TerrainTexture*);// Add texture gui item
 
 
