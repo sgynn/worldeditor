@@ -60,7 +60,7 @@ void ColourTool::paint(const Brush& b, int flags) {
 
 		float& buf = *buffer->value(x, y);
 		float v = w - buf;
-		if(w > buf) buf = w;
+		if(w > buf) buf = w; // FIXME: Rounding errors causing buf to reach 1 before colour does
 		else continue;
 
 		texture->getPixel(x, y, pixel);
