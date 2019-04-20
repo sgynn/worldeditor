@@ -27,6 +27,7 @@
 #include "terraineditor/heighttools.h"
 #include "terraineditor/texturetools.h"
 
+#include "scene/shader.h"
 #include "dynamicmaterial.h"
 #include "materialeditor.h"
 #include "minimap.h"
@@ -58,6 +59,7 @@ int main(int argc, char* argv[]) {
 
 
 	base::Game* game = base::Game::create(w,h,32,fs,aa);
+	scene::Shader::getSupportedVersion();
 	game->setInitialState( new WorldEditor(cfg) );
 	game->run();
 
