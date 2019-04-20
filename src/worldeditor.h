@@ -104,8 +104,11 @@ class WorldEditor : public base::SceneState {
 	std::vector<BufferedStream*> m_streams;
 
 	// Image map data
-	struct ImageMapData { EditableTexture* map; gui::String file; gui::String name; gui::String link; int usage; };
+	enum MapUsage { USAGE_COLOUR, USAGE_WEIGHT, USAGE_INDEX, USAGE_INDEXWEIGHT };
+	struct ImageMapData { EditableTexture* map; gui::String file; gui::String name; gui::String link; MapUsage usage; };
 	std::vector<ImageMapData*> m_imageMaps;
+	ImageMapData* createMapData(EditableTexture* tex, const char* name, const char* file, MapUsage usage); 
+	int createUniqueMapName(const char* pattern, char* out) const;
 
 	// Object list
 	base::HashMap<Object*> m_objects;

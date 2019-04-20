@@ -116,15 +116,20 @@ class MaterialEditor {
 	void colourPicked(const Colour&);
 	void colourFinish(const Colour&);
 
+	int  createTextureIcon(const char* name, const base::DDS& dds);
+	void deleteTextureIcon(const char* name);
+
 	protected:	// Data
 	ArrayTexture m_diffuseMaps;
 	ArrayTexture m_normalMaps;
 	std::vector<DynamicMaterial*> m_materials;		// Materials
 	std::vector<TerrainTexture*>  m_textures;		// Textures
 	base::HashMap<EditableTexture*> m_imageMaps;	// Image maps
-	bool         m_streaming;		// Use streamed textures
-	Library*     m_library;			// Library to get data
-	gui::Root*   m_gui;				// Gui
+	bool           m_streaming;				// Use streamed textures
+	Library*       m_library;				// Library to get data
+	gui::Root*     m_gui;					// Gui
+	base::Texture  m_textureIconTexture;	// Atlas of texture icons
+	gui::IconList* m_textureIcons;		
 
 	MaterialLayer* m_layerForColourPicker;
 	gui::Combobox* m_boxForColourPicker;

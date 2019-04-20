@@ -21,6 +21,14 @@ MaterialEditor::MaterialEditor(gui::Root* gui, Library* lib, bool stream): m_str
 
 	// Set up gui callbacks
 	setupGui();
+
+	// Create material icon list
+	m_textureIcons = new gui::IconList();
+	m_textureIconTexture = Texture::create(1024, 1024, Texture::DXT1, 0, false);
+	int img = m_gui->getRenderer()->addImage("textureIcons", 1024, 1024, m_textureIconTexture.unit());
+	m_textureIcons->setImageIndex(img);
+	m_gui->addIconList("textureIcons", m_textureIcons);
+
 	//m_diffuseMaps.createBlankTexture(0xffffffff, 4);	// Dont work properly
 	//m_normalMaps.createBlankTexture(0xff8080ff, 4);
 }
@@ -228,7 +236,7 @@ TerrainTexture* MaterialEditor::createTexture(const char* name) {
 	TerrainTexture* t = new TerrainTexture();
 	t->name = name;
 	m_textures.push_back(t);
-	m_textureSelector->addItem(name); // ToDo: set icon
+	m_textureSelector->addItem(name, gui::Any(), m_textures.size()-1); // ToDo: set icon
 	return t;
 }
 
@@ -446,6 +454,40 @@ unsigned char* removeDXTAlpha(unsigned char* dxt, int w, int h) {
 	return out;
 }
 
+int MaterialEditor::createTextureIcon(const char* name, const DDS& dds) {
+	int index = 0;
+	Rect rect(0,0,64,64);
+	while(index<m_textureIcons->size() && m_textureIcons->getIconRect(index).width) ++index;
+	if(index == m_textureIcons->size()) {
+		rect.x = (index%16)*64;
+		rect.y = (index/16)*64;
+		index = m_textureIcons->addIcon(name, rect);
+	}
+	else {
+		rect = m_textureIcons->getIconRect(index);
+		rect.width = rect.height = 64;
+		m_textureIcons->setIconRect(index, rect);
+		m_textureIcons->setIconName(index, name);
+	}
+	// Update image
+	int skip = 0;
+	while(dds.width>>skip > 64) ++skip;
+	unsigned char* data = dds.data[skip];
+	if(dds.format==DDS::DXT3 || dds.format==DDS::DXT5) data = removeDXTAlpha(data, 64, 64);
+	// Copy into texture
+	m_textureIconTexture.setPixels(rect.x, rect.y, rect.width, rect.height, Texture::DXT1, data);
+	return index;
+}
+
+void MaterialEditor::deleteTextureIcon(const char* name) {
+	int index = m_textureIcons->getIconIndex(name);
+	if(index>=0) {
+		const Rect& r = m_textureIcons->getIconRect(index);
+		m_textureIcons->setIconRect(index, Rect(r.x, r.y,0,0) );
+		m_textureIcons->setIconName(index, "");
+	}
+}
+
 void MaterialEditor::setTexture(const char* file) {
 	if(m_browseTarget<0) return;
 	// Local file?
@@ -464,26 +506,18 @@ void MaterialEditor::setTexture(const char* file) {
 	else tex->diffuse = file;
 
 	// Load texture
+	int layer = m_browseTarget & 0xff;
 	ArrayTexture* array = m_browseTarget&0x100? &m_normalMaps: &m_diffuseMaps;
 	DDS dds = DDS::load(file);
 	if(dds.format != DDS::INVALID) {
 		// Image icon
-		int id = w->getRoot()->getRenderer()->getImage(file);
-		if(id<0) {
-			int skip = 0, s = dds.width>dds.height? dds.height: dds.width;
-			while(s > 100) ++skip, s>>=1;
-			unsigned char* processed = 0;
-			unsigned char* data = dds.data[skip];
-			if(dds.format == DDS::DXT5 || dds.format == DDS::DXT3) processed = data = removeDXTAlpha(dds.data[skip], dds.width>>skip, dds.height>>skip);
-			static const Texture::Format formats[] = { Texture::NONE, Texture::R8, Texture::RG8, Texture::RGB8, Texture::RGBA8, Texture::DXT1, Texture::DXT1, Texture::DXT1 };
-			base::Texture tex = base::Texture::create(Texture::TEX2D, dds.width>>skip, dds.height>>skip, 1, formats[dds.format], data, false);
-			id = w->getRoot()->getRenderer()->addImage(file, dds.width, dds.height, tex.unit());
-			delete [] processed;
-		}
-		w->getWidget<gui::Image>("textureicon")->setImage(id);
+		char iconName[16];
+		sprintf(iconName, "mat%d\n", layer);
+		int icon = createTextureIcon(iconName, dds);
+		w->getWidget<gui::Icon>("textureicon")->setIcon(m_textureIcons, icon);
 
 		// Transfer into texture array
-		array->setTexture(m_browseTarget&0xff, dds);
+		array->setTexture(layer, dds);
 		int r = array->build();
 		if(r) printf("Error: Texture %s is incompatible\n", file);
 		m_materials[m_selectedMaterial]->setTextures(this);
@@ -705,6 +739,7 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 		// Texture picker
 		gui::Combobox* tex = addLayerWidget<gui::Combobox>(m_gui, w, "Texture", "toolgrouplist");
 		tex->eventSelected.bind(this, &MaterialEditor::changeTexture);
+		tex->setIconList(m_textureIcons);
 		tex->shareList(m_textureSelector);
 		tex->selectItem(layer->texture+1);
 		tex->setSize( tex->getSize().x, 30 );

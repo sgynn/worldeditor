@@ -122,11 +122,17 @@ void WeightToolGroup::setResolution(const vec2& offset, const vec2& size, float 
 
 // --------------------------------------------------------------------------------------------- //
 
-MaterialToolGroup::MaterialToolGroup(EditableTexture* ix, EditableTexture* wt) : ToolGroup("Indexed Material") {
+MaterialToolGroup::MaterialToolGroup(const char* name, EditableTexture* ix, EditableTexture* wt) : ToolGroup(name) {
 	m_tool = new MaterialTool(wt, ix);
 }
 MaterialToolGroup::~MaterialToolGroup() {
 	delete m_tool;
+}
+void MaterialToolGroup::clearTextures() {
+	for(ToolInstance* t : m_tools) delete t;
+	m_tools.clear();
+	// Delete buttons
+	m_panel->deleteChildWidgets();
 }
 void MaterialToolGroup::addTexture(const char* icon, int index) {
 	addButton(icon);

@@ -402,6 +402,24 @@ void WorldEditor::setTerrainSource(const char* file) {
 
 // ----------------------------------------------------------- //
 
+WorldEditor::ImageMapData* WorldEditor::createMapData(EditableTexture* tex, const char* name, const char* file, MapUsage usage) {
+	ImageMapData* map = new ImageMapData();
+	map->map = tex;
+	map->file = file;
+	map->name = name;
+	map->link = 0;
+	map->usage = usage;
+	m_imageMaps.push_back(map);
+	return map;
+}
+
+int WorldEditor::createUniqueMapName(const char* pattern, char* out) const {
+	int index=0;
+	do { sprintf(out, pattern, ++index); }
+	while(m_materials->getMap(out));
+	return index;
+}
+
 
 void WorldEditor::createNewEditor(gui::Button* b) {
 	cancelNewEditor(); // to hide window
@@ -410,11 +428,10 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 	//const char* source = panel->getWidget<Textbox>("editorsource")->getText();
 	int size = atoi(panel->getWidget<Combobox>("editorsize")->getSelectedItem());
 	EditableTexture* tex = 0;
+	EditableTexture* tex2 = 0;
 	ToolGroup* group = 0;
 	const char* name = 0;
 	char safeName[32];
-	int usage = 0;
-	static int key=0;
 	if(size <= 8192) {
 		tex = new EditableTexture(size, size, 4, true);
 	}
@@ -423,30 +440,35 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 	switch(mode) {
 	case 0: // Colour layer
 		name = "Colour map";
-		sprintf(safeName, "colourMap%d", ++key);
+		createUniqueMapName("colourMap%d", safeName);
+		m_materials->addMap(safeName, tex);
+		createMapData(tex, safeName, 0, USAGE_COLOUR);
 		group = new ColourToolGroup(name, tex);
-		usage = 1;
 		break;
 	case 1: // Weight layer
 		name = "Weight map";
-		sprintf(safeName, "weightMap%d", ++key);
+		createUniqueMapName("weightMap%d", safeName);
+		m_materials->addMap(safeName, tex);
+		createMapData(tex, safeName, 0, USAGE_WEIGHT);
 		group = new WeightToolGroup(name, tex);
-		usage = 0;
 		break;
-	case 2: // Indexed layer - needs 2 textures?
+	case 2: // Indexed layer
+		name = "Indexed Map";
+		createUniqueMapName("indexMap%d", safeName);
+		m_materials->addMap(safeName, tex);
+		createMapData(tex, safeName, 0, USAGE_INDEX);
+
+		strcat(safeName, "W");
+		tex2 = new EditableTexture(size, size, 4, true);
+		m_materials->addMap(safeName, tex2);
+		createMapData(tex2, safeName, 0, USAGE_INDEXWEIGHT);
+
+		group = new MaterialToolGroup(name, tex, tex2);
 		break;
 	}
 
 	// Add texture to world
-	if(tex && group) {
-		m_materials->addMap(safeName, tex);
-		ImageMapData* map = new ImageMapData();
-		map->map = tex;
-		map->file = 0;
-		map->name = safeName;
-		map->link = 0;
-		map->usage = usage;
-		m_imageMaps.push_back(map);
+	if(group) {
 		group->setup(m_gui);
 		group->setResolution(m_terrainOffset, m_terrainSize, 1);
 		addGroup(group, "texture", true);
@@ -859,7 +881,7 @@ void WorldEditor::loadWorld(const char* file) {
 	
 
 	// Load editable texture maps
-	const char* textureUsage[] = { "weight", "colour", "index", "cindex" };
+	const char* textureUsage[] = { "colour", "weight", "index", "indexweight" };
 	for(XML::iterator m=terrain.begin(); m!=terrain.end(); ++m) {
 		if(*m == "map") {
 			const char* usage = m->attribute("usage");
@@ -867,7 +889,7 @@ void WorldEditor::loadWorld(const char* file) {
 			const char* name  = m->attribute("name");
 			const char* link  = m->attribute("link");
 			bool stream = m->attribute("stream", 0);
-			int  use = enumerate(usage, textureUsage, 4);
+			MapUsage use = (MapUsage)enumerate(usage, textureUsage, 4);
 			
 			// Already exists ?
 			if(m_materials->getMap(name)) {
@@ -897,38 +919,30 @@ void WorldEditor::loadWorld(const char* file) {
 			// Add texture to world
 			if(!tex) continue;
 			m_materials->addMap(name, tex);
-			ImageMapData* map = new ImageMapData();
-			map->map = tex;
-			map->file = file;
-			map->name = name;
-			map->link = link[0]? link: 0;
-			map->usage = use;
-			m_imageMaps.push_back(map);
+			createMapData(tex, name, file, use)->link = link;
 
 			// Create tool
 			ToolGroup* g = 0;
 			switch(use) {
-			case 0: // Map
-				g = new WeightToolGroup(name, tex);
-				break;
-			case 1:	// Colour
+			case USAGE_COLOUR:	// Colour
 				g = new ColourToolGroup(name, tex);
 				break;
+
+			case USAGE_WEIGHT: // Map
+				g = new WeightToolGroup(name, tex);
+				break;
 				
-			case 2:	// Weight
+			case USAGE_INDEXWEIGHT:	// Weight
 				if(*link==0) g = new WeightToolGroup(name, tex);
 				else if(m_materials->getMap(link)) {
-					g = new MaterialToolGroup( m_materials->getMap(link), tex);
+					g = new MaterialToolGroup( "Indexed Material", m_materials->getMap(link), tex);
 				}
 				break;
 
-			case 3:	// index
+			case USAGE_INDEX:	// index
 				if(m_materials->getMap(link)) {
-					g = new MaterialToolGroup(tex, m_materials->getMap(link));
+					g = new MaterialToolGroup( "Indexed Material", tex, m_materials->getMap(link));
 				}
-				break;
-
-			case 4:	// Coherent Index
 				break;
 			}
 			// Add tool to list
@@ -1005,7 +1019,7 @@ void WorldEditor::saveWorld(const char* file) {
 		e.add( m_materials->serialiseTexture(i) );
 	}
 	// Maps
-	static const char* U[] = { "weight", "colour", "index", "cindex" };
+	static const char* U[] = { "colour", "weight", "index", "indexweight" };
 	for(uint i=0; i<m_imageMaps.size(); ++i) {
 		XMLElement& map = e.add("map");
 		map.setAttribute("name", m_imageMaps[i]->name);

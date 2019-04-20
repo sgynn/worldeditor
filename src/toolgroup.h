@@ -75,8 +75,9 @@ class WeightToolGroup : public ToolGroup {
 
 class MaterialToolGroup : public ToolGroup {
 	public:
-	MaterialToolGroup(EditableTexture* indexMap, EditableTexture* weightMap);
+	MaterialToolGroup(const char* name, EditableTexture* indexMap, EditableTexture* weightMap);
 	~MaterialToolGroup();
+	void clearTextures();
 	void addTexture(const char* icon, int index);
 	void setResolution(const vec2& offset, const vec2& size, float res);
 

@@ -2,7 +2,6 @@
 #define _LIBRARY_
 
 #include <base/hashmap.h>
-#include <base/shader.h>
 #include <base/xml.h>
 namespace base { class Font; class Material; class Texture; namespace model { class Model; } };
 
@@ -15,7 +14,6 @@ class Library {
 	base::Material*     material(const char* name);
 	base::Texture       texture(const char* name, bool mip=false);
 	base::model::Model* model(const char* name);
-	base::Shader        shader(const char* name);
 
 	/** Get font TODO multiple fonts */
 	base::Font* font() { return m_font; }
@@ -32,12 +30,10 @@ class Library {
 	// Content maps //
 	typedef base::HashMap<base::Material*> MaterialMap;
 	typedef base::HashMap<base::model::Model*> ModelMap;
-	typedef base::HashMap<base::Shader> ShaderMap;
 	typedef base::HashMap<base::Texture> TextureMap;
 
 	MaterialMap m_materials;
 	TextureMap m_textures;
-	ShaderMap m_shaders;
 	ModelMap m_models;
 	base::Font* m_font;
 

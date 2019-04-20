@@ -125,20 +125,6 @@ base::model::Model* Library::model(const char* name) {
 	return 0;
 }
 
-base::Shader Library::shader(const char* name) {
-	ShaderMap::iterator it = m_shaders.find(name);
-	if(it==m_shaders.end()) {
-		char path[1024];
-		if(findFile(name, path)) {
-			base::Shader s = base::Shader::load(path);
-			m_shaders.insert(name, s);
-			return s;
-		} else m_shaders.insert(name, base::Shader::Null);
-	} else return *it;
-	return base::Shader::Null;;
-}
-
-
 // Utilities
 unsigned Library::hex(const char* s) {
 	unsigned hex = 0;
@@ -192,7 +178,6 @@ Material* Library::loadMaterial(const base::XML::Element& xml) {
 			} else if(strcmp(i->name(), "shader")==0) {
 				// load shader - TODO resource manager to load shader
 				printf("Load shader [%s]\n", i->attribute("file"));
-				mat->setShader( shader(i->attribute("file")) );
 
 			} else if(strcmp(i->name(), "variable")==0) {
 				// Switch type

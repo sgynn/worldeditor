@@ -322,7 +322,7 @@
 		<widget class="Button" rect="192 24 16 20" name="browse_diffuse" skin="button" caption="..." anchor="tr"/>
 		<widget class="Textbox" rect="64 42 128 20" name="normal" text="normal map" anchor="tlr"/>
 		<widget class="Button" rect="192 42 16 20" name="browse_normal" skin="button" caption="..." anchor="tr"/>
-		<widget class="Image" rect="0 0 64 64" name="textureicon" tangible="0"/>
+		<widget class="Icon" rect="0 0 64 64" name="textureicon" tangible="0"/>
 	</template>
 
 	<!-- Colour picker -->
