@@ -58,15 +58,20 @@ void ColourTool::paint(const Brush& b, int flags) {
 		w = getValue(b, x, y);
 		if(w==0) continue;
 
-		float& buf = *buffer->value(x, y);
-		float v = w - buf;
-		if(w > buf) buf = w; // FIXME: Rounding errors causing buf to reach 1 before colour does
-		else continue;
+		ColourToolBuffer& buf = *buffer->value(x,y);
+		if(!buf.set) {
+			texture->getPixel(x, y, pixel);
+			buf.o[0] = pixel[0];
+			buf.o[1] = pixel[1];
+			buf.o[2] = pixel[2];
+			buf.set = true;
+		}
+		
+		for(int i=0; i<3; ++i) {
+			if(buf.w[i] < w) buf.w[i] = w;
+			pixel[i] = buf.o[i] + buf.w[i] * (c[i] - buf.o[i]);
+		}
 
-		texture->getPixel(x, y, pixel);
-		pixel[0] = pixel[0] + v * (c[0] - pixel[0]);
-		pixel[1] = pixel[1] + v * (c[1] - pixel[1]);
-		pixel[2] = pixel[2] + v * (c[2] - pixel[2]);
 		texture->setPixel(x, y, pixel);
 	}
 }

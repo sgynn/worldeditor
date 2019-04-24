@@ -310,7 +310,7 @@ void WorldEditor::drawScene() {
 
 void WorldEditor::drawHUD() {
 	scene::Material m;
-	m.addPass()->blendMode = scene::BLEND_ALPHA;
+	m.addPass()->blend = scene::BLEND_ALPHA;
 	m.getPass(0)->bind();
 
 	m_gui->draw();

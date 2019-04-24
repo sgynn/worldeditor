@@ -25,9 +25,10 @@ class TextureTool : public TextureToolBase<ubyte> {
 	EditableTexture* texture;
 };
 
+struct ColourToolBuffer { bool set; ubyte o[3]; float w[3]; };
 
 /** Modify all channels of the texture */
-class ColourTool : public TextureToolBase<float> {
+class ColourTool : public TextureToolBase<ColourToolBuffer> {
 	public:
 	ColourTool(EditableTexture* tex=0) : texture(tex) {}
 	virtual void paint(const Brush&, int flags);
