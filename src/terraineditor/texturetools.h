@@ -36,17 +36,26 @@ class ColourTool : public TextureToolBase<ColourToolBuffer> {
 	EditableTexture* texture;
 };
 
+/** Set material index map */
+class IndexTool : public TextureToolBase<ubyte> {
+	public:
+	IndexTool(EditableTexture* ix=0) : indexMap(ix) {}
+	virtual void paint(const Brush&, int flags);
+	virtual void commit() { indexMap->updateGPU(); }
+
+	public:
+	EditableTexture* indexMap;
+};
 
 /** Set material weight and index maps */
-class MaterialTool : public TextureToolBase<ubyte> {
+class IndexWeightTool : public IndexTool {
 	public:
-	MaterialTool(EditableTexture* w=0, EditableTexture* i=0) : weightMap(w), indexMap(i) {}
+	IndexWeightTool(EditableTexture* ix=0, EditableTexture* wt=0) : IndexTool(ix), weightMap(wt) {}
 	virtual void paint(const Brush&, int flags);
 	virtual void commit() { weightMap->updateGPU(); indexMap->updateGPU(); }
 
 	public:
 	EditableTexture* weightMap;
-	EditableTexture* indexMap;
 };
 
 #endif

@@ -363,6 +363,7 @@
 			<item>Colour</item>
 			<item>Weight</item>
 			<item>Index</item>
+			<item>Weighted index</item>
 		</widget>
 		<widget anchor="lrt" template="droplist" name="editorsize" skin="default" rect="64 40 136 20">
 			<item>1024</item>

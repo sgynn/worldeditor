@@ -497,6 +497,8 @@ void MaterialEditor::setTexture(const char* file) {
 	char buffer[1024];
 	base::Directory::getRelativePath(file, buffer, 1024);
 	if(strncmp(buffer, "..", 2)!=0) file = buffer;
+	int type = m_browseTarget >> 8;
+	enum Types { DIFFUSE=0, NORMAL=1, HEIGHT=2 };
 
 	// Update relevant textbox
 	gui::Widget* w = m_textureList->getWidget(m_browseTarget & 0xff );
@@ -505,19 +507,21 @@ void MaterialEditor::setTexture(const char* file) {
 
 	// Update texture object
 	TerrainTexture* tex = m_textures[m_browseTarget & 0xff];
-	if(m_browseTarget&0x100) tex->normal = file;
+	if(type==NORMAL) tex->normal = file;
 	else tex->diffuse = file;
 
 	// Load texture
 	int layer = m_browseTarget & 0xff;
-	ArrayTexture* array = m_browseTarget&0x100? &m_normalMaps: &m_diffuseMaps;
+	ArrayTexture* array = type==NORMAL? &m_normalMaps: &m_diffuseMaps;
 	DDS dds = DDS::load(file);
 	if(dds.format != DDS::INVALID) {
 		// Image icon
-		char iconName[16];
-		sprintf(iconName, "mat%d\n", layer);
-		int icon = createTextureIcon(iconName, dds);
-		w->getWidget<gui::Icon>("textureicon")->setIcon(m_textureIcons, icon);
+		if(type==DIFFUSE) {
+			char iconName[16];
+			sprintf(iconName, "mat%d\n", layer);
+			int icon = createTextureIcon(iconName, dds);
+			w->getWidget<gui::Icon>("textureicon")->setIcon(m_textureIcons, icon);
+		}
 
 		// Transfer into texture array
 		array->setTexture(layer, dds);

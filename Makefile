@@ -2,7 +2,7 @@ exec = editor
 
 OBJDIR = obj
 CFLAGS =  -g -Wall -Isrc
-LDFLAGS = -lbase -lGL -lX11 -lXxf86vm -lpthread
+LDFLAGS = -lbase -lGL -lX11 -lXxf86vm
 
 headers = $(wildcard src/*.h src/*/*.h)
 sources = $(wildcard src/*.cpp src/*/*.cpp)
@@ -14,10 +14,11 @@ SED = sed -e 's/error/\x1b[31;1merror\x1b[0m/g' -e 's/warning/\x1b[33;1mwarning\
 SED2 = sed -e 's/undefined reference/\x1b[31;1mundefined reference\x1b[0m/g'
 
 ifeq ($(OS),Windows_NT)
-LDFLAGS = -lbase -lgdi32 -lopengl32 -static-libgcc -static-libstdc++ -mwindows
+LDFLAGS = -lbase -lgdi32 -lopengl32 -static-libgcc -static-libstdc++ -mwindows -lwinmm
 LDFLAGS += -DWIN32
 else
 CFLAGS += -DLINUX
+CFLAGE += -lpthread
 endif
 
 .PHONY: clean

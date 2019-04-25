@@ -122,13 +122,13 @@ void WeightToolGroup::setResolution(const vec2& offset, const vec2& size, float 
 
 // --------------------------------------------------------------------------------------------- //
 
-MaterialToolGroup::MaterialToolGroup(const char* name, EditableTexture* ix, EditableTexture* wt) : ToolGroup(name) {
-	m_tool = new MaterialTool(wt, ix);
+IndexToolGroup::IndexToolGroup(const char* name, EditableTexture* ix) : ToolGroup(name) {
+	m_tool = new IndexTool(ix);
 }
-MaterialToolGroup::~MaterialToolGroup() {
+IndexToolGroup::~IndexToolGroup() {
 	delete m_tool;
 }
-void MaterialToolGroup::setTextures(int count) {
+void IndexToolGroup::setTextures(int count) {
 	int existing = m_panel->getWidgetCount();
 	// Add new ones
 	gui::IconList* icons = m_root->getIconList("textureIcons");
@@ -146,10 +146,19 @@ void MaterialToolGroup::setTextures(int count) {
 		m_tools.pop_back();
 	}
 }
-void MaterialToolGroup::setResolution(const vec2& offset, const vec2& size, float res) {
-	res = (float) size.x / m_tool->weightMap->getWidth();
+void IndexToolGroup::setResolution(const vec2& offset, const vec2& size, float res) {
+	res = (float) size.x / m_tool->indexMap->getWidth();
 	m_tool->setResolution(res, offset);
 }
+
+// --------------------------------------------------------------------------------------------- //
+
+IndexWeightToolGroup::IndexWeightToolGroup(const char* name, EditableTexture* ix, EditableTexture* wt) : IndexToolGroup(name, ix) {
+	delete m_tool;
+	m_tool = new IndexWeightTool(ix, wt);
+}
+
+
 
 // --------------------------------------------------------------------------------------------- //
 

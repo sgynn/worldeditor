@@ -77,9 +77,27 @@ void ColourTool::paint(const Brush& b, int flags) {
 }
 
 
+void IndexTool::paint(const Brush& b, int material) {
+	if(!indexMap) return;
+	Rect r = getRect(b);
+	indexMap->clampRect(r);
+	ubyte index[4] = { (ubyte)material, 0, 0, 0 };
+
+	Point e = r.position() + r.size();
+	for(int x=r.x; x<e.x; ++x) for(int y=r.y; y<e.y; ++y) {
+		float w = getValue(b, x, y);
+		if(w==0) continue;
+		
+		// Dissolve
+		int rng = ((x * 214013l + 2351011) >> 16) & 0x7fff;
+		if(rng > w * 0x7fff) continue;
+		indexMap->setPixel(x, y, index);
+	}
+}
 
 
-void MaterialTool::paint(const Brush& b, int material) {
+
+void IndexWeightTool::paint(const Brush& b, int material) {
 	if(!weightMap || !indexMap) return;
 
 	Rect r = getRect(b);

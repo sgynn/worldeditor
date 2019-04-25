@@ -17,10 +17,12 @@ class ToolGroup {
 
 	virtual void          setup(gui::Root* gui);
 	virtual void          setResolution(const vec2& offset, const vec2& size, float res) = 0;
+	virtual void          setTextures(int count) {}
 	virtual void          setActive();
 	virtual ToolInstance* getTool() const;	// Get selected tool in this group
 	virtual gui::Widget*  getPanel() const;	// Get gui panel for this tool group
 	const char*           getName() const;	// Get name
+
 
 	public:
 	DelegateS<void(ToolInstance*)> eventToolSelected;
@@ -73,15 +75,21 @@ class WeightToolGroup : public ToolGroup {
 };
 
 
-class MaterialToolGroup : public ToolGroup {
+class IndexToolGroup : public ToolGroup {
 	public:
-	MaterialToolGroup(const char* name, EditableTexture* indexMap, EditableTexture* weightMap);
-	~MaterialToolGroup();
+	IndexToolGroup(const char* name, EditableTexture* indexMap);
+	~IndexToolGroup();
 	void setResolution(const vec2& offset, const vec2& size, float res);
 	void setTextures(int count);
 
 	protected:
-	MaterialTool* m_tool;
+	IndexTool* m_tool;
+};
+
+
+class IndexWeightToolGroup : public IndexToolGroup {
+	public:
+	IndexWeightToolGroup(const char* name, EditableTexture* indexMap, EditableTexture* weightMap);
 };
 
 

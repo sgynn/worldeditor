@@ -434,15 +434,13 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 	ToolGroup* group = 0;
 	const char* name = 0;
 	char safeName[32];
-	if(size <= 8192) {
-		tex = new EditableTexture(size, size, 4, true);
-	}
-	else return; // TODO: streaming textures
+	if(size > 8192) return; // TODO: streaming textures
 
 	switch(mode) {
 	case 0: // Colour layer
 		name = "Colour map";
 		createUniqueMapName("colourMap%d", safeName);
+		tex = new EditableTexture(size, size, 4, true);
 		m_materials->addMap(safeName, tex);
 		createMapData(tex, safeName, 0, USAGE_COLOUR);
 		group = new ColourToolGroup(name, tex);
@@ -450,13 +448,23 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 	case 1: // Weight layer
 		name = "Weight map";
 		createUniqueMapName("weightMap%d", safeName);
+		tex = new EditableTexture(size, size, 4, true);
 		m_materials->addMap(safeName, tex);
 		createMapData(tex, safeName, 0, USAGE_WEIGHT);
 		group = new WeightToolGroup(name, tex);
 		break;
-	case 2: // Indexed layer
+	case 2:	// Indexed layer
+		name = "Index map";
+		createUniqueMapName("weightMap%d", safeName);
+		tex = new EditableTexture(size, size, 1, true);
+		m_materials->addMap(safeName, tex);
+		createMapData(tex, safeName, 0, USAGE_INDEX);
+		group = new IndexToolGroup(name, tex);
+		break;
+	case 3: // Weighted Indexed layer
 		name = "Indexed Map";
 		createUniqueMapName("indexMap%d", safeName);
+		tex = new EditableTexture(size, size, 4, true);
 		m_materials->addMap(safeName, tex);
 		createMapData(tex, safeName, 0, USAGE_INDEX);
 
@@ -465,7 +473,7 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 		m_materials->addMap(safeName, tex2);
 		createMapData(tex2, safeName, 0, USAGE_INDEXWEIGHT);
 
-		group = new MaterialToolGroup(name, tex, tex2);
+		group = new IndexWeightToolGroup(name, tex, tex2);
 		break;
 	}
 
@@ -692,6 +700,7 @@ void WorldEditor::addGroup(ToolGroup* group, const char* icon, bool select) {
 	int index = list->getItemCount()? list->getItemCount()-1: 0;
 	list->insertItem(index, group->getName(), group, iconIndex);
 	group->eventToolSelected.bind(this, &WorldEditor::selectTool);
+	group->setTextures( m_materials->getTextureCount() );
 	// Select it
 	if(select) {
 		list->selectItem(index);
@@ -768,15 +777,16 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 		m_streaming = false;
 		printf("Created %dx%d heightmap\n", size,size);
 	}
+	// Setup material editor
+	m_materials = new MaterialEditor(m_gui, m_library, m_streaming);
+	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
+	m_materials->addMaterial(0);
+
 	// Set up editor
 	m_editor = new TerrainEditor();
 	m_editor->setHeightmap(m_heightMap);
 	setupHeightTools(res, m_terrainOffset);
 
-	// Setup material editor
-	m_materials = new MaterialEditor(m_gui, m_library, m_streaming);
-	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
-	m_materials->addMaterial(0);
 
 	// Minimap
 	m_minimap->setWorld(m_heightMap, m_terrainSize, m_terrainOffset);
@@ -937,13 +947,14 @@ void WorldEditor::loadWorld(const char* file) {
 			case USAGE_INDEXWEIGHT:	// Weight
 				if(*link==0) g = new WeightToolGroup(name, tex);
 				else if(m_materials->getMap(link)) {
-					g = new MaterialToolGroup( "Indexed Material", m_materials->getMap(link), tex);
+					g = new IndexWeightToolGroup( "Indexed Material", m_materials->getMap(link), tex);
 				}
 				break;
 
 			case USAGE_INDEX:	// index
-				if(m_materials->getMap(link)) {
-					g = new MaterialToolGroup( "Indexed Material", tex, m_materials->getMap(link));
+				if(!link==0) g = new IndexToolGroup("Indexed Material", tex);
+				else if(m_materials->getMap(link)) {
+					g = new IndexWeightToolGroup( "Indexed Material", tex, m_materials->getMap(link));
 				}
 				break;
 			}

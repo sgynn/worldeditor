@@ -8,13 +8,14 @@
 
 // OprnGL extension stuff
 #ifdef WIN32
-#define APIENTRYP __stdcall *
+//#define APIENTRYP __stdcall *
 #define GL_TEXTURE_2D_ARRAY 0x8C1A
 
 typedef void (APIENTRYP PFNGLTEXSTORAGE3DPROC) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth);
 PFNGLTEXSTORAGE3DPROC glTexStorage3D = 0;
 PFNGLTEXSUBIMAGE3DPROC glTexSubImage3D = 0;
-PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC glCompressedTexSubImage3D = 0;
+//PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC glCompressedTexSubImage3D = 0;
+extern PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC glCompressedTexSubImage3D; // moved into texture
 #endif
 
 using namespace base;
@@ -24,7 +25,6 @@ ArrayTexture::ArrayTexture() : m_blankLayer(0) {
 	if(glTexStorage3D==0) {
 		glTexStorage3D = (PFNGLTEXSTORAGE3DPROC)wglGetProcAddress("glTexStorage3D");
 		glTexSubImage3D = (PFNGLTEXSUBIMAGE3DPROC)wglGetProcAddress("glTexSubImage3D");
-		glCompressedTexSubImage3D = (PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC)wglGetProcAddress("glCompressedTexSubImage3D");
 	}
 	#endif
 }

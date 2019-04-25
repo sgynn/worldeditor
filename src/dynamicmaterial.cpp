@@ -140,6 +140,8 @@ void DynamicMaterial::update(int index) {
 		char buffer[32];
 		sprintf(buffer, "%sInfo", layer->map.str());
 		m_vars->set(buffer, 0.f, 0.f, 0.01f, 0.01f);
+		sprintf(buffer, "%sSize", layer->map.str());
+		m_vars->set(buffer, 1024.f, 1024.f);
 		sprintf(buffer, "%sMap", layer->map.str());
 		m_material->getPass(0)->getParameters().set(buffer, 0);
 	}
@@ -196,7 +198,8 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 			m_material->getPass(0)->setTexture(buffer, &tex);
 			sprintf(buffer, "%sInfo", *i);
 			m_vars->set(buffer, 4, 1, m_coords);
-
+			sprintf(buffer, "%sSize", *i);
+			m_vars->set(buffer, (float)map->getTexture().width(), (float)map->getTexture().height());
 			if(m_stream) {
 				if(map->getTextureStream()) m_stream->addStream(*i, map->getTextureStream());
 				else m_stream->setOverlayTexture(*i, map->getTexture());
@@ -246,7 +249,7 @@ bool DynamicMaterial::compile() {
 		if(m_layers[i]->map2 && m_layers[i]->map2[0]) maps.insert( str(m_layers[i]->map2) );
 	}
 	for(MapList::iterator i=maps.begin(); i!=maps.end(); ++i) source += "uniform sampler2D " + *i + "Map;\n";
-	for(MapList::iterator i=maps.begin(); i!=maps.end(); ++i) source += "uniform vec4 " + *i + "Info;\n";
+	for(MapList::iterator i=maps.begin(); i!=maps.end(); ++i) source += "uniform vec4 " + *i + "Info;\n"  "uniform vec2 " + *i + "Size;\n";
 	source += "\n\n";
 
 	// Variables
@@ -309,11 +312,45 @@ bool DynamicMaterial::compile() {
 	"vec4 sampleNormal(float map, vec2 coord) {\n"
 	"	vec4 n = texture(diffuseArray, vec3(coord, map));\n"
 	"	return vec4(n.xyz * 2.0 - 1.0, n.w);\n"
-	"}\n\n\n";
+	"}\n";
+	
+	// Barycentric coordinates for index maps
+	source +=
+	"vec3 barycentric(vec4 info, vec2 size, vec2 coord, out vec2 a, out vec2 b, out vec2 c) {\n"
+	"	// Get sample points\n"
+	"	vec2 one = vec2(1,0);\n"
+	"	vec2 step = 1.0 / size;\n"
+	"	vec2 base = (coord - info.xz) * info.zw;\n"
+	"	a = floor(base * size) * step;\n"
+	"	b = step * one.xy + c;\n"
+	"	c = step * one.yx + c;\n"
+	"	// Barycentric coordinates - Check if this condition compiles without branching\n"
+	"	vec3 bary;\n"
+	"	vec2 local = (c - a) * size; // 0-1\n"
+	"	if(local.x+local.y < 1.0) bary.yz = local;\n"
+	"	else { b.yz = 1.0 - local.yx; a += step; }\n"
+	"	return bary;\n"
+	"}\n";
+
+	// Basic indexed texture sampling
+	source +=
+	"vec4 sampleIndexed(sampler2D map, vec4 info, vec2 size, vec2 coord) {\n"
+	"	vec2 a,b,c;\n"
+	"	vec3 bary = barycentric(info, size, coord, a,b,c);\n"
+	"	// Sample index map\n"
+	"	float ia = texture(map, a).r * 255;\n"
+	"	float ic = texture(map, c).r * 255;\n"
+	"	// Sample textures\n"
+	"	vec4 result = vec4(0,0,0,0);\n"
+	"	result += texture(diffuseMap, vec3(a,ia)) + bary.x;\n"
+	"	result += texture(diffuseMap, vec3(b,ib)) * bary.y;\n"
+	"	result += texture(diffuseMap, vec3(c,ic)) * bary.z;\n"
+	"	return result;\n"
+	"}\n";
 
 	// Main function
 	source +=
-	"// Main shader function\n"
+	"\n\n\n// Main shader function\n"
 	"void main() {\n"
 	"	vec4 diffuse = vec4(1,1,1,1);\n"
 	"	vec4 normal = vec4(0,1,0,0);\n"
@@ -371,9 +408,11 @@ bool DynamicMaterial::compile() {
 			break;
 		case LAYER_INDEXED:
 			// ToDo this one
+			source += "	diff = sampleIndexed(" + str(layer->map)  + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz);\n";
+			source += "	norm = sampleIndexed(" + str(layer->map2) + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz);\n";
 			break;
 		case LAYER_GRADIENT:
-			// Totally cant remember what I indended to do with this one
+			// Need a gradient texture, and an input parameter (height/slope/convex?)
 			break;
 		}
 		if(!valid) {
@@ -382,7 +421,7 @@ bool DynamicMaterial::compile() {
 		}
 
 		// Sample textures
-		if(layer->type != LAYER_COLOUR) {
+		if(layer->type == LAYER_AUTO || layer->type==LAYER_WEIGHT) {
 			if(layer->texture < 0) source +=
 				"	diff = vec4(" + str(colour.r) + ", " + str(colour.g) + ", " + str(colour.b) + ", 0);\n"
 				"	norm = vec4(0, 0, 1, 0);\n";
