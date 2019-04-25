@@ -128,15 +128,23 @@ MaterialToolGroup::MaterialToolGroup(const char* name, EditableTexture* ix, Edit
 MaterialToolGroup::~MaterialToolGroup() {
 	delete m_tool;
 }
-void MaterialToolGroup::clearTextures() {
-	for(ToolInstance* t : m_tools) delete t;
-	m_tools.clear();
-	// Delete buttons
-	m_panel->deleteChildWidgets();
-}
-void MaterialToolGroup::addTexture(const char* icon, int index) {
-	addButton(icon);
-	addTool(m_tool, index, index);
+void MaterialToolGroup::setTextures(int count) {
+	int existing = m_panel->getWidgetCount();
+	// Add new ones
+	gui::IconList* icons = m_root->getIconList("textureIcons");
+	for(int i=existing; i<count; ++i) {
+		Button* b = addButton();
+		b->setIcon(icons, i);
+		addTool(m_tool, i, i);
+	}
+	// Remove extraneous
+	for(int i=count; i<existing; ++i) {
+		Widget* button = m_panel->getWidget(i);
+		m_panel->remove(button);
+		delete button;
+		delete m_tools.back();
+		m_tools.pop_back();
+	}
 }
 void MaterialToolGroup::setResolution(const vec2& offset, const vec2& size, float res) {
 	res = (float) size.x / m_tool->weightMap->getWidth();

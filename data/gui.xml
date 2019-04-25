@@ -371,7 +371,6 @@
 			<item>8192</item>
 			<item>16384 (streamed)</item>
 			<item>32768 (streamed)</item>
-			<item>65536 (streamed)</item>
 		</widget>
 	</widget>
 </gui>

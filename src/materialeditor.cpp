@@ -401,6 +401,7 @@ void MaterialEditor::addTexture(gui::Button*) {
 	if(m_selectedTexture>=0) m_textureList->getWidget(m_selectedTexture)->setSelected(false);
 	m_textureList->getWidget( index )->setSelected(true);
 	m_selectedTexture = index;
+	if(eventChangeTextureCount) eventChangeTextureCount(m_textureList->getWidgetCount());
 }
 
 void MaterialEditor::browseTexture(gui::Button* b) {
@@ -439,6 +440,8 @@ void MaterialEditor::removeTexture(gui::Button*) {
 	m_textureSelector->removeItem( m_selectedTexture + 1 );
 	m_selectedTexture = -1;
 	delete old;
+
+	if(eventChangeTextureCount) eventChangeTextureCount(m_textureList->getWidgetCount());
 }
 
 // Remove alpha blocks from a DXT3 or DXT5 texture.
