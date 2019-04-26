@@ -122,7 +122,7 @@ void IndexWeightTool::paint(const Brush& b, int material) {
 			if(index[exist]==material || weight[exist]==0) break;
 
 		// Calculate value using paintBuffer
-		if(buffer == 0) buffer = weight[exist];
+		if(buffer == 0) buffer = weight[exist]? weight[exist]: 1;
 		w = fmax(weight[exist], buffer + w*255);
 		if(exist==channels && (--exist,true) && weight[exist] < weight[exist+1]) continue;
 
