@@ -6,6 +6,8 @@
 #include "scene/shader.h"
 #include <base/colour.h>
 
+#include <base/opengl.h>
+
 #include <cstdio>
 #include <string>
 #include <set>
@@ -130,6 +132,7 @@ const char* addIndex(const char* base, int index) {
 
 void DynamicMaterial::update(int index) {
 	if(!m_material) return;
+	GL_CHECK_ERROR;
 
 	// Set all the variables
 	MaterialLayer* layer = m_layers[index];
@@ -139,11 +142,13 @@ void DynamicMaterial::update(int index) {
 	if(layer->map) {
 		char buffer[32];
 		sprintf(buffer, "%sInfo", layer->map.str());
-		m_vars->set(buffer, 0.f, 0.f, 0.01f, 0.01f);
-		sprintf(buffer, "%sSize", layer->map.str());
-		m_vars->set(buffer, 1024.f, 1024.f);
-		sprintf(buffer, "%sMap", layer->map.str());
-		m_material->getPass(0)->getParameters().set(buffer, 0);
+		if(!m_vars->contains(buffer)) {
+			m_vars->set(buffer, 4, 1, m_coords);
+			sprintf(buffer, "%sSize", layer->map.str());
+			m_vars->set(buffer, 1024.f, 1024.f);
+			sprintf(buffer, "%sMap", layer->map.str());
+			m_material->getPass(0)->getParameters().set(buffer, 0);
+		}
 	}
 
 
@@ -166,6 +171,7 @@ void DynamicMaterial::update(int index) {
 		m_vars->set( addIndex("autoBlend",index), blend);
 		//m_vars->set( addIndex("autoNoise",index), noise);
 	}
+	GL_CHECK_ERROR;
 }
 
 void DynamicMaterial::setTextures(MaterialEditor* src) {
@@ -206,6 +212,7 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 			}
 		}
 	}
+	GL_CHECK_ERROR;
 }
 
 // ------------------------------------------------------------------------------------------------------ //
@@ -326,26 +333,30 @@ bool DynamicMaterial::compile() {
 	"	c = step * one.yx + c;\n"
 	"	// Barycentric coordinates - Check if this condition compiles without branching\n"
 	"	vec3 bary;\n"
-	"	vec2 local = (c - a) * size; // 0-1\n"
+	"	vec2 local = (c - a) / size; // 0-1\n"
 	"	if(local.x+local.y < 1.0) bary.yz = local;\n"
-	"	else { b.yz = 1.0 - local.yx; a += step; }\n"
+	"	else { bary.yz = 1.0 - local.yx; a += step; }\n"
+	"	bary.x = 1.0 - bary.y - bary.z;\n"
 	"	return bary;\n"
 	"}\n";
 
 	// Basic indexed texture sampling
 	source +=
-	"vec4 sampleIndexed(sampler2D map, vec4 info, vec2 size, vec2 coord) {\n"
+	"void sampleIndexed(sampler2D map, vec4 info, vec2 size, vec2 coord,  out vec4 diff, out vec4 norm) {\n"
 	"	vec2 a,b,c;\n"
 	"	vec3 bary = barycentric(info, size, coord, a,b,c);\n"
 	"	// Sample index map\n"
 	"	float ia = texture(map, a).r * 255;\n"
+	"	float ib = texture(map, b).r * 255;\n"
 	"	float ic = texture(map, c).r * 255;\n"
 	"	// Sample textures\n"
-	"	vec4 result = vec4(0,0,0,0);\n"
-	"	result += texture(diffuseMap, vec3(a,ia)) + bary.x;\n"
-	"	result += texture(diffuseMap, vec3(b,ib)) * bary.y;\n"
-	"	result += texture(diffuseMap, vec3(c,ic)) * bary.z;\n"
-	"	return result;\n"
+	"	diff  = texture(diffuseArray, vec3(coord,ia)) * bary.x;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ib)) * bary.y;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ic)) * bary.z;\n"
+	"	norm  = texture(normalArray, vec3(coord,ia)) * bary.x;\n"
+	"	norm += texture(normalArray, vec3(coord,ib)) * bary.y;\n"
+	"	norm += texture(normalArray, vec3(coord,ic)) * bary.z;\n"
+	"	norm = vec4(norm.xyz * 2.0 - 1.0, norm.w);\n"
 	"}\n";
 
 	// Main function
@@ -408,8 +419,8 @@ bool DynamicMaterial::compile() {
 			break;
 		case LAYER_INDEXED:
 			// ToDo this one
-			source += "	diff = sampleIndexed(" + str(layer->map)  + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz);\n";
-			source += "	norm = sampleIndexed(" + str(layer->map2) + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz);\n";
+			if(!layer->map || !layer->map[0]) valid = false;
+			else source += "	weight=1;\n	sampleIndexed(" + str(layer->map)  + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz, diff, norm);\n";
 			break;
 		case LAYER_GRADIENT:
 			// Need a gradient texture, and an input parameter (height/slope/convex?)

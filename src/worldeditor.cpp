@@ -439,7 +439,7 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 	switch(mode) {
 	case 0: // Colour layer
 		name = "Colour map";
-		createUniqueMapName("colourMap%d", safeName);
+		createUniqueMapName("colour%d", safeName);
 		tex = new EditableTexture(size, size, 4, true);
 		m_materials->addMap(safeName, tex);
 		createMapData(tex, safeName, 0, USAGE_COLOUR);
@@ -447,7 +447,7 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 		break;
 	case 1: // Weight layer
 		name = "Weight map";
-		createUniqueMapName("weightMap%d", safeName);
+		createUniqueMapName("weight%d", safeName);
 		tex = new EditableTexture(size, size, 4, true);
 		m_materials->addMap(safeName, tex);
 		createMapData(tex, safeName, 0, USAGE_WEIGHT);
@@ -455,7 +455,7 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 		break;
 	case 2:	// Indexed layer
 		name = "Index map";
-		createUniqueMapName("weightMap%d", safeName);
+		createUniqueMapName("index%d", safeName);
 		tex = new EditableTexture(size, size, 1, true);
 		m_materials->addMap(safeName, tex);
 		createMapData(tex, safeName, 0, USAGE_INDEX);
@@ -463,7 +463,7 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 		break;
 	case 3: // Weighted Indexed layer
 		name = "Indexed Map";
-		createUniqueMapName("indexMap%d", safeName);
+		createUniqueMapName("index%d", safeName);
 		tex = new EditableTexture(size, size, 4, true);
 		m_materials->addMap(safeName, tex);
 		createMapData(tex, safeName, 0, USAGE_INDEX);
@@ -593,6 +593,13 @@ void WorldEditor::showTextureList(Button*) {
 
 void WorldEditor::setTerrainMaterial(DynamicMaterial* m) {
 	m_heightMap->setMaterial(m);
+}
+
+void WorldEditor::textureListChanged() {
+	int count = m_materials->getTextureCount();
+	for(size_t i=0; i<m_groups.size(); ++i) {
+		m_groups[i]->setTextures(count);
+	}
 }
 
 
@@ -780,6 +787,7 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 	// Setup material editor
 	m_materials = new MaterialEditor(m_gui, m_library, m_streaming);
 	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
+	m_materials->eventChangeTextureList.bind(this, &WorldEditor::textureListChanged);
 	m_materials->addMaterial(0);
 
 	// Set up editor
@@ -878,6 +886,7 @@ void WorldEditor::loadWorld(const char* file) {
 	// Load materials
 	m_materials = new MaterialEditor(m_gui, m_library, m_streaming);
 	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
+	m_materials->eventChangeTextureList.bind(this, &WorldEditor::textureListChanged);
 	for(XML::iterator i=terrain.begin(); i!=terrain.end(); ++i) {
 		if(*i == "material") m_materials->loadMaterial(*i);
 		else if(*i == "texture") m_materials->loadTexture(*i);

@@ -55,7 +55,7 @@ class MaterialEditor {
 	
 	public:
 	DelegateS<void(DynamicMaterial*)> eventChangeMaterial;
-	DelegateS<void(int)>              eventChangeTextureCount;
+	DelegateS<void()>                 eventChangeTextureList;
 
 	public:	// gui callbacks here
 	void addTexture(gui::Button*);		// Add a texture

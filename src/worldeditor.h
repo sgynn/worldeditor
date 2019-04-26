@@ -78,6 +78,7 @@ class WorldEditor : public base::SceneState {
 
 	void moveWorldMap(gui::Widget*, const Point&, int);
 	void setTerrainMaterial(DynamicMaterial*);
+	void textureListChanged();
 
 	private:
 	Scene*   m_scene;

@@ -9,6 +9,8 @@ sources = $(wildcard src/*.cpp src/*/*.cpp)
 objects = $(addprefix $(OBJDIR)/, $(sources:.cpp=.o))
 dirs    = $(dir $(objects))
 
+baselib = /usr/lib64/libbase.a
+
 # Colour coding of g++ output - highlights errors and warnings
 SED = sed -e 's/error/\x1b[31;1merror\x1b[0m/g' -e 's/warning/\x1b[33;1mwarning\x1b[0m/g'
 SED2 = sed -e 's/undefined reference/\x1b[31;1mundefined reference\x1b[0m/g'
@@ -25,7 +27,7 @@ endif
 
 all: $(exec)
 
-$(exec): $(objects)
+$(exec): $(objects) $(baselib)
 	@echo -e "\033[34;1m[ Linking ]\033[0m"
 	@echo $(CXX) -o $(exec) $(objects) $(CFLAGS) $(LDFLAGS)
 	@$(CXX) -o $(exec) $(objects) $(CFLAGS) $(LDFLAGS) 2>&1 | $(SED2)
