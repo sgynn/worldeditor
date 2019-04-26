@@ -330,11 +330,11 @@ bool DynamicMaterial::compile() {
 	"	vec2 step = 1.0 / size;\n"
 	"	vec2 base = (coord - info.xz) * info.zw;\n"
 	"	a = floor(base * size) * step;\n"
-	"	b = step * one.xy + c;\n"
-	"	c = step * one.yx + c;\n"
+	"	b = step * one.xy + base;\n"
+	"	c = step * one.yx + base;\n"
 	"	// Barycentric coordinates - Check if this condition compiles without branching\n"
 	"	vec3 bary;\n"
-	"	vec2 local = (c - a) / size; // 0-1\n"
+	"	vec2 local = (base - a) * size; // 0-1\n"
 	"	if(local.x+local.y < 1.0) bary.yz = local;\n"
 	"	else { bary.yz = 1.0 - local.yx; a += step; }\n"
 	"	bary.x = 1.0 - bary.y - bary.z;\n"
@@ -357,6 +357,89 @@ bool DynamicMaterial::compile() {
 	"	norm  = texture(normalArray, vec3(coord,ia)) * bary.x;\n"
 	"	norm += texture(normalArray, vec3(coord,ib)) * bary.y;\n"
 	"	norm += texture(normalArray, vec3(coord,ic)) * bary.z;\n"
+	"	norm = vec4(norm.xyz * 2.0 - 1.0, norm.w);\n"
+	"}\n";
+
+	// Alternative indexed sampling
+	source +=
+	"void sampleIndexedQuad(sampler2D map, vec4 info, vec2 size, vec2 coord,  out vec4 diff, out vec4 norm) {\n"
+	"	vec2 one = vec2(1,0);\n"
+	"	vec2 step = 1.0 / size;\n"
+	"	vec2 base = (coord - info.xz) * info.zw;\n"
+	"	vec2 a = floor(base * size) * step;\n"
+	"	vec2 b = step * one.xy + base;\n"
+	"	vec2 c = step * one.yx + base;\n"
+	"	vec2 d = step * one.xx + base;\n"
+	"	// Calculate weights\n"
+	"	vec2 local = (base - a) * size;\n"
+	"	vec4 w = vec4(1-local.yy, local.yy);\n"
+	"	w.xz *= 1-local.xx;\n"
+	"	w.yw *= local.xx;\n"
+	"	// Sample index map\n"
+	"	float ia = texture(map, a).r * 255;\n"
+	"	float ib = texture(map, b).r * 255;\n"
+	"	float ic = texture(map, c).r * 255;\n"
+	"	float id = texture(map, d).r * 255;\n"
+	"	// Sample textures\n"
+	"	diff  = texture(diffuseArray, vec3(coord,ia)) * w.x;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ib)) * w.y;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ic)) * w.z;\n"
+	"	diff += texture(diffuseArray, vec3(coord,id)) * w.w;\n"
+	"	norm  = texture(normalArray, vec3(coord,ia)) * w.x;\n"
+	"	norm += texture(normalArray, vec3(coord,ib)) * w.y;\n"
+	"	norm += texture(normalArray, vec3(coord,ic)) * w.z;\n"
+	"	norm += texture(normalArray, vec3(coord,id)) * w.w;\n"
+	"	norm = vec4(norm.xyz * 2.0 - 1.0, norm.w);\n"
+	"}\n";
+	
+
+	// Weighted indexed sampling - so many texture lookups...
+	source +=
+	"void sampleIndexedWeighted(sampler2D map, sampler2D weights, vec4 info, vec2 size, vec2 coord,  out vec4 diff, out vec4 norm) {\n"
+	"	vec2 one = vec2(1,0);\n"
+	"	vec2 step = 1.0 / size;\n"
+	"	vec2 base = (coord - info.xz) * info.zw;\n"
+	"	vec2 a = floor(base * size) * step;\n"
+	"	vec2 b = step * one.xy + base;\n"
+	"	vec2 c = step * one.yx + base;\n"
+	"	vec2 d = step * one.xx + base;\n"
+	"	// Calculate weights\n"
+	"	vec2 local = (base - a) * size;\n"
+	"	vec4 w = vec4(1-local.yy, local.yy);\n"
+	"	w.xz *= 1-local.xx;\n"
+	"	w.yw *= local.xx;\n"
+	"	// Sample index map\n"
+	"	vec4 ia = texture(map, a) * 255;\n"
+	"	vec4 ib = texture(map, b) * 255;\n"
+	"	vec4 ic = texture(map, c) * 255;\n"
+	"	vec4 id = texture(map, d) * 255;\n"
+	"	// Sample weights\n"
+	"	vec4 wa = texture(weights, a) * 255;\n"
+	"	vec4 wb = texture(weights, b) * 255;\n"
+	"	vec4 wc = texture(weights, c) * 255;\n"
+	"	vec4 wd = texture(weights, d) * 255;\n"
+	"	// Sample textures\n"
+	"	diff  = texture(diffuseArray, vec3(coord,ia.x)) * w.x * wa.x;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ib.x)) * w.y * wb.x;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ic.x)) * w.z * wc.x;\n"
+	"	diff += texture(diffuseArray, vec3(coord,id.x)) * w.w * wd.x;\n"
+	"	diff  = texture(diffuseArray, vec3(coord,ia.y)) * w.x * wa.y;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ib.y)) * w.y * wb.y;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ic.y)) * w.z * wc.y;\n"
+	"	diff += texture(diffuseArray, vec3(coord,id.y)) * w.w * wd.y;\n"
+	"	diff  = texture(diffuseArray, vec3(coord,ia.z)) * w.x * wa.z;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ib.z)) * w.y * wb.z;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ic.z)) * w.z * wc.z;\n"
+	"	diff += texture(diffuseArray, vec3(coord,id.z)) * w.w * wd.z;\n"
+	"	diff  = texture(diffuseArray, vec3(coord,ia.w)) * w.x * wa.w;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ib.w)) * w.y * wb.w;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ic.w)) * w.z * wc.w;\n"
+	"	diff += texture(diffuseArray, vec3(coord,id.w)) * w.w * wd.w;\n"
+	"	// Normals\n"
+	"	norm  = texture(normalArray, vec3(coord,ia.x)) * w.x * wa.x;\n"
+	"	norm += texture(normalArray, vec3(coord,ib.x)) * w.y * wb.x;\n"
+	"	norm += texture(normalArray, vec3(coord,ic.x)) * w.z * wc.x;\n"
+	"	norm += texture(normalArray, vec3(coord,id.x)) * w.w * wd.x;\n"
 	"	norm = vec4(norm.xyz * 2.0 - 1.0, norm.w);\n"
 	"}\n";
 
@@ -415,13 +498,18 @@ bool DynamicMaterial::compile() {
 			break;
 
 		case LAYER_COLOUR:
-			if(!layer->map || !layer->map[0]) valid = false;
+			if(!layer->map.empty()) valid = false;
 			else source +=  "	diff = " + str(layer->map) + "Sample;\n	weight = 1.0;\n";
 			break;
 		case LAYER_INDEXED:
-			// ToDo this one
-			if(!layer->map || !layer->map[0]) valid = false;
-			else source += "	weight=1;\n	sampleIndexed(" + str(layer->map)  + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz, diff, norm);\n";
+			if(layer->map.empty()) valid = false;
+			else {
+				source += "	weight=1;\n";
+				if(layer->map2.empty()) 
+					source += "	sampleIndexedQuad(" + str(layer->map)  + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz, diff, norm);\n";
+				else
+					source += "	sampleIndexedWeighted(" + str(layer->map)  + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz, diff, norm);\n";
+			}
 			break;
 		case LAYER_GRADIENT:
 			// Need a gradient texture, and an input parameter (height/slope/convex?)

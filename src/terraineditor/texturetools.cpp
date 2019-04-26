@@ -76,7 +76,6 @@ void ColourTool::paint(const Brush& b, int flags) {
 	}
 }
 
-
 void IndexTool::paint(const Brush& b, int material) {
 	if(!indexMap) return;
 	Rect r = getRect(b);
@@ -88,9 +87,7 @@ void IndexTool::paint(const Brush& b, int material) {
 		float w = getValue(b, x, y);
 		if(w==0) continue;
 		
-		// Dissolve
-		int rng = ((x * 214013l + 2351011) >> 16) & 0x7fff;
-		if(rng > w * 0x7fff) continue;
+		// TODO: Dissolve - need 2d perlin noise?
 		indexMap->setPixel(x, y, index);
 	}
 }
@@ -107,8 +104,8 @@ void IndexWeightTool::paint(const Brush& b, int material) {
 	float w;
 	int exist, remain, current;
 	ubyte t;
-	ubyte* index = 0;
-	ubyte* weight = 0;
+	ubyte index[4];
+	ubyte weight[4];
 	Point e = r.position() + r.size();
 	for(int x=r.x; x<e.x; ++x) for(int y=r.y; y<e.y; ++y) {
 		w = getValue(b, x, y);
