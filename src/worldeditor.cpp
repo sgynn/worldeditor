@@ -486,8 +486,8 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 		// Set up a material for it ?
 		DynamicMaterial* mat = m_materials->createMaterial(name);
 		mat->setCoordinates(m_terrainSize, m_terrainOffset);
-		MaterialLayer* layer = mat->addLayer(LAYER_COLOUR);
-		layer->name = "Colour";
+		MaterialLayer* layer = mat->addLayer(mode<2? LAYER_COLOUR: LAYER_INDEXED);
+		layer->name = "Map";
 		layer->map = safeName;
 		m_materials->selectMaterial(mat);
 	}

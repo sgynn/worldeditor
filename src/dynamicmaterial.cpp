@@ -200,6 +200,7 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 		EditableTexture* map = src->getMap(*i);
 		if(map) {
 			const Texture& tex = map->getTexture();
+			tex.setFilter(Texture::NEAREST);
 			sprintf(buffer, "%sMap", *i);
 			m_material->getPass(0)->setTexture(buffer, &tex);
 			sprintf(buffer, "%sInfo", *i);

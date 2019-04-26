@@ -18,6 +18,7 @@ SED2 = sed -e 's/undefined reference/\x1b[31;1mundefined reference\x1b[0m/g'
 ifeq ($(OS),Windows_NT)
 LDFLAGS = -lbase -lgdi32 -lopengl32 -static-libgcc -static-libstdc++ -mwindows -lwinmm
 LDFLAGS += -DWIN32
+baselib = /mingw64/lib/libbase.a
 else
 CFLAGS += -DLINUX
 CFLAGE += -lpthread
