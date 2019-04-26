@@ -434,6 +434,7 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 	ToolGroup* group = 0;
 	const char* name = 0;
 	char safeName[32];
+	char safeName2[32];
 	if(size > 8192) return; // TODO: streaming textures
 
 	switch(mode) {
@@ -468,10 +469,10 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 		m_materials->addMap(safeName, tex);
 		createMapData(tex, safeName, 0, USAGE_INDEX);
 
-		strcat(safeName, "W");
+		sprintf(safeName2, "%sW", safeName);
 		tex2 = new EditableTexture(size, size, 4, true);
-		m_materials->addMap(safeName, tex2);
-		createMapData(tex2, safeName, 0, USAGE_INDEXWEIGHT);
+		m_materials->addMap(safeName2, tex2);
+		createMapData(tex2, safeName2, 0, USAGE_INDEXWEIGHT);
 
 		group = new IndexWeightToolGroup(name, tex, tex2);
 		break;
@@ -489,6 +490,7 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 		MaterialLayer* layer = mat->addLayer(mode<2? LAYER_COLOUR: LAYER_INDEXED);
 		layer->name = "Map";
 		layer->map = safeName;
+		if(mode==3) layer->map2 = safeName2;
 		m_materials->selectMaterial(mat);
 	}
 }

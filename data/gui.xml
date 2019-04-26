@@ -110,8 +110,8 @@
 	<template name="iconbuttondark" class="Button" rect="0 0 32 32" skin="darkbutton">
 		<widget name="_icon" class="Icon" rect="0 0 32 32" anchor="tlrb" iconlist="icons"/>
 	</template>
-	<template name="menuoption" class="ToolButton" iconlist="icons" skin="darkbutton" rect="0 0 32 32">
-		<widget name="_icon" class="Icon" rect="0 0 32 32" anchor="tlrb" iconlist="icons"/>
+	<template name="menuoption" class="ToolButton" iconlist="icons" skin="darkbutton" rect="0 0 34 34">
+		<widget name="_icon" class="Icon" rect="1 1 32 32" anchor="tlrb" iconlist="icons"/>
 	</template>
 
 	<template name="dialog" class="Window" rect="0 0 100 100">

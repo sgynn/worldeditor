@@ -213,6 +213,7 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 			}
 		}
 	}
+	m_material->getPass(0)->compile();
 	GL_CHECK_ERROR;
 }
 
@@ -414,24 +415,24 @@ bool DynamicMaterial::compile() {
 	"	vec4 ic = texture(map, c) * 255;\n"
 	"	vec4 id = texture(map, d) * 255;\n"
 	"	// Sample weights\n"
-	"	vec4 wa = texture(weights, a) * 255;\n"
-	"	vec4 wb = texture(weights, b) * 255;\n"
-	"	vec4 wc = texture(weights, c) * 255;\n"
-	"	vec4 wd = texture(weights, d) * 255;\n"
+	"	vec4 wa = texture(weights, a);\n"
+	"	vec4 wb = texture(weights, b);\n"
+	"	vec4 wc = texture(weights, c);\n"
+	"	vec4 wd = texture(weights, d);\n"
 	"	// Sample textures\n"
 	"	diff  = texture(diffuseArray, vec3(coord,ia.x)) * w.x * wa.x;\n"
 	"	diff += texture(diffuseArray, vec3(coord,ib.x)) * w.y * wb.x;\n"
 	"	diff += texture(diffuseArray, vec3(coord,ic.x)) * w.z * wc.x;\n"
 	"	diff += texture(diffuseArray, vec3(coord,id.x)) * w.w * wd.x;\n"
-	"	diff  = texture(diffuseArray, vec3(coord,ia.y)) * w.x * wa.y;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ia.y)) * w.x * wa.y;\n"
 	"	diff += texture(diffuseArray, vec3(coord,ib.y)) * w.y * wb.y;\n"
 	"	diff += texture(diffuseArray, vec3(coord,ic.y)) * w.z * wc.y;\n"
 	"	diff += texture(diffuseArray, vec3(coord,id.y)) * w.w * wd.y;\n"
-	"	diff  = texture(diffuseArray, vec3(coord,ia.z)) * w.x * wa.z;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ia.z)) * w.x * wa.z;\n"
 	"	diff += texture(diffuseArray, vec3(coord,ib.z)) * w.y * wb.z;\n"
 	"	diff += texture(diffuseArray, vec3(coord,ic.z)) * w.z * wc.z;\n"
 	"	diff += texture(diffuseArray, vec3(coord,id.z)) * w.w * wd.z;\n"
-	"	diff  = texture(diffuseArray, vec3(coord,ia.w)) * w.x * wa.w;\n"
+	"	diff += texture(diffuseArray, vec3(coord,ia.w)) * w.x * wa.w;\n"
 	"	diff += texture(diffuseArray, vec3(coord,ib.w)) * w.y * wb.w;\n"
 	"	diff += texture(diffuseArray, vec3(coord,ic.w)) * w.z * wc.w;\n"
 	"	diff += texture(diffuseArray, vec3(coord,id.w)) * w.w * wd.w;\n"
@@ -498,7 +499,7 @@ bool DynamicMaterial::compile() {
 			break;
 
 		case LAYER_COLOUR:
-			if(!layer->map.empty()) valid = false;
+			if(layer->map.empty()) valid = false;
 			else source +=  "	diff = " + str(layer->map) + "Sample;\n	weight = 1.0;\n";
 			break;
 		case LAYER_INDEXED:
@@ -508,7 +509,7 @@ bool DynamicMaterial::compile() {
 				if(layer->map2.empty()) 
 					source += "	sampleIndexedQuad(" + str(layer->map)  + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz, diff, norm);\n";
 				else
-					source += "	sampleIndexedWeighted(" + str(layer->map)  + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz, diff, norm);\n";
+					source += "	sampleIndexedWeighted(" + str(layer->map)  + "Map, " + str(layer->map2) + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz, diff, norm);\n";
 			}
 			break;
 		case LAYER_GRADIENT:
