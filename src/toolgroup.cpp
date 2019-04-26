@@ -1,4 +1,5 @@
 #include "toolgroup.h"
+#include "gui/skin.h"
 #include "gui/widgets.h"
 #include "widgets/colourpicker.h"
 #include "toolgroup.h"
@@ -130,13 +131,20 @@ IndexToolGroup::~IndexToolGroup() {
 }
 void IndexToolGroup::setTextures(int count) {
 	int existing = m_panel->getWidgetCount();
-	// Add new ones
 	gui::IconList* icons = m_root->getIconList("textureIcons");
+	// Add new ones
 	for(int i=existing; i<count; ++i) {
 		Button* b = addButton();
-		b->setIcon(icons, i);
+		b->setIcon(icons, -1);
 		addTool(m_tool, i, i);
 	}
+	// Update icons
+	for(int i=0; i<count; ++i) {
+		Button* b = m_panel->getWidget(i)->cast<Button>();
+		if(i>=icons->size() || icons->getIconRect(i).width==0) b->setIcon(-1);
+		else b->setIcon(i);
+	}
+
 	// Remove extraneous
 	for(int i=count; i<existing; ++i) {
 		Widget* button = m_panel->getWidget(i);

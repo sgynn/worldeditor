@@ -472,6 +472,7 @@ int MaterialEditor::createTextureIcon(const char* name, const DDS& dds) {
 		m_textureIcons->setIconName(index, name);
 	}
 	// Update image
+	if(!dds.data) return index;
 	int skip = 0;
 	while(dds.width>>skip > 64) ++skip;
 	unsigned char* data = dds.data[skip];
