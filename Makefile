@@ -16,7 +16,7 @@ SED = sed -e 's/error/\x1b[31;1merror\x1b[0m/g' -e 's/warning/\x1b[33;1mwarning\
 SED2 = sed -e 's/undefined reference/\x1b[31;1mundefined reference\x1b[0m/g'
 
 ifeq ($(OS),Windows_NT)
-LDFLAGS = -lbase -lgdi32 -lopengl32 -static-libgcc -static-libstdc++ -mwindows -lwinmm
+LDFLAGS = -lbase -lgdi32 -lopengl32 -static-libgcc -static-libstdc++  -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic   -mwindows -lwinmm
 LDFLAGS += -DWIN32
 baselib = /mingw64/lib/libbase.a
 else
