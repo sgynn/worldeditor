@@ -766,16 +766,6 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 		triplanar->addItem("Vertical");
 		triplanar->selectItem( (int)layer->projection );
 		triplanar->eventSelected.bind(this, &MaterialEditor::changeProjection);
-
-		// Texture scale
-		gui::Scrollbar* scaleX = addLayerWidget<gui::Scrollbar>(m_gui, w, "Tiling", "slider");
-		gui::Scrollbar* scaleY = addLayerWidget<gui::Scrollbar>(m_gui, w, 0,        "slider");
-		scaleX->setRange(1, 1000);
-		scaleY->setRange(1, 1000);
-		scaleX->setValue(layer->scale.x*40);
-		scaleY->setValue(layer->scale.y*40);
-		scaleX->eventChanged.bind(this, &MaterialEditor::changeScaleX);
-		scaleY->eventChanged.bind(this, &MaterialEditor::changeScaleY);
 	}
 
 	// Maps
@@ -796,13 +786,22 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 	}
 	else if(layer->type == LAYER_INDEXED) {
 		gui::Combobox* index = addLayerWidget<gui::Combobox>(m_gui, w, "Index Map", "droplist");
-		gui::Combobox* weight = addLayerWidget<gui::Combobox>(m_gui, w, "Weight Map", "droplist");
 		index->eventSelected.bind(this, &MaterialEditor::changeMap);
-		weight->eventSelected.bind(this, &MaterialEditor::changeMap);
 		index->shareList(m_mapSelector);
-		weight->shareList(m_mapSelector);
 		index->selectItem( getListIndex(index, layer->map) );
-		weight->selectItem( getListIndex(weight, layer->map2) );
+		// Second weight texture is automatic
+	}
+
+	// Texture tiling
+	if(layer->type != LAYER_COLOUR) {
+		gui::Scrollbar* scaleX = addLayerWidget<gui::Scrollbar>(m_gui, w, "Tiling", "slider");
+		gui::Scrollbar* scaleY = addLayerWidget<gui::Scrollbar>(m_gui, w, 0,        "slider");
+		scaleX->setRange(1, 1000);
+		scaleY->setRange(1, 1000);
+		scaleX->setValue(layer->scale.x*40);
+		scaleY->setValue(layer->scale.y*40);
+		scaleX->eventChanged.bind(this, &MaterialEditor::changeScaleX);
+		scaleY->eventChanged.bind(this, &MaterialEditor::changeScaleY);
 	}
 
 
@@ -876,6 +875,10 @@ void MaterialEditor::rebuildMaterial(bool bindMaps) {
 }
 
 void MaterialEditor::changeMap(gui::Combobox* w, int i) {
+	char secondMap[64];
+	snprintf(secondMap, 64, "%sW", w->getItem(i));
+	if(m_imageMaps.contains(secondMap)) getLayer(w)->map2 = secondMap;
+
 	getLayer(w)->map = w->getItem(i);
 	rebuildMaterial(true);
 	eventChangeMaterial( m_materials[m_selectedMaterial] );	// Reapply material to all terrain patches

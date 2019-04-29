@@ -105,28 +105,26 @@ void IndexWeightTool::paint(const Brush& b, int material) {
 	int exist, remain, current;
 	ubyte t;
 	ubyte index[4];
-	ubyte weight[4];
+	ubyte weight[5] = { 0,0,0,0,0 };
 	Point e = r.position() + r.size();
 	for(int x=r.x; x<e.x; ++x) for(int y=r.y; y<e.y; ++y) {
 		w = getValue(b, x, y);
 		if(w==0) continue;
 		weightMap->getPixel(x, y, weight);
 		if(w*255 <= weight[channels-1]) continue; // No change
+		weight[channels] = 0;
 
 		indexMap->getPixel(x, y, index);
 		ubyte& buffer = *this->buffer->value(x, y);
 
 		// get existing weight for this material
-		for(exist=0; exist<4; ++exist)
+		for(exist=0; exist<channels; ++exist)
 			if(index[exist]==material || weight[exist]==0) break;
 
 		// Calculate value using paintBuffer
-		if(buffer == 0) buffer = exist<4? weight[exist]: 0;
-		w = exist<channels? fmax(weight[exist], buffer + w*255): w*255;
-		if(exist == 4) {
-			if(weight[exist]<w) --exist;
-			else continue;
-		}
+		if(buffer == 0) buffer = weight[exist]? weight[exist]: 1;
+		w = fmax(weight[exist], buffer + w*255);
+		if(exist==channels && (--exist,true) && weight[exist] < weight[exist+1]) continue;
 
 		// Set value
 		weight[exist] = w<255? w: 255;
