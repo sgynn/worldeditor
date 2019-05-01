@@ -116,6 +116,7 @@ bool EditableTexture::flush() {
 bool EditableTexture::save(const char* filename) {
 	if(m_mode == STREAM || m_mode == TEXTURESTREAM) {
 		m_stream->flush();
+		// TODO: If filename is dufferent, copy file
 		return true;
 	}
 

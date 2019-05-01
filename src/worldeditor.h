@@ -9,6 +9,7 @@
 #include "scene/scene.h"
 #include "terraineditor/editor.h"
 #include "toolgroup.h"
+#include "filesystem.h"
 #include <list>
 
 class EditableTexture;
@@ -18,6 +19,8 @@ class MiniMap;
 
 namespace gui { class Button; class Combobox; class Scrollbar; class Window; }
 namespace base { class INIFile; }
+
+enum HeightFormat { HEIGHT_UINT8, HEIGHT_UINT16, HEIGHT_FLOAT };
 
 class WorldEditor : public base::SceneState {
 	public:
@@ -31,7 +34,7 @@ class WorldEditor : public base::SceneState {
 
 	void resized();
 	void clear();
-	void create(int size, float res, float scale, bool streamed);
+	void create(int size, float res, float scale, HeightFormat format, bool streamed);
 	void loadWorld(const char* file);
 	void saveWorld(const char* file);
 
@@ -82,7 +85,7 @@ class WorldEditor : public base::SceneState {
 
 	private:
 	Scene*   m_scene;
-	Library* m_library;
+	FileSystem* m_fileSystem;
 
 	// Terrain properies
 	bool m_streaming;
@@ -90,7 +93,7 @@ class WorldEditor : public base::SceneState {
 	vec2 m_terrainSize;
 	float m_terrainScale;
 	gui::String m_terrainFile;
-	int m_terrainType;
+	HeightFormat m_heightFormat;
 
 
 	gui::String    m_file;
@@ -105,8 +108,16 @@ class WorldEditor : public base::SceneState {
 	std::vector<BufferedStream*> m_streams;
 
 	// Image map data
-	enum MapUsage { USAGE_COLOUR, USAGE_WEIGHT, USAGE_INDEX, USAGE_INDEXWEIGHT };
-	struct ImageMapData { EditableTexture* map; gui::String file; gui::String name; gui::String link; MapUsage usage; };
+	enum MapUsage { USAGE_COLOUR, USAGE_WEIGHT, USAGE_INDEX };
+	struct ImageMapData {
+		EditableTexture* map;
+		EditableTexture* map2;
+		gui::String file;	// Image file
+		gui::String file2;	// Second file if using index modes that need more channels
+		gui::String name;	// Image name
+		int         layers;	// Index layer count
+		MapUsage 	usage;	// usage hint
+	};
 	std::vector<ImageMapData*> m_imageMaps;
 	ImageMapData* createMapData(EditableTexture* tex, const char* name, const char* file, MapUsage usage); 
 	int createUniqueMapName(const char* pattern, char* out) const;

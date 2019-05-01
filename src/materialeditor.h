@@ -7,7 +7,7 @@
 #include "gui/lists.h"
 
 namespace base { class XMLElement; class Texture; }
-class Library;
+class FileSystem;
 class EditableTexture;
 
 /** Texture data */
@@ -16,11 +16,13 @@ struct TerrainTexture {
 	gui::String name;
 	gui::String diffuse;
 	gui::String normal;
+	gui::String height;
+	float       tiling;
 };
 
 class MaterialEditor {
 	public:
-	MaterialEditor(gui::Root* gui, Library* lib, bool streaming);
+	MaterialEditor(gui::Root* gui, FileSystem* fs, bool streaming);
 	~MaterialEditor();
 	void setupGui();
 	void selectMaterial(DynamicMaterial*);
@@ -39,13 +41,13 @@ class MaterialEditor {
 	TerrainTexture*  getTexture(int index) const;
 	TerrainTexture*  createTexture(const char* name);
 	void             destroyTexture(int index);
-	void             loadTexture(const base::XMLElement&);
-	bool             loadTexture(ArrayTexture*, const char*) const;
+	void             loadTexture(const base::XMLElement&, int layer);
 	base::XMLElement serialiseTexture(int index);
 	void             buildTextures();
 
 	const base::Texture& getDiffuseArray() const;
 	const base::Texture& getNormalArray() const;
+	const base::Texture& getHeightArray() const;
 
 	// Maps
 	void addMap(const char* name, EditableTexture*);
@@ -120,14 +122,17 @@ class MaterialEditor {
 	int  createTextureIcon(const char* name, const base::DDS& dds);
 	void deleteTextureIcon(const char* name);
 
+	void loadTexture(ArrayTexture* target, int layer, const char* file, bool icon=false);
+
 	protected:	// Data
 	ArrayTexture m_diffuseMaps;
 	ArrayTexture m_normalMaps;
+	ArrayTexture m_heightMaps;
 	std::vector<DynamicMaterial*> m_materials;		// Materials
 	std::vector<TerrainTexture*>  m_textures;		// Textures
 	base::HashMap<EditableTexture*> m_imageMaps;	// Image maps
 	bool           m_streaming;				// Use streamed textures
-	Library*       m_library;				// Library to get data
+	FileSystem*    m_fileSystem;			// For finding files
 	gui::Root*     m_gui;					// Gui
 	base::Texture  m_textureIconTexture;	// Atlas of texture icons
 	gui::IconList* m_textureIcons;		

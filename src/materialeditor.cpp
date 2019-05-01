@@ -1,4 +1,5 @@
 #include "materialeditor.h"
+#include "filesystem.h"
 #include "terraineditor/editabletexture.h"
 #include "resource/library.h"
 #include "widgets/filedialog.h"
@@ -13,7 +14,7 @@
 using namespace base;
 
 
-MaterialEditor::MaterialEditor(gui::Root* gui, Library* lib, bool stream): m_streaming(stream), m_library(lib), m_gui(gui) {
+MaterialEditor::MaterialEditor(gui::Root* gui, FileSystem* fs, bool stream): m_streaming(stream), m_fileSystem(fs), m_gui(gui) {
 	// Selector lists
 	m_mapSelector = new gui::ItemList();
 	m_textureSelector = new gui::ItemList();
@@ -248,30 +249,19 @@ void MaterialEditor::destroyTexture(int index) {
 	m_textureSelector->removeItem(index);
 }
 
-bool MaterialEditor::loadTexture(ArrayTexture* array, const char* file) const {
-	static char path[512];
-	if(file && file[0]) {
-		if(m_library->findFile(file, path)) {
-			DDS dds = DDS::load(path);
-			if(dds.format != DDS::INVALID) {
-				array->addTexture(dds);
-				return true;
-			} else printf("Error: Failed to load %s\n", path);
-		} else printf("Error: File not found: %s\n", file);
-	}
-	array->addBlankTexture();
-	return false;
-}
-
-void MaterialEditor::loadTexture(const XMLElement& e) {
+void MaterialEditor::loadTexture(const XMLElement& e, int layer) {
 	TerrainTexture* tex = createTexture( e.attribute("name") );
+	tex->tiling = e.attribute("tiling", 1.0f);
 	for(XML::iterator i=e.begin(); i!=e.end(); ++i) {
 		if(*i == "diffuse") tex->diffuse = i->attribute("file");
 		else if(*i == "normal") tex->normal = i->attribute("file");
+		else if(*i == "height") tex->height = i->attribute("file");
 	}
 	// load files
-	loadTexture( &m_diffuseMaps, tex->diffuse );
-	loadTexture( &m_normalMaps, tex->normal );
+	loadTexture( &m_diffuseMaps, layer, tex->diffuse, true);
+	loadTexture( &m_normalMaps, layer, tex->normal );
+	loadTexture( &m_heightMaps, layer, tex->height );
+
 	// Update gui
 	addTextureGUI(tex);
 }
@@ -280,16 +270,20 @@ XMLElement MaterialEditor::serialiseTexture(int index) {
 	TerrainTexture* tex = getTexture(index);
 	XMLElement e("texture");
 	e.setAttribute("name", tex->name);
-	if(!tex->diffuse.empty()) e.add("diffuse").setAttribute("file", tex->diffuse);
-	if(!tex->normal.empty()) e.add("normal").setAttribute("file", tex->normal);
+	e.setAttribute("tiling", tex->tiling);
+	if(!tex->diffuse.empty()) e.add("diffuse").setAttribute("file", m_fileSystem->getRelative(tex->diffuse));
+	if(!tex->normal.empty()) e.add("normal").setAttribute("file", m_fileSystem->getRelative(tex->normal));
+	if(!tex->height.empty()) e.add("height").setAttribute("file", m_fileSystem->getRelative(tex->height));
 	return e;
 }
 
 void MaterialEditor::buildTextures() {
 	int rd = m_diffuseMaps.build();
 	int rn = m_normalMaps.build();
+	int rh = m_heightMaps.build();
 	if(rd) printf("Error: Texture %s is incompatible\n", (const char*)m_textures[rd&0xff]->diffuse);
 	if(rn) printf("Error: Texture %s is incompatible\n", (const char*)m_textures[rn&0xff]->normal);
+	if(rh) printf("Error: Texture %s is incompatible\n", (const char*)m_textures[rn&0xff]->height);
 }
 
 const base::Texture& MaterialEditor::getDiffuseArray() const {
@@ -297,6 +291,9 @@ const base::Texture& MaterialEditor::getDiffuseArray() const {
 }
 const base::Texture& MaterialEditor::getNormalArray() const {
 	return m_normalMaps.getTexture();
+}
+const base::Texture& MaterialEditor::getHeightArray() const {
+	return m_heightMaps.getTexture();
 }
 
 // ------------------------------------------------------------------------------ //
@@ -390,6 +387,10 @@ void MaterialEditor::addTextureGUI(TerrainTexture* tex) {
 	for(int i=0; i<w->getWidgetCount(); ++i) {
 		w->getWidget(i)->eventGainedFocus.bind(this, &MaterialEditor::selectTexture);
 	}
+	// Icon
+	int layer = m_textureList->getWidgetCount() - 1;
+	if(layer < m_textureIcons->size()) w->getWidget<gui::Icon>("textureicon")->setIcon(m_textureIcons, layer);
+	
 }
 
 void MaterialEditor::addTexture(gui::Button*) {
@@ -491,6 +492,29 @@ void MaterialEditor::deleteTextureIcon(const char* name) {
 	}
 }
 
+void MaterialEditor::loadTexture(ArrayTexture* array, int layer, const char* filename, bool icon) {
+	String file = m_fileSystem->getFile(filename);
+	DDS dds = DDS::load( file );
+	if(dds.format != DDS::INVALID) {
+		// Image icon
+		if(icon) {
+			char iconName[16];
+			sprintf(iconName, "mat%d\n", layer);
+			createTextureIcon(iconName, dds);
+		}
+
+		// Transfer into texture array
+		array->setTexture(layer, dds);
+		int r = array->build();
+		if(r) printf("Error: Texture %s is incompatible\n", file.str());
+
+		// Update active material
+		if(m_selectedMaterial>=0)
+			m_materials[m_selectedMaterial]->setTextures(this);
+	}
+	else printf("Error: Failed to load %s\n", file.str());
+}
+
 void MaterialEditor::setTexture(const char* file) {
 	if(m_browseTarget<0) return;
 	// Local file?
@@ -513,23 +537,8 @@ void MaterialEditor::setTexture(const char* file) {
 	// Load texture
 	int layer = m_browseTarget & 0xff;
 	ArrayTexture* array = type==NORMAL? &m_normalMaps: &m_diffuseMaps;
-	DDS dds = DDS::load(file);
-	if(dds.format != DDS::INVALID) {
-		// Image icon
-		if(type==DIFFUSE) {
-			char iconName[16];
-			sprintf(iconName, "mat%d\n", layer);
-			int icon = createTextureIcon(iconName, dds);
-			w->getWidget<gui::Icon>("textureicon")->setIcon(m_textureIcons, icon);
-		}
-
-		// Transfer into texture array
-		array->setTexture(layer, dds);
-		int r = array->build();
-		if(r) printf("Error: Texture %s is incompatible\n", file);
-		m_materials[m_selectedMaterial]->setTextures(this);
-
-	} else printf("Error: Failed to load %s\n", file);
+	loadTexture(array, layer, file, type==DIFFUSE);
+	w->getWidget<gui::Icon>("textureicon")->setIcon(m_textureIcons, layer);
 
 	if(eventChangeTextureList) eventChangeTextureList();
 }
@@ -542,21 +551,12 @@ void MaterialEditor::reloadTexture(gui::Button*) {
 	if(strcmp( m_gui->getFocusedWidget()->getName(), "diffuse") == 0) {
 		array = &m_diffuseMaps;
 		file = m_textures[m_selectedTexture]->diffuse;
+		loadTexture(array, m_selectedTexture, file);
 	}
 	else if(strcmp( m_gui->getFocusedWidget()->getName(), "normal") == 0) {
 		array = &m_normalMaps;
 		file = m_textures[m_selectedTexture]->normal;
-	}
-	// Load it
-	if(file) {
-		printf("Reloading %s\n", file);
-		DDS dds = DDS::load(file);
-		if(dds.format != DDS::INVALID) {
-			array->setTexture(m_selectedTexture, dds);
-			int r = array->build();
-			if(r) printf("Error: Texture %s is incompatible\n", file);
-			m_materials[m_selectedMaterial]->setTextures(this);
-		} else printf("Error: Failed to load %s\n", file);
+		loadTexture(array, m_selectedTexture, file);
 	}
 }
 

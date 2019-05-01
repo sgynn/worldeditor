@@ -316,13 +316,16 @@
 		<widget caption="Remove" class="Button" name="removetexture" rect="80 344 64 20" skin="button" anchor="br"/>
 		<widget caption="Reload" class="Button" name="reloadtexture" rect="152 344 72 20" skin="button" anchor="br"/>
 	</widget>
-	<template class="Widget" rect="24 920 216 64" name="textureitem" anchor="tlr" skin="border">
-		<widget class="Textbox" text="Name" name="texturename" rect="65 2 143 20" anchor="tlr"/>
-		<widget class="Textbox" rect="64 24 128 20" name="diffuse" text="diffuse map" anchor="tlr"/>
+	<template class="Widget" rect="24 920 216 100" name="textureitem" anchor="tlr" skin="border">
+		<widget class="Icon" rect="4 4 92 92" name="textureicon" tangible="0"/>
+		<widget class="Textbox" text="Name" name="texturename" rect="102 2 106 20" anchor="tlr"/>
+		<widget class="Textbox" rect="100 24 92 20" name="diffuse" text="diffuse map" anchor="tlr"/>
 		<widget class="Button" rect="192 24 16 20" name="browse_diffuse" skin="button" caption="..." anchor="tr"/>
-		<widget class="Textbox" rect="64 42 128 20" name="normal" text="normal map" anchor="tlr"/>
+		<widget class="Textbox" rect="100 42 92 20" name="normal" text="normal map" anchor="tlr"/>
 		<widget class="Button" rect="192 42 16 20" name="browse_normal" skin="button" caption="..." anchor="tr"/>
-		<widget class="Icon" rect="0 0 64 64" name="textureicon" tangible="0"/>
+		<widget class="Textbox" rect="100 60 92 20" name="height" text="height map" anchor="tlr"/>
+		<widget class="Button" rect="192 60 16 20" name="browse_height" skin="button" caption="..." anchor="tr"/>
+		<widget template="slider" rect="100 78 108 20" name="tiling" anchor="tlr" value="50"/>
 	</template>
 
 	<!-- Colour picker -->

@@ -72,8 +72,7 @@ int main(int argc, char* argv[]) {
 
 WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_materials(0) {
 	m_scene = new Scene;
-	m_library = new Library;
-	m_library->addPath("data");
+	m_fileSystem = new FileSystem;
 
 	// Load editor options
 	INIFile::Section options = ini["settings"];
@@ -364,11 +363,11 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	int size = panel->getWidget<Combobox>("size")->getSelectedData().getValue(128);
 	float height = panel->getWidget<Spinbox>("height")->getValue();
 	switch(mode) {
-	case 0: create(size, 1, height, false); break;
-	case 1: create(size, 1, height, false); break;
-	case 2: create(size, 1, height, false); break;
-	case 3: create(size, 1, height, true); break;
-	case 4: create(size, 1, height, true); break;
+	case 0: create(size, 1, height, HEIGHT_FLOAT, false); break;
+	case 1: create(size, 1, height, HEIGHT_UINT8, false); break;
+	case 2: create(size, 1, height, HEIGHT_UINT16, false); break;
+	case 3: create(size, 1, height, HEIGHT_UINT8, true); break;
+	case 4: create(size, 1, height, HEIGHT_UINT16, true); break;
 	}
 	// ToDo: convert source
 }
@@ -407,9 +406,9 @@ void WorldEditor::setTerrainSource(const char* file) {
 WorldEditor::ImageMapData* WorldEditor::createMapData(EditableTexture* tex, const char* name, const char* file, MapUsage usage) {
 	ImageMapData* map = new ImageMapData();
 	map->map = tex;
+	map->map2 = 0;
 	map->file = file;
 	map->name = name;
-	map->link = 0;
 	map->usage = usage;
 	m_imageMaps.push_back(map);
 	return map;
@@ -431,6 +430,7 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 	int size = atoi(panel->getWidget<Combobox>("editorsize")->getSelectedItem());
 	EditableTexture* tex = 0;
 	EditableTexture* tex2 = 0;
+	ImageMapData* img = 0;
 	ToolGroup* group = 0;
 	const char* name = 0;
 	char safeName[32];
@@ -467,12 +467,11 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 		createUniqueMapName("index%d", safeName);
 		tex = new EditableTexture(size, size, 4, true);
 		m_materials->addMap(safeName, tex);
-		createMapData(tex, safeName, 0, USAGE_INDEX);
+		img = createMapData(tex, safeName, 0, USAGE_INDEX);
 
 		sprintf(safeName2, "%sW", safeName);
-		tex2 = new EditableTexture(size, size, 4, true);
+		img->map2 = tex2 = new EditableTexture(size, size, 4, true);
 		m_materials->addMap(safeName2, tex2);
-		createMapData(tex2, safeName2, 0, USAGE_INDEXWEIGHT);
 
 		group = new IndexWeightToolGroup(name, tex, tex2);
 		break;
@@ -758,11 +757,12 @@ inline const char* cat(const char* a, const char* b, const char* c=0, const char
 	return buffer;
 }
 
-void WorldEditor::create(int size, float res, float scale, bool streamed) {
+void WorldEditor::create(int size, float res, float scale, HeightFormat format, bool streamed) {
 	clear();
+	m_heightFormat = format;
 	if(streamed) {
 		Streamer* map = new Streamer(scale);
-		map->createStream("tmp.tiff", size, size, 1, 16);
+		map->createStream("tmp.tiff", size, size, 1, format==HEIGHT_UINT8? 8: 16);
 		map->setLod( m_options.detail );
 		map->addToScene(m_scene);
 		m_heightMap = new StreamingHeightmapEditor(map);
@@ -787,7 +787,7 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 		printf("Created %dx%d heightmap\n", size,size);
 	}
 	// Setup material editor
-	m_materials = new MaterialEditor(m_gui, m_library, m_streaming);
+	m_materials = new MaterialEditor(m_gui, m_fileSystem, m_streaming);
 	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
 	m_materials->eventChangeTextureList.bind(this, &WorldEditor::textureListChanged);
 	m_materials->addMaterial(0);
@@ -812,7 +812,9 @@ void WorldEditor::create(int size, float res, float scale, bool streamed) {
 
 void WorldEditor::loadWorld(const char* file) {
 	clear();
-	char path[512]; directory(file, path);
+	m_fileSystem->setRootPath(file, true);
+	m_file = file;
+
 	XML xml = XML::load(file);
 	if(!(xml.getRoot() == "scene")) {
 		messageBox("Load error", "Invalid scene file");
@@ -827,22 +829,19 @@ void WorldEditor::loadWorld(const char* file) {
 		return;
 	}
 
-	m_library->addPath(path);
-
 	// Terrain info
 	char buffer[2058];
 	int size = terrain.attribute("width", 0);
 	const XMLElement& info = terrain.find("data");
 	float res = info.attribute("resolution", 1.f);
 	float scale = info.attribute("scale", 1.f);
-	const char* source = info.attribute("file");
-	const char* format = info.attribute("type");
-	if(!m_library->findFile(source, buffer)) {
-		messageBox("Error", "Could not find file %s", source);
+	String format = info.attribute("type");
+	m_terrainFile = m_fileSystem->getFile( info.attribute("file") );
+	if(!m_terrainFile) {
+		messageBox("Error", "Could not find file %s", m_terrainFile.str());
 		return;
 	}
-	m_terrainFile = buffer;
-	m_file = file;
+
 
 	Streamer* streamer = 0;
 	SimpleHeightmap* simple = 0;
@@ -863,35 +862,43 @@ void WorldEditor::loadWorld(const char* file) {
 			m_terrainScale = scale;
 			m_terrainSize.x = m_terrainSize.y = size-1;
 			m_streams.push_back(streamer);
+			m_heightFormat = streamer->pixelSize()==1? HEIGHT_UINT8: HEIGHT_UINT16;
 		} else {
-			messageBox("Load error", "Failed to open stream %s", cat(path, source));
-			return;	
+			messageBox("Load error", "Failed to open stream %s", m_terrainFile.str());
+			return;
 		}
 	}
 	else {
-		if(strcmp(format, "float")==0) {
+		if(format == "float") {
 			simple = new SimpleHeightmap();
 			File data = File::load( m_terrainFile );
 			simple->create(size, size, res, (const float*) data.contents());
 			simple->addToScene(m_scene);
+			m_heightFormat = HEIGHT_FLOAT;
 			m_heightMap = new SimpleHeightmapEditor(simple);
 			m_terrainOffset = vec2();
 			m_objects["terrain"] = simple;
 			m_streaming = false;
 		}
+		else if(format="png") {
+			PNG png = PNG::load( m_terrainFile );
+			simple = new SimpleHeightmap();
+			simple->create(size, size, res, png.data, 4, scale);
+		}
 		else {
-			messageBox("Load error", "Invalid terrain format %s", format);
+			// ToDo: Load texture formats
+			messageBox("Load error", "Invalid terrain format %s", format.str());
 			return;
 		}
 	}
 
 	// Load materials
-	m_materials = new MaterialEditor(m_gui, m_library, m_streaming);
+	m_materials = new MaterialEditor(m_gui, m_fileSystem, m_streaming);
 	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
 	m_materials->eventChangeTextureList.bind(this, &WorldEditor::textureListChanged);
 	for(XML::iterator i=terrain.begin(); i!=terrain.end(); ++i) {
 		if(*i == "material") m_materials->loadMaterial(*i);
-		else if(*i == "texture") m_materials->loadTexture(*i);
+		else if(*i == "texture") m_materials->loadTexture(*i, m_materials->getTextureCount());
 	}
 	m_materials->buildTextures();	// Build texture arrays
 	
@@ -907,10 +914,10 @@ void WorldEditor::loadWorld(const char* file) {
 	const char* textureUsage[] = { "colour", "weight", "index", "indexweight" };
 	for(XML::iterator m=terrain.begin(); m!=terrain.end(); ++m) {
 		if(*m == "map") {
-			const char* usage = m->attribute("usage");
-			const char* file  = m->attribute("file");
-			const char* name  = m->attribute("name");
-			const char* link  = m->attribute("link");
+			const char* usage    = m->attribute("usage");
+			const char* name     = m->attribute("name");
+			const char* fileName = m->attribute("file");
+			const char* second   = m->attribute("file2");
 			bool stream = m->attribute("stream", 0);
 			MapUsage use = (MapUsage)enumerate(usage, textureUsage, 4);
 			
@@ -920,29 +927,59 @@ void WorldEditor::loadWorld(const char* file) {
 				continue;
 			}
 
-			// resolve filename
-			if(!m_library->findFile(file, buffer)) {
-				messageBox("Error", "Could not find file %s", file);
+			// resolve map files
+			String file = m_fileSystem->getFile(fileName);
+			if(!m_fileSystem->exists(file)) {
+				messageBox("Error", "Could not find file %s", file.str());
 				continue;
 			}
+			String file2 = second? m_fileSystem->getFile(second): 0;
+			if(!m_fileSystem->exists(file2)) {
+				messageBox("Error", "Could not find file %s", file2.str());
+				continue;
+			}
+
 
 			// Create texture
 			EditableTexture* tex = 0;
 			if(stream) {
 				TextureStream* ts = new TextureStream();
-				if(ts->openStream(buffer)) {
+				if(ts->openStream(file)) {
 					tex = new EditableTexture(ts);
 					ts->initialise(2048, true);
 					m_streams.push_back(ts);
-				} else messageBox("Error", "Failed to open stream %s", file);
+				} else messageBox("Error", "Failed to open stream %s", file.str());
 			} else {
-				tex = new EditableTexture(buffer, true);
+				tex = new EditableTexture(file, true);
+			}
+	
+			// Second texture
+			EditableTexture* tex2 = 0;
+			if(second) {
+				if(stream) {
+					TextureStream* ts = new TextureStream();
+					if(ts->openStream(file2)) {
+						tex2 = new EditableTexture(ts);
+						ts->initialise(2048, true);
+						m_streams.push_back(ts);
+					} else messageBox("Error", "Failed to open stream %s", file2.str());
+				} else {
+					tex2 = new EditableTexture(file2, true);
+				}
 			}
 
 			// Add texture to world
 			if(!tex) continue;
 			m_materials->addMap(name, tex);
-			createMapData(tex, name, file, use)->link = link;
+			ImageMapData* img = createMapData(tex, name, file, use);
+			if(tex2) {
+				img->map2 = tex2;
+				img->file2 = file2;
+				sprintf(buffer, "%sW", name);
+				m_materials->addMap(buffer, tex2);
+
+			}
+
 
 			// Create tool
 			ToolGroup* g = 0;
@@ -954,21 +991,15 @@ void WorldEditor::loadWorld(const char* file) {
 			case USAGE_WEIGHT: // Map
 				g = new WeightToolGroup(name, tex);
 				break;
-				
-			case USAGE_INDEXWEIGHT:	// Weight
-				if(*link==0) g = new WeightToolGroup(name, tex);
-				else if(m_materials->getMap(link)) {
-					g = new IndexWeightToolGroup( "Indexed Material", m_materials->getMap(link), tex);
-				}
-				break;
 
-			case USAGE_INDEX:	// index
-				if(!link==0) g = new IndexToolGroup("Indexed Material", tex);
-				else if(m_materials->getMap(link)) {
-					g = new IndexWeightToolGroup( "Indexed Material", tex, m_materials->getMap(link));
+			case USAGE_INDEX:
+				switch(m->attribute("layers", 1)) {
+				case 1: g = new IndexToolGroup(name, tex); break;
+				case 4: g = new IndexWeightToolGroup(name, tex, tex2); break;
+				default: messageBox("Error", "Invalud number of layers in index map %s", name);
 				}
-				break;
 			}
+
 			// Add tool to list
 			if(g) {
 				g->setup(m_gui);
@@ -1006,9 +1037,11 @@ void WorldEditor::loadWorld(const char* file) {
 	ENABLE_BUTTON( "materialbutton" )
 	ENABLE_BUTTON( "texturebutton" )
 }
+
 void WorldEditor::saveWorld(const char* file) {
-	if(m_file!=file) m_file = file;
-	char path[512]; directory(file, path);
+	if(!file && !m_file) return;
+	if(m_file != file) m_file = file;
+	m_fileSystem->setRootPath(m_file, true);
 	char buffer[1024];
 
 	// Flush all streams
@@ -1043,18 +1076,29 @@ void WorldEditor::saveWorld(const char* file) {
 		e.add( m_materials->serialiseTexture(i) );
 	}
 	// Maps
-	static const char* U[] = { "colour", "weight", "index", "indexweight" };
-	for(uint i=0; i<m_imageMaps.size(); ++i) {
-		XMLElement& map = e.add("map");
-		map.setAttribute("name", m_imageMaps[i]->name);
-		map.setAttribute("file", m_imageMaps[i]->file);
-		map.setAttribute("usage", U[m_imageMaps[i]->usage]);
-		if(m_imageMaps[i]->map->getMode() >= EditableTexture::STREAM) map.setAttribute("stream", 1);
+	static const char* U[] = { "colour", "weight", "index" };
+	for(ImageMapData* data: m_imageMaps) {
+		bool stream = data->map->getMode() >= EditableTexture::STREAM;
 
-		if(Directory::isRelative( m_imageMaps[i]->file)) {
-			sprintf(buffer, "%s/%s", path, (const char*)m_imageMaps[i]->file);
-			m_imageMaps[i]->map->save( buffer );
-		} else m_imageMaps[i]->map->save( m_imageMaps[i]->file );
+		// Need some filenames
+		if(!data->file) {
+			const char* ext = stream? ".tif": ".png";
+			data->file = m_fileSystem->getFile( cat(data->name, ext));
+			if(data->map2) data->file2 = m_fileSystem->getFile( cat(data->name, "W", ext) );
+		}
+
+		// Save images
+		data->map->save( m_fileSystem->getRelative(data->file) );
+		if(data->map2) data->map2->save( m_fileSystem->getRelative(data->file2) );
+
+
+		// Save definition
+		XMLElement& map = e.add("map");
+		map.setAttribute("name", data->name);
+		map.setAttribute("file", m_fileSystem->getRelative(data->file));
+		map.setAttribute("usage", U[data->usage]);
+		if(data->map2) map.setAttribute("file2", m_fileSystem->getRelative(data->file2));
+		if(stream) map.setAttribute("stream", 1);
 	}
 
 	// Save editor camera position (temp)
