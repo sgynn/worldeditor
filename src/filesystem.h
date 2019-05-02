@@ -11,7 +11,9 @@ class FileSystem {
 	String getFile(const char*);		/// get file from relative path
 	String getRelative(const char*);	/// create a relative path
 	bool exists(const char*) const;
-	void copyFile(const char* dest, const char* tempPath);
+	void copyFile(const char* dest, const char* source);
+	String addTemporaryFile(const char* name);
+	void copyTemporaryFiles();
 
 	private:
 	String m_rootPath;

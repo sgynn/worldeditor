@@ -150,8 +150,8 @@ DynamicMaterial* MaterialEditor::loadMaterial(const XMLElement& e) {
 				layer->map = i->attribute("map");
 				layer->mapData = enumerate(i->attribute("channel", "r"), channels, 5);
 			} else {
-				layer->map = i->attribute("weightmap");
-				layer->map2 = i->attribute("indexmap");
+				layer->map = i->attribute("indexmap");
+				layer->map2 = i->attribute("weightmap");
 				layer->mapData = i->attribute("offset", 0);
 			}
 
@@ -213,8 +213,8 @@ XMLElement MaterialEditor::serialiseMaterial(int index) {
 			layer.setAttribute("map", l->map);
 			break;
 		case LAYER_INDEXED:
-			layer.setAttribute("weightmap", l->map);
-			layer.setAttribute("heightmap", l->map2);
+			layer.setAttribute("indexmap", l->map);
+			layer.setAttribute("weightmap", l->map2);
 			break;
 		case LAYER_GRADIENT:
 			printf("TODO: save gradient layer\n");
@@ -493,6 +493,7 @@ void MaterialEditor::deleteTextureIcon(const char* name) {
 }
 
 void MaterialEditor::loadTexture(ArrayTexture* array, int layer, const char* filename, bool icon) {
+	if(!filename) return;
 	String file = m_fileSystem->getFile(filename);
 	DDS dds = DDS::load( file );
 	if(dds.format != DDS::INVALID) {

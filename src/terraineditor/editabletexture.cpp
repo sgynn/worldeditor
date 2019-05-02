@@ -15,7 +15,10 @@ using namespace base;
 EditableTexture::EditableTexture(int w, int h, int ch, bool gpu) : m_mode(gpu? TEXTURE: IMAGE), m_width(w), m_height(h), m_channels(ch) {
 	m_data = new ubyte[w * h * ch];
 	memset(m_data, 0, w*h*ch);
-	if(gpu) m_texture = Texture::create(w, h, ch, m_data);
+	if(gpu) {
+		m_texture = Texture::create(w, h, ch, m_data);
+		m_texture.setWrap( Texture::CLAMP );
+	}
 }
 
 EditableTexture::EditableTexture(const char* filename, bool gpu) : m_mode(gpu? TEXTURE: IMAGE), m_channels(0), m_data(0) {
@@ -50,6 +53,7 @@ EditableTexture::EditableTexture(const char* filename, bool gpu) : m_mode(gpu? T
 	// Make texture
 	if(m_data && gpu) {
 		m_texture = Texture::create(m_width, m_height, m_channels, m_data);
+		m_texture.setWrap( Texture::CLAMP );
 	}
 }
 

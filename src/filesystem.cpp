@@ -9,6 +9,8 @@ void FileSystem::setRootPath(const char* path, bool isAFile) {
 		char buffer[2048];
 		strcpy(buffer, path);
 		char* c = strrchr(buffer, '/');
+		char* cw = strrchr(buffer, '\\');
+		if(cw > c) c = cw;
 		if(c) *c = 0;
 		m_rootPath = buffer;
 	}

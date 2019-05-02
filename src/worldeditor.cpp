@@ -742,12 +742,6 @@ inline int enumerate(const char* key, const char** values, int size) {
 	return -1;
 }
 
-inline void directory(const char* path, char* dir) {
-	strcpy(dir, path);
-	for(int i=strlen(dir); i>=0 && dir[i]!='/' && dir[i]!='\\'; --i) dir[i] = 0;
-	int l = strlen(dir);
-	if(l==0 || (dir[l-1]!='/' && dir[l-1]!='\\')) strcpy(dir+l, "/");
-}
 inline const char* cat(const char* a, const char* b, const char* c=0, const char* d=0) {
 	static char buffer[1024];
 	strcpy(buffer, a);
@@ -883,7 +877,7 @@ void WorldEditor::loadWorld(const char* file) {
 		else if(format="png") {
 			PNG png = PNG::load( m_terrainFile );
 			simple = new SimpleHeightmap();
-			simple->create(size, size, res, png.data, 4, scale);
+			simple->create(size, size, res, reinterpret_cast<ubyte*>(png.data), 4, scale, 0);
 		}
 		else {
 			// ToDo: Load texture formats
@@ -1042,7 +1036,9 @@ void WorldEditor::saveWorld(const char* file) {
 	if(!file && !m_file) return;
 	if(m_file != file) m_file = file;
 	m_fileSystem->setRootPath(m_file, true);
+	String name = m_fileSystem->getRelative(file);
 	char buffer[1024];
+
 
 	// Flush all streams
 	for(uint i=0; i<m_streams.size(); ++i) m_streams[i]->flush();
@@ -1064,7 +1060,31 @@ void WorldEditor::saveWorld(const char* file) {
 		map.setAttribute("scale", m_terrainScale);
 		map.setAttribute("type", "int16");
 	} else {
-		map.setAttribute("type", "float");
+		Rect box(0,0, m_terrainSize.x, m_terrainSize.y);
+		float* data = new float[ box.width * box.height ];
+		m_heightMap->getHeights(box, data);
+		if(m_heightFormat == HEIGHT_FLOAT) {
+			map.setAttribute("type", "float");
+			if(!m_terrainFile) m_terrainFile = cat(name,".raw");
+			File file(m_terrainFile);
+			file.write(reinterpret_cast<char*>(data), box.width*box.height*sizeof(float));
+			file.save();
+		}
+		else if(m_heightFormat == HEIGHT_UINT8) {
+			map.setAttribute("type", "png");
+			if(!m_terrainFile) m_terrainFile = cat(name,".png");
+			int pixels = box.width * box.height;
+			float low = data[0], high = data[0];
+			for(int i=1; i<pixels; ++i) low = fmin(low, data[i]), high = fmax(high, data[i]);
+			PNG png = PNG::create(box.width, box.height, 4);
+			for(int i=0; i<pixels; ++i) {
+				uint8* pixel = reinterpret_cast<uint8*>(png.data+i*4);
+				pixel[0] = pixel[1] = pixel[2] = data[i] / high * 255u;
+				pixel[3] = 255u;
+			}
+		}
+
+		map.setAttribute("file", m_terrainFile);
 	}
 	
 	// Materials
