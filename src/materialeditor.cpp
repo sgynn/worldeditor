@@ -25,7 +25,7 @@ MaterialEditor::MaterialEditor(gui::Root* gui, FileSystem* fs, bool stream): m_s
 
 	// Create material icon list
 	m_textureIcons = new gui::IconList();
-	m_textureIconTexture = Texture::create(1024, 1024, Texture::DXT1, 0, false);
+	m_textureIconTexture = Texture::create(1024, 1024, Texture::BC1, 0, false);
 	int img = m_gui->getRenderer()->addImage("textureIcons", 1024, 1024, m_textureIconTexture.unit());
 	m_textureIcons->setImageIndex(img);
 	m_gui->addIconList("textureIcons", m_textureIcons);
@@ -477,9 +477,9 @@ int MaterialEditor::createTextureIcon(const char* name, const DDS& dds) {
 	int skip = 0;
 	while(dds.width>>skip > 64) ++skip;
 	unsigned char* data = dds.data[skip];
-	if(dds.format==DDS::DXT3 || dds.format==DDS::DXT5) data = removeDXTAlpha(data, 64, 64);
+	if(dds.format==DDS::BC2 || dds.format==DDS::BC3) data = removeDXTAlpha(data, 64, 64);
 	// Copy into texture
-	m_textureIconTexture.setPixels(rect.x, rect.y, rect.width, rect.height, Texture::DXT1, data);
+	m_textureIconTexture.setPixels(rect.x, rect.y, rect.width, rect.height, Texture::BC1, data);
 	return index;
 }
 

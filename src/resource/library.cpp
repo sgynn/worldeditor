@@ -74,7 +74,7 @@ Material* Library::material(const char* name) {
 Texture Library::texture(const char* name, bool mip) {
 	static const Texture::Format formats[] = {
 		Texture::NONE, Texture::R8, Texture::RG8, Texture::RGB8, Texture::RGBA8,
-		Texture::DXT1, Texture::DXT3, Texture::DXT5
+		Texture::BC1, Texture::BC2, Texture::BC3, Texture::BC4, Texture::BC5
 	};
 
 	TextureMap::iterator it = m_textures.find(name);

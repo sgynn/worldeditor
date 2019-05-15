@@ -147,8 +147,8 @@ int ArrayTexture::build() {
 	}
 
 	// Convert formats
-	static const Texture::Format fmap[] = { Texture::NONE, Texture::R8, Texture::RG8, Texture::RGB8, Texture::RGBA8, Texture::DXT1, Texture::DXT3, Texture::DXT5 };
-	static const int glmap[] = { 0, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA, GL_COMPRESSED_RGB_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT };
+	static const Texture::Format fmap[] = { Texture::NONE, Texture::R8, Texture::RG8, Texture::RGB8, Texture::RGBA8, Texture::BC1, Texture::BC2, Texture::BC3, Texture::BC4, Texture::BC5 };
+	static const int glmap[] = { 0, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA, GL_COMPRESSED_RGB_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_COMPRESSED_RED_RGTC1, GL_COMPRESSED_RG_RGTC2 };
 	Texture::Format format = fmap[ m_layers[0]->format ];
 	int glFormat = glmap[ format ];
 
