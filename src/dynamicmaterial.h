@@ -49,6 +49,7 @@ class DynamicMaterial {
 	void setName(const char*);
 	const char* getName() const;
 	void setCoordinates(const vec2& size, const vec2& offset) const;
+	void setTilingData(float*);
 
 	size_t         size() const;
 	MaterialLayer* addLayer(LayerType);
@@ -76,6 +77,7 @@ class DynamicMaterial {
 	bool            m_streaming;
 	bool            m_needsCompile;
 	mutable float   m_coords[4];
+	float           m_textureTiling[256];
 };
 
 

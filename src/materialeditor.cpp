@@ -30,6 +30,9 @@ MaterialEditor::MaterialEditor(gui::Root* gui, FileSystem* fs, bool stream): m_s
 	m_textureIcons->setImageIndex(img);
 	m_gui->addIconList("textureIcons", m_textureIcons);
 
+	// Initial tiling values
+	for(float& f: m_textureTiling) f = 1.0f;
+
 	//m_diffuseMaps.createBlankTexture(0xffffffff, 4);	// Dont work properly
 	//m_normalMaps.createBlankTexture(0xff8080ff, 4);
 }
@@ -101,6 +104,7 @@ DynamicMaterial* MaterialEditor::getMaterial(const char* name) const {
 DynamicMaterial* MaterialEditor::createMaterial(const char* name) {
 	DynamicMaterial* m = new DynamicMaterial(m_streaming);
 	m->setName(name);
+	m->setTilingData(m_textureTiling);
 	m_materials.push_back(m);
 	m_materialList->addItem( name );
 	return m;
@@ -239,6 +243,7 @@ TerrainTexture* MaterialEditor::getTexture(int index) const {
 TerrainTexture* MaterialEditor::createTexture(const char* name) {
 	TerrainTexture* t = new TerrainTexture();
 	t->name = name;
+	t->tiling = 1.0;
 	m_textures.push_back(t);
 	m_textureSelector->addItem(name, gui::Any(), m_textures.size()-1); // ToDo: set icon
 	return t;
@@ -386,6 +391,9 @@ void MaterialEditor::addTextureGUI(TerrainTexture* tex) {
 	w->getWidget<gui::Button>("browse_normal")->eventPressed.bind(this, &MaterialEditor::browseTexture);
 	w->getWidget<gui::Textbox>("diffuse")->setText( tex->diffuse );
 	w->getWidget<gui::Textbox>("normal")->setText( tex->normal );
+	gui::Scrollbar* tiling = w->getWidget<gui::Scrollbar>("tiling");
+	tiling->eventChanged.bind(this, &MaterialEditor::changeTiling);
+	tiling->setValue(tex->tiling * 100);
 	w->eventGainedFocus.bind(this, &MaterialEditor::selectTexture);
 	for(int i=0; i<w->getWidgetCount(); ++i) {
 		w->getWidget(i)->eventGainedFocus.bind(this, &MaterialEditor::selectTexture);
@@ -562,6 +570,12 @@ void MaterialEditor::reloadTexture(gui::Button*) {
 		file = m_textures[m_selectedTexture]->normal;
 		loadTexture(array, m_selectedTexture, file);
 	}
+}
+
+void MaterialEditor::changeTiling(gui::Scrollbar* s, int val) {
+	int index = s->getParent()->getIndex();
+	float value = val * 0.01f;
+	m_textureTiling[index] = value;
 }
 
 void MaterialEditor::selectTexture(gui::Widget* w) {

@@ -325,7 +325,7 @@
 		<widget class="Button" rect="192 42 16 20" name="browse_normal" skin="button" caption="..." anchor="tr"/>
 		<widget class="Textbox" rect="100 60 92 20" name="height" text="height map" anchor="tlr"/>
 		<widget class="Button" rect="192 60 16 20" name="browse_height" skin="button" caption="..." anchor="tr"/>
-		<widget template="slider" rect="100 78 108 20" name="tiling" anchor="tlr" value="50"/>
+		<widget template="slider" rect="100 78 108 20" name="tiling" anchor="tlr" value="50" max="1000"/>
 	</template>
 
 	<!-- Colour picker -->

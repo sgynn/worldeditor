@@ -48,6 +48,10 @@ const char* DynamicMaterial::getName() const {
 	return m_name;
 }
 
+void DynamicMaterial::setTilingData(float* data) {
+	m_vars->set("textureTiling", 1, 32, data);
+}
+
 void DynamicMaterial::setCoordinates(const vec2& s, const vec2& o) const {
 	m_coords[0] = o.x;
 	m_coords[1] = o.y;
@@ -250,7 +254,8 @@ bool DynamicMaterial::compile() {
 	// Samplers
 	source +=
 	"uniform sampler2DArray diffuseArray;\n"
-	"uniform sampler2DArray normalArray;\n";
+	"uniform sampler2DArray normalArray;\n"
+	"uniform float textureTiling[128];\n";
 
 	// Maps
 	typedef std::set<std::string> MapList;
@@ -346,7 +351,7 @@ bool DynamicMaterial::compile() {
 
 	// Basic indexed texture sampling
 	source +=
-	"void sampleIndexed(sampler2D map, vec4 info, vec2 size, vec2 coord,  out vec4 diff, out vec4 norm) {\n"
+	"void sampleIndexed(sampler2D map, vec4 info, vec2 size, vec2 coord, vec2 tile,  out vec4 diff, out vec4 norm) {\n"
 	"	vec2 a,b,c;\n"
 	"	vec3 bary = barycentric(info, size, coord, a,b,c);\n"
 	"	// Sample index map\n"
@@ -354,6 +359,7 @@ bool DynamicMaterial::compile() {
 	"	float ib = texture(map, b).r * 255;\n"
 	"	float ic = texture(map, c).r * 255;\n"
 	"	// Sample textures\n"
+	"	coord *= tile;\n"
 	"	diff  = texture(diffuseArray, vec3(coord,ia)) * bary.x;\n"
 	"	diff += texture(diffuseArray, vec3(coord,ib)) * bary.y;\n"
 	"	diff += texture(diffuseArray, vec3(coord,ic)) * bary.z;\n"
@@ -365,7 +371,7 @@ bool DynamicMaterial::compile() {
 
 	// Alternative indexed sampling
 	source +=
-	"void sampleIndexedQuad(sampler2D map, vec4 info, vec2 size, vec2 coord,  out vec4 diff, out vec4 norm) {\n"
+	"void sampleIndexedQuad(sampler2D map, vec4 info, vec2 size, vec2 coord, vec2 tile,  out vec4 diff, out vec4 norm) {\n"
 	"	vec2 one = vec2(1,0);\n"
 	"	vec2 step = 1.0 / size;\n"
 	"	vec2 base = (coord - info.xz) * info.zw;\n"
@@ -384,6 +390,7 @@ bool DynamicMaterial::compile() {
 	"	float ic = texture(map, c).r * 255;\n"
 	"	float id = texture(map, d).r * 255;\n"
 	"	// Sample textures\n"
+	"	coord *= tile;\n"
 	"	diff  = texture(diffuseArray, vec3(coord,ia)) * w.x;\n"
 	"	diff += texture(diffuseArray, vec3(coord,ib)) * w.y;\n"
 	"	diff += texture(diffuseArray, vec3(coord,ic)) * w.z;\n"
@@ -398,7 +405,7 @@ bool DynamicMaterial::compile() {
 
 	// Weighted indexed sampling - so many texture lookups...
 	source +=
-	"void sampleIndexedWeighted(sampler2D map, sampler2D weights, vec4 info, vec2 size, vec2 coord,  out vec4 diff, out vec4 norm) {\n"
+	"void sampleIndexedWeighted(sampler2D map, sampler2D weights, vec4 info, vec2 size, vec2 coord, vec2 tile,  out vec4 diff, out vec4 norm) {\n"
 	"	vec2 one = vec2(1,0);\n"
 	"	vec2 step = 1.0 / size;\n"
 	"	vec2 base = (coord - info.xz) * info.zw;\n"
@@ -422,6 +429,7 @@ bool DynamicMaterial::compile() {
 	"	vec4 wc = texture(weights, c);\n"
 	"	vec4 wd = texture(weights, d);\n"
 	"	// Sample textures\n"
+	"	coord *= tile;\n"
 	"	diff  = texture(diffuseArray, vec3(coord,ia.x)) * w.x * wa.x;\n"
 	"	diff += texture(diffuseArray, vec3(coord,ib.x)) * w.y * wb.x;\n"
 	"	diff += texture(diffuseArray, vec3(coord,ic.x)) * w.z * wc.x;\n"
@@ -509,9 +517,9 @@ bool DynamicMaterial::compile() {
 			else {
 				source += "	weight=1;\n";
 				if(layer->map2.empty()) 
-					source += "	sampleIndexedQuad(" + str(layer->map)  + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz, diff, norm);\n";
+					source += "	sampleIndexedQuad(" + str(layer->map)  + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz, scale"+index+", diff, norm);\n";
 				else
-					source += "	sampleIndexedWeighted(" + str(layer->map)  + "Map, " + str(layer->map2) + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz, diff, norm);\n";
+					source += "	sampleIndexedWeighted(" + str(layer->map)  + "Map, " + str(layer->map2) + "Map, " + str(layer->map) + "Info, " + str(layer->map) + "Size, worldPos.xz, scale"+index+", diff, norm);\n";
 			}
 			break;
 		case LAYER_GRADIENT:

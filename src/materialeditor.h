@@ -70,6 +70,7 @@ class MaterialEditor {
 	void renameTexture(gui::Textbox*);	// Rename texture
 	void renameTexture(gui::Widget*);	// Rename texture
 	void addTextureGUI(TerrainTexture*);// Add texture gui item
+	void changeTiling(gui::Scrollbar*, int);
 
 
 	void addMaterial(gui::Button*);
@@ -132,6 +133,7 @@ class MaterialEditor {
 	std::vector<DynamicMaterial*> m_materials;		// Materials
 	std::vector<TerrainTexture*>  m_textures;		// Textures
 	base::HashMap<EditableTexture*> m_imageMaps;	// Image maps
+	float          m_textureTiling[256];	// Texture tiling values
 	bool           m_streaming;				// Use streamed textures
 	FileSystem*    m_fileSystem;			// For finding files
 	gui::Root*     m_gui;					// Gui
