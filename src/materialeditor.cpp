@@ -611,8 +611,8 @@ void MaterialEditor::selectMaterial(gui::Combobox*, int index) {
 
 	// compile and activate
 	if(m->needsCompiling()) m->compile();
-	m->setTextures(this);
 	eventChangeMaterial(m);
+	m->setTextures(this);
 }
 void MaterialEditor::renameMaterial(gui::Combobox* c) {
 	m_materials[m_selectedMaterial]->setName( c->getText() );

@@ -1009,7 +1009,6 @@ void WorldEditor::loadWorld(const char* file) {
 
 	// Set initial material
 	m_materials->selectMaterial(0,activeMaterial);
-	m_materials->selectMaterial(0,activeMaterial);
 
 	// Camera
 	const XMLElement& cam = xml.getRoot().find("camera");
