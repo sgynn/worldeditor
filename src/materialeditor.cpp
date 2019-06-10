@@ -86,6 +86,9 @@ inline int enumerate(const char* key, const char** values, int size) {
 }
 
 int MaterialEditor::getMaterialCount() const { return m_materials.size(); }
+DynamicMaterial* MaterialEditor::getMaterial() const {
+	return getMaterial(m_selectedMaterial);
+}
 DynamicMaterial* MaterialEditor::getMaterial(int index) const {
 	return m_materials[index];
 }

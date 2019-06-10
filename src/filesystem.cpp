@@ -17,6 +17,7 @@ void FileSystem::setRootPath(const char* path, bool isAFile) {
 	else m_rootPath = path;
 }
 String FileSystem::getFile(const char* file) {
+	if(!file || !file[0]) return String();
 	if(Directory::isRelative(file)) {
 		char buffer[2048];
 		snprintf(buffer, 2048, "%s/%s", m_rootPath.str(), file);
@@ -25,7 +26,7 @@ String FileSystem::getFile(const char* file) {
 	else return file;
 }
 String FileSystem::getRelative(const char* in) {
-	if(!Directory::isRelative(in)) return in;
+	if(Directory::isRelative(in)) return in;
 
 	const char* base = m_rootPath;
 	// Match part

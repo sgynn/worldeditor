@@ -30,6 +30,7 @@ class MaterialEditor {
 	// Material functions
 	int              getMaterialCount() const;
 	DynamicMaterial* createMaterial(const char* name);
+	DynamicMaterial* getMaterial() const;
 	DynamicMaterial* getMaterial(int index) const;
 	DynamicMaterial* getMaterial(const char* name) const;
 	void             destroyMaterial(int index);

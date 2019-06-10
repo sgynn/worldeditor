@@ -189,27 +189,29 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 
 	// Bind all the maps
 	char buffer[32];
-	typedef std::set<const char*> MapList;
+	typedef std::pair<const char*, bool> MapImage;
+	typedef std::set<MapImage> MapList;
 	MapList maps;
 	for(size_t i=0; i<m_layers.size(); ++i) {
-		if(m_layers[i]->map  && m_layers[i]->map[0])  maps.insert( m_layers[i]->map );
-		if(m_layers[i]->map2 && m_layers[i]->map2[0]) maps.insert( m_layers[i]->map2 );
+		MaterialLayer* layer = m_layers[i];
+		if(layer->map  && layer->map[0])  maps.insert( MapImage(layer->map, layer->type != LAYER_INDEXED) );
+		if(layer->map2 && layer->map2[0]) maps.insert( MapImage(layer->map2, false) );
 		update(i);
 	}
-	for(MapList::iterator i=maps.begin(); i!=maps.end(); ++i) {
-		EditableTexture* map = src->getMap(*i);
+	for(MapImage img : maps) {
+		EditableTexture* map = src->getMap(img.first);
 		if(map) {
 			const Texture& tex = map->getTexture();
-			tex.setFilter(Texture::NEAREST);
-			sprintf(buffer, "%sMap", *i);
+			tex.setFilter(img.second? Texture::BILINEAR: Texture::NEAREST);
+			sprintf(buffer, "%sMap", img.first);
 			m_material->getPass(0)->setTexture(buffer, &tex);
-			sprintf(buffer, "%sInfo", *i);
+			sprintf(buffer, "%sInfo", img.first);
 			m_vars->set(buffer, 4, 1, m_coords);
-			sprintf(buffer, "%sSize", *i);
+			sprintf(buffer, "%sSize", img.first);
 			m_vars->set(buffer, (float)map->getTexture().width(), (float)map->getTexture().height());
 			if(m_stream) {
-				if(map->getTextureStream()) m_stream->addStream(*i, map->getTextureStream());
-				else m_stream->setOverlayTexture(*i, map->getTexture());
+				if(map->getTextureStream()) m_stream->addStream(img.first, map->getTextureStream());
+				else m_stream->setOverlayTexture(img.first, map->getTexture());
 			}
 		}
 	}

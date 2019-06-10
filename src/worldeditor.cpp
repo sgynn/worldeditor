@@ -656,7 +656,9 @@ void WorldEditor::updateBrushSliders() {
 
 // ----------------------------------------------------------- //
 
-void closeMessageBox(Button* b) { b->getParent()->getParent()->setVisible(false); }
+void closeMessageBox(Button* b) {
+	b->getParent()->setVisible(false);
+}
 void WorldEditor::messageBox(const char* c, const char* m, ...) {
 	static char buffer[2048];
 	va_list args;
@@ -887,11 +889,15 @@ void WorldEditor::loadWorld(const char* file) {
 	}
 
 	// Load materials
+	int activeMaterial = 0;
 	m_materials = new MaterialEditor(m_gui, m_fileSystem, m_streaming);
 	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
 	m_materials->eventChangeTextureList.bind(this, &WorldEditor::textureListChanged);
 	for(XML::iterator i=terrain.begin(); i!=terrain.end(); ++i) {
-		if(*i == "material") m_materials->loadMaterial(*i);
+		if(*i == "material") {
+			if(i->attribute("active")) activeMaterial = m_materials->getMaterialCount();
+			m_materials->loadMaterial(*i);
+		}
 		else if(*i == "texture") m_materials->loadTexture(*i, m_materials->getTextureCount());
 	}
 	m_materials->buildTextures();	// Build texture arrays
@@ -923,12 +929,12 @@ void WorldEditor::loadWorld(const char* file) {
 
 			// resolve map files
 			String file = m_fileSystem->getFile(fileName);
+			String file2 = m_fileSystem->getFile(second);
 			if(!m_fileSystem->exists(file)) {
 				messageBox("Error", "Could not find file %s", file.str());
 				continue;
 			}
-			String file2 = second? m_fileSystem->getFile(second): 0;
-			if(!m_fileSystem->exists(file2)) {
+			if(!file2.empty() && !m_fileSystem->exists(file2)) {
 				messageBox("Error", "Could not find file %s", file2.str());
 				continue;
 			}
@@ -949,7 +955,7 @@ void WorldEditor::loadWorld(const char* file) {
 	
 			// Second texture
 			EditableTexture* tex2 = 0;
-			if(second) {
+			if(!file2.empty()) {
 				if(stream) {
 					TextureStream* ts = new TextureStream();
 					if(ts->openStream(file2)) {
@@ -971,9 +977,7 @@ void WorldEditor::loadWorld(const char* file) {
 				img->file2 = file2;
 				sprintf(buffer, "%sW", name);
 				m_materials->addMap(buffer, tex2);
-
 			}
-
 
 			// Create tool
 			ToolGroup* g = 0;
@@ -1004,7 +1008,8 @@ void WorldEditor::loadWorld(const char* file) {
 	}
 
 	// Set initial material
-	m_materials->selectMaterial(0,0);
+	m_materials->selectMaterial(0,activeMaterial);
+	m_materials->selectMaterial(0,activeMaterial);
 
 	// Camera
 	const XMLElement& cam = xml.getRoot().find("camera");
@@ -1066,7 +1071,7 @@ void WorldEditor::saveWorld(const char* file) {
 		if(m_heightFormat == HEIGHT_FLOAT) {
 			map.setAttribute("type", "float");
 			if(!m_terrainFile) m_terrainFile = cat(name,".raw");
-			File file(m_terrainFile);
+			File file( m_fileSystem->getFile(m_terrainFile) );
 			file.write(reinterpret_cast<char*>(data), box.width*box.height*sizeof(float));
 			file.save();
 		}
@@ -1082,14 +1087,16 @@ void WorldEditor::saveWorld(const char* file) {
 				pixel[0] = pixel[1] = pixel[2] = data[i] / high * 255u;
 				pixel[3] = 255u;
 			}
+			png.save( m_fileSystem->getFile(m_terrainFile) );
 		}
 
-		map.setAttribute("file", m_terrainFile);
+		map.setAttribute("file", m_fileSystem->getRelative(m_terrainFile));
 	}
 	
 	// Materials
 	for(int i=0; i<m_materials->getMaterialCount(); ++i) {
-		e.add( m_materials->serialiseMaterial(i) );
+		XMLElement& mat = e.add( m_materials->serialiseMaterial(i) );
+		if(m_materials->getMaterial(i) == m_materials->getMaterial()) mat.setAttribute("active", "true");
 	}
 	// Textures
 	for(int i=0; i<m_materials->getTextureCount(); ++i) {
@@ -1103,13 +1110,13 @@ void WorldEditor::saveWorld(const char* file) {
 		// Need some filenames
 		if(!data->file) {
 			const char* ext = stream? ".tif": ".png";
-			data->file = m_fileSystem->getFile( cat(data->name, ext));
-			if(data->map2) data->file2 = m_fileSystem->getFile( cat(data->name, "W", ext) );
+			data->file = m_fileSystem->getRelative( cat(data->name, ext));
+			if(data->map2) data->file2 = m_fileSystem->getRelative( cat(data->name, "W", ext) );
 		}
 
 		// Save images
-		data->map->save( m_fileSystem->getRelative(data->file) );
-		if(data->map2) data->map2->save( m_fileSystem->getRelative(data->file2) );
+		data->map->save( m_fileSystem->getFile(data->file) );
+		if(data->map2) data->map2->save( m_fileSystem->getFile(data->file2) );
 
 
 		// Save definition
@@ -1118,6 +1125,7 @@ void WorldEditor::saveWorld(const char* file) {
 		map.setAttribute("file", m_fileSystem->getRelative(data->file));
 		map.setAttribute("usage", U[data->usage]);
 		if(data->map2) map.setAttribute("file2", m_fileSystem->getRelative(data->file2));
+		if(data->usage == USAGE_INDEX && data->map2) map.setAttribute("layers", 4);
 		if(stream) map.setAttribute("stream", 1);
 	}
 
