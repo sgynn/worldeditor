@@ -67,7 +67,7 @@ Material* Library::material(const char* name) {
 			m_materials.insert(name, m);
 			return m;
 		} else m_materials.insert(name, 0);
-	} else return *it;
+	} else return it->value;
 	return 0;
 }
 
@@ -108,7 +108,7 @@ Texture Library::texture(const char* name, bool mip) {
 		}
 		// Save blank texture to avoid trying to re-load
 		m_textures.insert(name, Texture());
-	} else return *it;
+	} else return it->value;
 	return Texture();
 }
 
@@ -121,7 +121,7 @@ base::model::Model* Library::model(const char* name) {
 			if(m) m_models.insert(name, m);
 			return m;
 		} else m_models.insert(name, 0);
-	} else return *it;
+	} else return it->value;
 	return 0;
 }
 

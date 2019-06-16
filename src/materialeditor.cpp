@@ -55,7 +55,7 @@ MaterialEditor::~MaterialEditor() {
 	for(size_t i=0; i<m_textures.size(); ++i) delete m_textures[i];
 
 	// Delete maps
-	for(HashMap<EditableTexture*>::iterator i=m_imageMaps.begin(); i!=m_imageMaps.end(); ++i) delete *i;
+	for(HashMap<EditableTexture*>::iterator i=m_imageMaps.begin(); i!=m_imageMaps.end(); ++i) delete i->value;
 	m_imageMaps.clear();
 
 	// Delete selector lists
@@ -503,8 +503,8 @@ void MaterialEditor::deleteTextureIcon(const char* name) {
 	}
 }
 
-void MaterialEditor::loadTexture(ArrayTexture* array, int layer, const char* filename, bool icon) {
-	if(!filename) return;
+bool MaterialEditor::loadTexture(ArrayTexture* array, int layer, const char* filename, bool icon) {
+	if(!filename) return false;
 	String file = m_fileSystem->getFile(filename);
 	DDS dds = DDS::load( file );
 	if(dds.format != DDS::INVALID) {
@@ -523,8 +523,11 @@ void MaterialEditor::loadTexture(ArrayTexture* array, int layer, const char* fil
 		// Update active material
 		if(m_selectedMaterial>=0)
 			m_materials[m_selectedMaterial]->setTextures(this);
+
+		return true;
 	}
 	else printf("Error: Failed to load %s\n", file.str());
+	return false;
 }
 
 void MaterialEditor::setTexture(const char* file) {
@@ -549,8 +552,9 @@ void MaterialEditor::setTexture(const char* file) {
 	// Load texture
 	int layer = m_browseTarget & 0xff;
 	ArrayTexture* array = type==NORMAL? &m_normalMaps: &m_diffuseMaps;
-	loadTexture(array, layer, file, type==DIFFUSE);
-	w->getWidget<gui::Icon>("textureicon")->setIcon(m_textureIcons, layer);
+	if(loadTexture(array, layer, file, type==DIFFUSE)) {
+		w->getWidget<gui::Icon>("textureicon")->setIcon(m_textureIcons, layer);
+	}
 
 	if(eventChangeTextureList) eventChangeTextureList();
 }

@@ -4,6 +4,9 @@
 
 using base::Directory;
 
+FileSystem::FileSystem() : m_rootPath(".") {
+}
+
 void FileSystem::setRootPath(const char* path, bool isAFile) {
 	if(isAFile) {
 		char buffer[2048];

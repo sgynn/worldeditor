@@ -7,6 +7,7 @@ using gui::String;
 
 class FileSystem {
 	public:
+	FileSystem();
 	void setRootPath(const char* path, bool isAFile=false);
 	String getFile(const char*);		/// get file from relative path
 	String getRelative(const char*);	/// create a relative path

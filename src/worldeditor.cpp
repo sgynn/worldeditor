@@ -177,8 +177,8 @@ WorldEditor::~WorldEditor() {
 void WorldEditor::clear() {
 	// Remove and delete all objects
 	for(base::HashMap<Object*>::iterator i=m_objects.begin(); i!=m_objects.end(); ++i) {
-		(*i)->removeFromScene(m_scene);
-		delete *i;
+		i->value->removeFromScene(m_scene);
+		delete i->value;
 	}
 	// Delete the editor module
 	if(m_editor) delete m_editor;
@@ -295,7 +295,7 @@ void WorldEditor::update() {
 
 	// Update any objects
 	for(base::HashMap<Object*>::iterator i=m_objects.begin(); i!=m_objects.end(); ++i) {
-		(*i)->update();
+		i->value->update();
 	}
 }
 

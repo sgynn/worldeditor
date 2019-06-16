@@ -124,7 +124,7 @@ class MaterialEditor {
 	int  createTextureIcon(const char* name, const base::DDS& dds);
 	void deleteTextureIcon(const char* name);
 
-	void loadTexture(ArrayTexture* target, int layer, const char* file, bool icon=false);
+	bool loadTexture(ArrayTexture* target, int layer, const char* file, bool icon=false);
 
 	protected:	// Data
 	ArrayTexture m_diffuseMaps;
