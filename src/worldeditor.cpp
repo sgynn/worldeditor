@@ -259,6 +259,12 @@ void WorldEditor::update() {
 	cam->update();
 	cam->updateFrustum();
 
+	// Change speed with mouse wheel
+	if(mw && mb==4) {
+		m_options.speed *= 1 + mw * 0.1;
+		mw = 0;
+	}
+
 	// Map marker
 	if(m_mapMarker) {
 		vec2 p = (m_camera->getPosition().xz() - m_terrainOffset) / m_terrainSize;
