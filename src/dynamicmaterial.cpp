@@ -13,15 +13,15 @@
 #include <set>
 
 using base::Texture;
-using scene::ShaderProgram;
+using scene::ShaderPart;
 using scene::Material;
 using scene::Shader;
 using scene::Pass;
 
 DynamicMaterial::DynamicMaterial(bool stream) : m_material(0), m_stream(0), m_streaming(stream), m_needsCompile(true) {
 	Shader* shader = new Shader();
-	m_vertexShader = new ShaderProgram(scene::ShaderProgram::VERTEX_SHADER);
-	m_fragmentShader = new ShaderProgram(scene::ShaderProgram::FRAGMENT_SHADER);
+	m_vertexShader = new ShaderPart(scene::VERTEX_SHADER);
+	m_fragmentShader = new ShaderPart(scene::FRAGMENT_SHADER);
 	shader->attach(m_vertexShader);
 	shader->attach(m_fragmentShader);
 	m_vars = new scene::ShaderVars();

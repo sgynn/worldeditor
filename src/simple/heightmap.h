@@ -18,9 +18,6 @@ class SimpleHeightmap : public Object {
 	void create(int w, int h, float res, float height);
 
 	void setMaterial(scene::Material*);
-	void addToScene(Scene*);
-	void removeFromScene(Scene*);
-
 
 	float height( float x, float z ) const;
 	float height( float x, float z, vec3& normal) const;
@@ -36,7 +33,7 @@ class SimpleHeightmap : public Object {
 
 	int m_width, m_height;
 	float m_resolution;
-	DrawableMesh* m_drawable;
+	scene::DrawableMesh* m_drawable;
 	base::bmodel::Mesh* m_mesh;
 
 };

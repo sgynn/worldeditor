@@ -37,7 +37,7 @@ void OrderableItem::moveDown() {
 
 // -------------------------------- //
 
-void OrderableItem::onMouseButton(const Point& p, int d, int u, int w) {
+void OrderableItem::onMouseButton(const Point& p, int d, int u) {
 	if(d==1) {
 		m_held = p.y - m_rect.y;
 		m_startIndex = m_targetIndex = getIndex();
@@ -49,7 +49,7 @@ void OrderableItem::onMouseButton(const Point& p, int d, int u, int w) {
 		updateParentLayout();
 		if(eventReordered) eventReordered(m_startIndex, m_targetIndex);
 	}
-	Widget::onMouseButton(p, d, u, w);
+	Widget::onMouseButton(p, d, u);
 }
 void OrderableItem::onMouseMove(const Point& lp, const Point& cp, int b) {
 	if(b==1 && m_held>0) {

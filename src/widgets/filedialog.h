@@ -35,7 +35,7 @@ class FileDialog : public gui::Window {
 	void showSave();
 
 	public:
-	DelegateS<void(const char*)> eventConfirm;
+	Delegate<void(const char*)> eventConfirm;
 
 	protected:
 	void  makeFileName();									// Create filename string

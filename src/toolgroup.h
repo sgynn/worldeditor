@@ -25,7 +25,7 @@ class ToolGroup {
 
 
 	public:
-	DelegateS<void(ToolInstance*)> eventToolSelected;
+	Delegate<void(ToolInstance*)> eventToolSelected;
 
 	protected:
 	gui::Button* addButton(const char* icon=0);

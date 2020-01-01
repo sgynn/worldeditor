@@ -84,8 +84,9 @@ class WorldEditor : public base::SceneState {
 	void textureListChanged();
 
 	private:
-	Scene*   m_scene;
-	FileSystem* m_fileSystem;
+	scene::Scene*    m_scene;
+	scene::Renderer* m_renderer;
+	FileSystem*      m_fileSystem;
 
 	// Terrain properies
 	bool m_streaming;

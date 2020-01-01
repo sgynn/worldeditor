@@ -9,7 +9,7 @@
 SimpleHeightmap::SimpleHeightmap() : m_width(0), m_height(0), m_drawable(0), m_mesh(0) {
 }
 SimpleHeightmap::~SimpleHeightmap() {
-	if(m_drawable) delete m_drawable;
+	deleteAttachments();
 	if(m_mesh) delete m_mesh;
 }
 
@@ -128,20 +128,13 @@ void SimpleHeightmap::createMesh(float* vx) {
 
 	// Drawable
 	if(m_drawable) asm("int $3"); // already exists
-	m_drawable = new DrawableMesh(m_mesh);
+	m_drawable = new scene::DrawableMesh(m_mesh);
+	attach(m_drawable);
 }
 
 void SimpleHeightmap::setMaterial(scene::Material* m) {
 	if(!m_drawable) return;
 	m_drawable->setMaterial(m);
-}
-void SimpleHeightmap::addToScene(Scene* r) {
-	if(!m_drawable) return;
-	r->add(m_drawable);
-}
-void SimpleHeightmap::removeFromScene(Scene* r) {
-	if(!m_drawable) return;
-	r->remove(m_drawable);
 }
 
 // =================================== //

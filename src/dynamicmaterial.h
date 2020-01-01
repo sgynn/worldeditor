@@ -5,7 +5,7 @@
 #include <vector>
 #include "gui/gui.h"
 
-namespace scene { class Material; class ShaderProgram; class ShaderVars; }
+namespace scene { class Material; class ShaderPart; class ShaderVars; }
 using gui::String;
 class MaterialStream;
 class MaterialEditor;
@@ -71,8 +71,8 @@ class DynamicMaterial {
 	std::vector<MaterialLayer*> m_layers;
 	scene::Material*   m_material;
 	scene::ShaderVars* m_vars;
-	scene::ShaderProgram* m_vertexShader;
-	scene::ShaderProgram* m_fragmentShader;
+	scene::ShaderPart* m_vertexShader;
+	scene::ShaderPart* m_fragmentShader;
 	MaterialStream* m_stream;
 	bool            m_streaming;
 	bool            m_needsCompile;

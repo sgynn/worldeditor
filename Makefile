@@ -2,7 +2,7 @@ exec = editor
 
 OBJDIR = obj
 CFLAGS =  -g -Wall -Isrc
-LDFLAGS = -lbase -lGL -lX11 -lXxf86vm
+LDFLAGS = -lbase -lGL -lX11 -lXxf86vm -lXcursor
 
 headers = $(wildcard src/*.h src/*/*.h)
 sources = $(wildcard src/*.cpp src/*/*.cpp)

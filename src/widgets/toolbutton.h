@@ -7,7 +7,7 @@
 class ToolButton : public gui::Button {
 	WIDGET_TYPE(ToolButton);
 	ToolButton(const Rect& r, gui::Skin* s) : Button(r, s) {}
-	void setSelected(bool s) {
+	void setSelected(bool s) override {
 		Button::setSelected(s);
 		// Deselect other options
 		if(isSelected()) {
@@ -17,9 +17,9 @@ class ToolButton : public gui::Button {
 			}
 		}
 	}
-	void onMouseButton(const Point& p, int d, int u, int w) {
+	void onMouseButton(const Point& p, int d, int u) override {
 		setSelected(true);
-		Button::onMouseButton(p,d,u,w);
+		Button::onMouseButton(p,d,u);
 	}
 };
 

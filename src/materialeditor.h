@@ -57,8 +57,8 @@ class MaterialEditor {
 	int serialiseMaps(base::XMLElement& e) const;
 	
 	public:
-	DelegateS<void(DynamicMaterial*)> eventChangeMaterial;
-	DelegateS<void()>                 eventChangeTextureList;
+	Delegate<void(DynamicMaterial*)> eventChangeMaterial;
+	Delegate<void()>                 eventChangeTextureList;
 
 	public:	// gui callbacks here
 	void addTexture(gui::Button*);		// Add a texture

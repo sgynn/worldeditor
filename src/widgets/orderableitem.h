@@ -14,10 +14,10 @@ class OrderableItem : public gui::Widget {
 	void moveUp();
 	void moveDown();
 	public:
-	DelegateS<void(int, int)> eventReordered;
+	Delegate<void(int, int)> eventReordered;
 	protected:
-	void onMouseButton(const Point&, int, int, int);
-	void onMouseMove(const Point&, const Point&, int);
+	void onMouseButton(const Point&, int, int) override;
+	void onMouseMove(const Point&, const Point&, int) override;
 	void updateParentLayout();
 	int m_held;
 	int m_startIndex;

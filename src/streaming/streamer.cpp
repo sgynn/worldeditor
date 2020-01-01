@@ -2,6 +2,7 @@
 #include "landscape.h"
 #include "tiff.h"
 #include "scene/scene.h"
+#include "scene/renderer.h"
 #include "base/camera.h"
 #include "texturestream.h"
 #include "dynamicmaterial.h"
@@ -35,13 +36,14 @@ void Streamer::streamOpened() {
 	m_land->setPatchCallbacks(Streamer::patchCreated, Streamer::patchDestroyed);
 	m_land->setHeightFunction(Streamer::heightFunc);
 	m_drawable = new StreamerDrawable(m_land);
+	attach(m_drawable);
 }
 
 void Streamer::closeStream() {
 	BufferedStream::closeStream();
 	if(m_land) delete m_land;
 	if(s_streamer==this) s_streamer=0;
-	if(m_drawable) delete m_drawable;
+	deleteAttachments();
 	m_land = 0;
 }
 
@@ -128,13 +130,8 @@ void Streamer::updatePatchMaterial(PatchGeometry* g) {
 
 // ========================================================================================= //
 
-
-
-void Streamer::addToScene(Scene* r)      { if(m_drawable) r->add(m_drawable); }
-void Streamer::removeFromScene(Scene* r) { if(m_drawable) r->remove(m_drawable); }
-
 StreamerDrawable::StreamerDrawable(Landscape* land) : m_land(land) {}
-void StreamerDrawable::draw( RenderInfo& r) {
+void StreamerDrawable::draw( scene::RenderState& r) {
 	// Update terrain lod stuff - Note: only needs to be called one per frame
 	lodCameraPosition = r.getCamera()->getPosition();
 	m_land->update( r.getCamera() );
@@ -143,25 +140,18 @@ void StreamerDrawable::draw( RenderInfo& r) {
 	// View frustum culling
 	m_land->cull( r.getCamera() );
 
-	scene::Shader::current().enableAttributeArray(0);
-	scene::Shader::current().enableAttributeArray(1);
 
 	const int stride = 10 * sizeof(float);
-	r.state(0); //VERTEX_ARRAY | NORMAL_ARRAY);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	r.setAttributeArrays(3); // VERTEX|NORMAL
 	for(uint i=0; i<m_land->getGeometry().size(); ++i) {
 		const PatchGeometry* g = m_land->getGeometry()[i];
 		const PatchTag* tag = static_cast<const PatchTag*>(g->tag);
 
-		r.material( tag->material );
+		r.setMaterial( tag->material );
 		scene::Shader::current().setAttributePointer(0, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices);
 		scene::Shader::current().setAttributePointer(1, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices+3);
 		glDrawElements(GL_TRIANGLE_STRIP, g->indexCount, GL_UNSIGNED_SHORT, g->indices);
 	}
-	//glPolygonMode(GL_FRONT, GL_FILL);
-//
-	scene::Shader::current().disableAttributeArray(0);
-	scene::Shader::current().disableAttributeArray(1);
 }
 
 // ========================================================================================= //

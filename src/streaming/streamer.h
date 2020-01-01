@@ -3,10 +3,9 @@
 
 #include "object.h"
 #include "bufferedstream.h"
+#include "scene/drawable.h"
 #include <base/texture.h>
 #include <base/thread.h>
-
-#include "scene/drawable.h"
 
 #include "terraineditor/editor.h"
 
@@ -17,12 +16,12 @@ class MaterialStream;
 class PatchGeometry;
 
 /** Interface between scene and landscape */
-class StreamerDrawable : public Drawable {
+class StreamerDrawable : public scene::Drawable {
 	friend class Streamer;
 	Landscape* m_land;
 	public:
 	StreamerDrawable(Landscape*);
-	virtual void draw( RenderInfo& );
+	virtual void draw( scene::RenderState& );
 	void updateStreamedMaterials(const vec3&, float threshold);
 };
 
@@ -49,8 +48,6 @@ class Streamer : public Object, public BufferedStream {
 	int height() const { return BufferedStream::height(); }
 
 	public: // Object functions
-	void addToScene(Scene* r);
-	void removeFromScene(Scene* r);
 	void setMaterial(const DynamicMaterial* m);
 
 	void addTexture(const char* name, TextureStream*);

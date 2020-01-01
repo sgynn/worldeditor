@@ -37,8 +37,20 @@ ArrayTexture::~ArrayTexture() {
 
 // ------------------------------------------------------------ //
 
-int ArrayTexture::addTexture(const DDS& src) {
-	m_layers.push_back( new DDS(src) );
+int ArrayTexture::addTexture(DDS& src) {
+	// Move to heap
+	DDS* tex = new DDS();
+	tex->format = src.format;
+	tex->mode = src.mode;
+	tex->mipmaps = src.mipmaps;
+	tex->width = src.width;
+	tex->height = src.height;
+	tex->depth = src.depth;
+	tex->data = src.data;
+	src.data = 0;
+	src.format = DDS::INVALID;
+	// Add layer
+	m_layers.push_back( tex );
 	return layers()-1;
 }
 
@@ -47,13 +59,16 @@ int ArrayTexture::addBlankTexture() {
 	return m_blankLayer? 0: -1;
 }
 
-int ArrayTexture::setTexture(int index, const DDS& src) {
-	if(index >= layers()) return addTexture(src);
-	else {
+int ArrayTexture::setTexture(int index, DDS& src) {
+	addTexture(src);
+	// Move to index if valid
+	if(index < layers()-1) {
 		delete m_layers[index];
-		m_layers[index] = new DDS(src);
+		m_layers[index] = m_layers.back();
+		m_layers.pop_back();
 		return index;
 	}
+	return layers()-1;
 }
 
 void ArrayTexture::swapTextures(int a, int b) {

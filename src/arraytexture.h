@@ -12,8 +12,8 @@ class ArrayTexture {
 	ArrayTexture();
 	~ArrayTexture();
 
-	int  addTexture(const base::DDS& src);			// Add a dds texture
-	int  setTexture(int index, const base::DDS& src);// Change a texture
+	int  addTexture(base::DDS& src);				// Add a dds texture
+	int  setTexture(int index, base::DDS& src);		// Change a texture
 	int  addBlankTexture();							// Add blank texture
 	void removeTexture(int index);					// Delete a texture
 	void moveTexture(int layer, int targetIndex);	// Change the index of a texture
