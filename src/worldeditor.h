@@ -37,6 +37,7 @@ class WorldEditor : public base::SceneState {
 	void create(int size, float res, float scale, HeightFormat format, bool streamed);
 	void loadWorld(const char* file);
 	void saveWorld(const char* file);
+	void updateTitle();
 
 	void messageBox(const char* title, const char* message, ...);
 	void setupHeightTools(float resolution, const vec2& offset);

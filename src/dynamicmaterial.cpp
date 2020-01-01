@@ -4,6 +4,7 @@
 #include "terraineditor/editabletexture.h"
 #include "scene/material.h"
 #include "scene/shader.h"
+#include "scene/autovariables.h"
 #include <base/colour.h>
 
 #include <base/opengl.h>
@@ -584,8 +585,9 @@ bool DynamicMaterial::compile() {
 	"in vec3 normal;\n"
 	"out vec3 worldNormal;\n"
 	"out vec3 worldPos;\n"
+	"uniform mat4 transform;\n"
 	"void main() {\n"
-	"	gl_Position = gl_ModelViewProjectionMatrix * vertex;\n"
+	"	gl_Position = transform * vertex;\n"
 	"	worldPos = vertex.xyz;\n"
 	"	worldNormal = normal;\n"
 	"}\n";
@@ -597,6 +599,7 @@ bool DynamicMaterial::compile() {
 	shader->bindAttributeLocation("vertex", 0);
 	shader->bindAttributeLocation("normal", 1);
 	m_vars->set("lightDirection", 1,1,1);
+	m_vars->setAuto("transform", scene::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
 	m_material->getPass(0)->compile();
 
 	char buffer[2048]; buffer[0] = 0;

@@ -606,7 +606,6 @@ void MaterialEditor::addMaterial(gui::Button*) {
 	DynamicMaterial* m = createMaterial("New Material");
 	m_materialList->selectItem( m_materials.size()-1 );
 	selectMaterial(0, m_materials.size()-1);
-	m->compile();
 }
 
 void MaterialEditor::selectMaterial(gui::Combobox*, int index) {

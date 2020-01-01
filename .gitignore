@@ -1,35 +1,8 @@
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-
-# Other
-*.log
+editor
+maps
+shader_cache.glsl
+src/gui
+src/model
+src/scene
+tmp.tiff
 todo
-thinks
-maps/

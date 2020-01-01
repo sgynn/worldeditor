@@ -5,6 +5,7 @@
 #include <base/png.h>
 #include <base/directory.h>
 #include <base/opengl.h>
+#include <base/window.h>
 
 #include <base/inifile.h>
 
@@ -87,6 +88,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	m_options.fov        = options.get("fov", 90.0f);
 
 	// Run an fps camera for now
+	if(m_options.fov<=0) m_options.fov = 90; // causes nothing to appear but no errors
 	base::FPSCamera* cam = new base::FPSCamera(m_options.fov, base::Game::aspect(), 0.01, m_options.distance);
 	cam->setSpeed(m_options.speed, 0.004);
 	cam->setEnabled(false);
@@ -320,6 +322,12 @@ void WorldEditor::drawHUD() {
 	m.getPass(0)->bind();
 
 	m_gui->draw();
+}
+
+void WorldEditor::updateTitle() {
+	char title[1024];
+	snprintf(title, 1024, "World Editor - %s", m_file.empty()? "Unnamed": m_file.str());
+	Game::window()->setTitle(title);
 }
 
 
@@ -727,19 +735,6 @@ void WorldEditor::addGroup(ToolGroup* group, const char* icon, bool select) {
 
 // ======================= Loading and Saving Maps ========================== //
 
-bool copyFile(const char* source, const char* dest) {
-	char buffer[BUFSIZ];
-	size_t size;
-	FILE* src = fopen(source, "rb");
-	if(!src) return false;
-	FILE* dst = fopen(dest, "wb");
-	while((size = fread(buffer, 1, BUFSIZ, src))) {
-		fwrite(buffer, 1, size, dst);
-	}
-	fclose(src);
-	fclose(dst);
-	return true;
-}
 bool deleteFile(const char* file) {
 	return remove(file) == 0;
 }
@@ -799,6 +794,7 @@ void WorldEditor::create(int size, float res, float scale, HeightFormat format, 
 	m_editor = new TerrainEditor();
 	m_editor->setHeightmap(m_heightMap);
 	setupHeightTools(res, m_terrainOffset);
+	updateTitle();
 
 
 	// Minimap
@@ -848,6 +844,7 @@ void WorldEditor::loadWorld(const char* file) {
 
 	Streamer* streamer = 0;
 	SimpleHeightmap* simple = 0;
+	updateTitle();
 
 
 	// Create terrain - maybe use a plugin system for different types?
@@ -1049,6 +1046,7 @@ void WorldEditor::saveWorld(const char* file) {
 	m_fileSystem->setRootPath(m_file, true);
 	String name = m_fileSystem->getRelative(file);
 	char buffer[1024];
+	updateTitle();
 
 
 	// Flush all streams

@@ -56,7 +56,18 @@ bool FileSystem::exists(const char* file) const {
 	fclose(fp);
 	return true;
 }
-void FileSystem::copyFile(const char* dest, const char* temp) {
+bool FileSystem::copyFile(const char* source, const char* dest) {
 	// copy temp to dest
+	char buffer[BUFSIZ];
+	size_t size;
+	FILE* src = fopen(source, "rb");
+	if(!src) return false;
+	FILE* dst = fopen(dest, "wb");
+	while((size = fread(buffer, 1, BUFSIZ, src))) {
+		fwrite(buffer, 1, size, dst);
+	}
+	fclose(src);
+	fclose(dst);
+	return true;
 }
 
