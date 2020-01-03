@@ -25,6 +25,9 @@ CFLAGS += -DLINUX
 CFLAGE += -lpthread
 endif
 
+# Project defines
+CFLAGS += -DLANDSCAPE_DELEGATE
+
 .PHONY: clean
 
 all: $(exec)

@@ -11,6 +11,7 @@
 
 #include "resource/file.h"
 #include "simple/heightmap.h"
+#include "dynamic/heightmap.h"
 #include "streaming/streamer.h"
 #include "streaming/texturestream.h"
 
@@ -779,10 +780,17 @@ void WorldEditor::create(int size, float res, float scale, HeightFormat format, 
 		printf("Created %dx%d heightmap stream as %s\n", size,size, "tmp.tiff");
 
 	} else {
+		/*
 		SimpleHeightmap* map = new SimpleHeightmap();
 		map->create(size, size, res, 0.f);
 		m_scene->add(map);
 		m_heightMap = new SimpleHeightmapEditor(map);
+		*/
+		DynamicHeightmap* map = new DynamicHeightmap();
+		map->create(size, size, res, 0.f);
+		m_scene->add(map);
+		m_heightMap = new DynamicHeightmapEditor(map);
+
 		m_objects["terrain"] = map;
 		m_terrainOffset = vec2();
 		m_terrainScale = scale;
@@ -814,6 +822,65 @@ void WorldEditor::create(int size, float res, float scale, HeightFormat format, 
 	ENABLE_BUTTON( "materialbutton" )
 	ENABLE_BUTTON( "texturebutton" )
 }
+
+// ======================================================================================= //
+
+WorldEditor::TerrainMap* WorldEditor::createTile(const Point& index) {
+	char buffer[64];
+	TerrainMap* map = new TerrainMap;
+	if(m_streaming) {
+		Streamer* data = new Streamer(m_verticalScale);
+		data->createStream("tmp.tiff", m_mapSize, m_mapSize, 1, m_heightFormat==HEIGHT_UINT8? 8: 16);
+		data->setLod( m_options.detail );
+		m_streams.push_back(data);
+		map->heightMap = data;
+		map->editor = new StreamingHeightmapEditor(data);
+	}
+	else {
+		SimpleHeightmap* data = new SimpleHeightmap();
+		data->create(m_mapSize, m_mapSize, m_resolution, 0.f);
+		map->heightMap = data;
+		map->editor = new SimpleHeightmapEditor(data);
+	}
+	sprintf(buffer, "Tile_%d.%d", index.x, index.y);
+	map->name = buffer;
+	m_objects[buffer] = map->heightMap;
+	m_maps.push_back(map);
+	assignTile(index, map);
+	return map;
+}
+void WorldEditor::assignTile(const Point& p, TerrainMap* map) {
+	bool exists = m_slots.find(p) != m_slots.end();
+	TerrainSlot& slot = m_slots[p];
+	if(exists && slot.map) slot.map->heightMap->setVisible(false);
+	slot.map = map;
+	slot.index = p;
+	slot.offset = vec3(p.x, 0, p.y) * (m_mapSize-1)*m_resolution;
+	map->heightMap->setVisible(true);
+}
+void WorldEditor::setTileVisible(const Point& p, bool v) {
+	std::map<Point, TerrainSlot>::iterator it = m_slots.find(p);
+	if(it!=m_slots.end() && it->second.map) it->second.map->heightMap->setVisible(v);
+}
+
+WorldEditor::TerrainMap* WorldEditor::loadTile(const XMLElement& e, bool add) {
+	const XMLElement& data = e.find("data");
+	const char* file = data.attribute("file");
+	const char* type = data.attribute("type");
+	int size = e.attribute("size", 0);
+	Point index( e.attribute("x",0), e.attribute("y",0));
+
+	// Load maps
+	for(const XMLElement& i: e) {
+		if(i=="map") {
+			
+			
+		}
+	}
+	return 0;
+}
+
+// ======================================================================================= //
 
 void WorldEditor::loadWorld(const char* file) {
 	clear();

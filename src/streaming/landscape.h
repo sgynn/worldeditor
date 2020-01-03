@@ -5,6 +5,10 @@
 #include <base/thread.h>
 #include <vector>
 
+#ifdef LANDSCAPE_DELEGATE
+#include "gui/delegate.h"
+#endif
+
 namespace base { class Material; class Camera; }
 class Patch;
 
@@ -23,8 +27,14 @@ struct PatchGeometry {
 /** Geo-Mipmap Landscape - uses separate thread for generation, trilinear filtering */
 class Landscape {
 	public:
+	#ifdef LANDSCAPE_DELEGATE
+	typedef Delegate<float(const vec3&)> HeightFunc;
+	typedef Delegate<void(PatchGeometry*)> PatchFunc;
+	#else
 	typedef float(*HeightFunc)(const vec3&);
 	typedef void(*PatchFunc)(PatchGeometry*);
+	#endif
+
 	typedef std::vector<const PatchGeometry*> GList;
 
 	Landscape(float size, const vec3& position=vec3());

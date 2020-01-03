@@ -224,6 +224,10 @@ int SimpleHeightmapEditor::setHeights(const Rect& r, const float* data) {
 		vp[ (x+y*w) * stride ] = h;
 	}
 	// TODO: Edge modes: zero, edge, continue, wrap
+	//
+	// Update normals
+	Rect clipped(x0, y0, x1-x0, y1-y0);
+	m_map->calculateNormals(clipped);
 	return 1;
 }
 int SimpleHeightmapEditor::getHeights(const Rect& r, float* data) const {
@@ -241,9 +245,6 @@ int SimpleHeightmapEditor::getHeights(const Rect& r, float* data) const {
 		float h = vp[ (x+y*w) * stride ];
 		data[ (x-r.x) + (y-r.y)*r.width ] = h;
 	}
-	// Update normals
-	Rect clipped(x0, y0, x1-x0, y1-y0);
-	m_map->calculateNormals(clipped);
 	return 1;
 }
 

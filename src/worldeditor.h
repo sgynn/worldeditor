@@ -18,7 +18,7 @@ class MaterialEditor;
 class MiniMap;
 
 namespace gui { class Button; class Combobox; class Scrollbar; class Window; }
-namespace base { class INIFile; }
+namespace base { class INIFile; class XMLElement; }
 
 enum HeightFormat { HEIGHT_UINT8, HEIGHT_UINT16, HEIGHT_FLOAT };
 
@@ -90,7 +90,11 @@ class WorldEditor : public base::SceneState {
 	FileSystem*      m_fileSystem;
 
 	// Terrain properies
-	bool m_streaming;
+	bool  m_streaming;					// Use streaming editor
+	int   m_mapSize;					// Map size
+	float m_resolution;					// Map horizontal resolution
+	float m_verticalScale;				// Map vertical resolution
+
 	vec2 m_terrainOffset;
 	vec2 m_terrainSize;
 	float m_terrainScale;
@@ -109,6 +113,33 @@ class WorldEditor : public base::SceneState {
 	// List of streams that need flushing on save ?
 	std::vector<BufferedStream*> m_streams;
 
+
+	// Terrain data
+	typedef std::vector<EditableTexture*> MapList;
+	struct TerrainMap {
+		HeightmapEditorInterface* editor;
+		Object*     heightMap;
+		int         size;
+		gui::String name;
+		gui::String streamFile;
+		MapList     maps;
+	};
+	struct TerrainSlot {
+		TerrainMap* map;
+		Point       index;
+		vec3        offset;
+	};
+	std::map<Point, TerrainSlot> m_slots;
+	std::vector<TerrainMap*> m_maps;
+
+	TerrainMap* createTile(const Point&);					// Create a new tile using existing settings
+	TerrainMap* loadTile(const base::XMLElement&, bool);	// Load tile from xml
+	void assignTile(const Point&, TerrainMap*);				// Assign a terrain to a tile slot
+	void setTileVisible(const Point&, bool);				// Set tile visibilty
+	void saveTile(TerrainMap*, base::XMLElement&) const;	// Save tile data to xml
+
+
+
 	// Image map data
 	enum MapUsage { USAGE_COLOUR, USAGE_WEIGHT, USAGE_INDEX };
 	struct ImageMapData {
@@ -123,6 +154,7 @@ class WorldEditor : public base::SceneState {
 	std::vector<ImageMapData*> m_imageMaps;
 	ImageMapData* createMapData(EditableTexture* tex, const char* name, const char* file, MapUsage usage); 
 	int createUniqueMapName(const char* pattern, char* out) const;
+
 
 	// Object list
 	base::HashMap<Object*> m_objects;

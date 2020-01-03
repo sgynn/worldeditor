@@ -1,0 +1,181 @@
+#include "heightmap.h"
+#include "dynamicmaterial.h"
+#include "streaming/landscape.h"
+#include "scene/renderer.h"
+#include "scene/scene.h"
+#include "scene/shader.h"
+#include "scene/drawable.h"
+#include <base/collision.h>
+#include <base/opengl.h>
+
+class DynamicHeightmapDrawable : public scene::Drawable {
+	Landscape* m_land;
+	public:
+	DynamicHeightmapDrawable(Landscape* land) : m_land(land) {}
+	void draw(scene::RenderState& r) {
+		m_land->update( r.getCamera() );
+		m_land->cull( r.getCamera() );
+
+		const int stride = 10 * sizeof(float);
+		r.setMaterial( m_material );
+		r.setAttributeArrays(scene::VERTEX_ARRAY | scene::NORMAL_ARRAY);
+		for(const PatchGeometry* g: m_land->getGeometry()) {
+			scene::Shader::current().setAttributePointer(0, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices);
+			scene::Shader::current().setAttributePointer(1, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices+3);
+			glDrawElements(GL_TRIANGLE_STRIP, g->indexCount, GL_UNSIGNED_SHORT, g->indices);
+		}
+	}
+};
+
+// =================================== //
+
+DynamicHeightmap::DynamicHeightmap() : m_width(0), m_height(0), m_resolution(0), m_heightData(0), m_land(0) {
+}
+DynamicHeightmap::~DynamicHeightmap() {
+	delete m_land;
+	delete [] m_heightData;
+	deleteAttachments();
+}
+
+void DynamicHeightmap::setup(int w, int h, float r) {
+	m_width = w;
+	m_height = h;
+	m_resolution = r;
+	delete [] m_heightData;
+	int p = 0;
+	while((1<<p)<w) ++p;
+	m_heightData = new float[w*h];
+	m_land = new Landscape(w);
+	m_land->setLimits(0, p-3);
+	m_land->setHeightFunction( bind(this, &DynamicHeightmap::heightFunc) );
+	deleteAttachments();
+	attach( new DynamicHeightmapDrawable(m_land) );
+}
+
+void DynamicHeightmap::create(int w, int h, float res, const ubyte* data, int stride, float scale, float offset) {
+	setup(w,h,res);
+	int size = w * h;
+	for(int i=0; i<size; ++i) m_heightData[i] = data[i] * scale + offset;
+}
+
+void DynamicHeightmap::create(int w, int h, float res, const float* data) {
+	setup(w,h,res);
+	int size = w * h;
+	for(int i=0; i<size; ++i) m_heightData[i] = data[i];
+}
+
+void DynamicHeightmap::create(int w, int h, float res, const float height) {
+	setup(w,h,res);
+	int size = w * h;
+	for(int i=0; i<size; ++i) m_heightData[i] = height;
+}
+
+void DynamicHeightmap::setMaterial(scene::Material* m) {
+	if(getAttachmentCount()==0) return;
+	getAttachment(0)->setMaterial(m);
+}
+
+// =================================== //
+
+float DynamicHeightmap::getHeight(int x, int y) const {
+	if(!m_heightData) return 0;
+	if(x < 0 || y < 0 || x >= m_width || y >= m_height) return 0;
+	return m_heightData[x + y * m_width];
+}
+
+vec3 DynamicHeightmap::getNormal(int x, int y) const {
+	static const vec3 up(0,1,0);
+	if(!m_heightData) return up;
+	if(x < 0 || y < 0 || x >= m_width || y >= m_height) return up;
+	// Get normal from renderer
+	vec3 normal;
+	m_land->getHeight(x, y, normal);
+	return normal;
+}
+
+float DynamicHeightmap::height(float x, float y) const {
+	float fx = x / m_resolution;
+	float fy = y / m_resolution;
+	int ix = (int) floor(fx); fx -= ix;
+	int iy = (int) floor(fy); fy -= iy;
+	int side = fx + fy < 1? 0: 1;
+	float v = side? 1-fy: fx;
+	float w = side? 1-fx: fy;
+	float u = 1 - v - w;
+	return u * getHeight(ix+side, iy+side) + v * getHeight(ix+1, iy) + w * getHeight(ix, iy+1);
+}
+
+float DynamicHeightmap::height(float x, float y, vec3& n) const {
+	float fx = x / m_resolution;
+	float fy = y / m_resolution;
+	int ix = (int) floor(fx); fx -= ix;
+	int iy = (int) floor(fy); fy -= iy;
+	// Barycentric coords
+	int side = fx + fy < 1? 0: 1;
+	float v = side? 1-fy: fx;
+	float w = side? 1-fx: fy;
+	float u = 1 - v - w;
+	
+	m_land->getHeight(x, y, n);
+	return u * getHeight(ix+side, iy+side) + v * getHeight(ix+1, iy) + w * getHeight(ix, iy+1);
+}
+
+float DynamicHeightmap::heightFunc(const vec3& p) {
+	return height(p.x, p.z);
+}
+
+int DynamicHeightmap::ray(const vec3& s, const vec3& d, vec3& out) const {
+	float t;
+	int r = ray(s, d, t);
+	if(r) out = s + d * t;
+	return r;
+}
+
+int DynamicHeightmap::ray(const vec3& start, const vec3& direction, float& out) const {
+	if(!m_land) return 0;
+	vec3 point, normal;
+	int r = m_land->intersect(start, start+direction*1e6f, point, normal);
+	if(r) out = direction.dot(point-start) / direction.dot(direction);
+	return r;
+}
+
+// =================================================================================================== //
+
+
+int DynamicHeightmapEditor::setHeights(const Rect& r, const float* data) {
+	int x0 = r.x<0? 0: r.x;
+	int x1 = r.right()<m_map->m_width? r.right(): m_map->m_width;
+	int y0 = r.y<0? 0: r.y;
+	int y1 = r.bottom()<m_map->m_height? r.bottom(): m_map->m_height;
+	
+	int w = m_map->m_width;
+	for(int x=x0; x<x1; ++x) for(int y=y0; y<y1; ++y) {
+		float h = data[ (x-r.x) + (y-r.y)*r.width ];
+		m_map->m_heightData[ x + y * w ] = h;
+	}
+	// Update any active geometry
+	m_map->m_land->updateGeometry( BoundingBox(r.left(), 0, r.top(), r.right(), 0, r.bottom()), true );
+	return 1;
+}
+int DynamicHeightmapEditor::getHeights(const Rect& r, float* data) const {
+	int x0 = r.x<0? 0: r.x;
+	int x1 = r.right()<m_map->m_width? r.right(): m_map->m_width;
+	int y0 = r.y<0? 0: r.y;
+	int y1 = r.bottom()<m_map->m_height? r.bottom(): m_map->m_height;
+	memset(data, 0, r.width*r.height*sizeof(float));
+	
+	int w = m_map->m_width;
+	for(int x=x0; x<x1; ++x) for(int y=y0; y<y1; ++y) {
+		float h = m_map->m_heightData[ x + y * w ];
+		data[ (x-r.x) + (y-r.y)*r.width ] = h;
+	}
+	return 1;
+}
+
+void DynamicHeightmapEditor::setMaterial(const DynamicMaterial* m) {
+	m_map->setMaterial( m->getMaterial() );
+	m->setCoordinates( vec2(m_map->m_width*m_map->m_resolution, m_map->m_height*m_map->m_resolution), vec2(0,0) );
+}
+
+
+

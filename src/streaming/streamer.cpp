@@ -33,8 +33,8 @@ void Streamer::streamOpened() {
 	s_streamer = this;
 	m_land = new Landscape(size, m_offset);
 	m_land->setLimits(0, p-3);
-	m_land->setPatchCallbacks(Streamer::patchCreated, Streamer::patchDestroyed);
-	m_land->setHeightFunction(Streamer::heightFunc);
+	m_land->setPatchCallbacks( bind(Streamer::patchCreated), bind(Streamer::patchDestroyed));
+	m_land->setHeightFunction( bind(Streamer::heightFunc) );
 	m_drawable = new StreamerDrawable(m_land);
 	attach(m_drawable);
 }
@@ -59,7 +59,7 @@ void Streamer::setMaterial(const DynamicMaterial* m) {
 	// Change materials in existing patches
 	GL_CHECK_ERROR;
 	m_swapMaterialFlag = true;
-	int r = m_land->visitAllPatches(Streamer::updatePatchMaterial);
+	int r = m_land->visitAllPatches( bind(Streamer::updatePatchMaterial) );
 	printf("%d patches visited\n", r);
 	m_swapMaterialFlag = false;
 	GL_CHECK_ERROR;
@@ -135,7 +135,7 @@ void StreamerDrawable::draw( scene::RenderState& r) {
 	// Update terrain lod stuff - Note: only needs to be called one per frame
 	lodCameraPosition = r.getCamera()->getPosition();
 	m_land->update( r.getCamera() );
-	m_land->visitAllPatches(Streamer::updatePatchMaterial);
+	m_land->visitAllPatches( bind(Streamer::updatePatchMaterial) );
 
 	// View frustum culling
 	m_land->cull( r.getCamera() );
