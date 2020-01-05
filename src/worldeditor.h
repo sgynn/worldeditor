@@ -118,24 +118,35 @@ class WorldEditor : public base::SceneState {
 	typedef std::vector<EditableTexture*> MapList;
 	struct TerrainMap {
 		HeightmapEditorInterface* editor;
-		Object*     heightMap;
+		HeightmapInterface* heightMap;
 		int         size;
 		gui::String name;
-		gui::String streamFile;
+		gui::String file;
 		MapList     maps;
 	};
 	struct TerrainSlot {
-		TerrainMap* map;
-		Point       index;
-		vec3        offset;
+		TerrainMap*       map;
+		scene::SceneNode* node;
+		Point             index;
 	};
-	std::map<Point, TerrainSlot> m_slots;
 	std::vector<TerrainMap*> m_maps;
 
-	TerrainMap* createTile(const Point&);					// Create a new tile using existing settings
-	TerrainMap* loadTile(const base::XMLElement&, bool);	// Load tile from xml
-	void assignTile(const Point&, TerrainMap*);				// Assign a terrain to a tile slot
-	void setTileVisible(const Point&, bool);				// Set tile visibilty
+	class MapGrid : public TerrainEditorTargetInterface, public scene::SceneNode {
+		public:
+		MapGrid(float grid);
+		int getHeightmaps(const Brush&, HeightmapEditorInterface**, vec3* offsets) override;
+		int getTextureMaps(int id, const Brush&, EditableTexture**, vec3* offsets) override;
+		void assign(const Point&, TerrainMap*);
+		void setVisible(const Point&, bool);
+		void remove(const Point&);
+		protected:
+		std::map<Point, TerrainSlot> m_slots;
+		float m_gridResolution;
+	};
+	MapGrid* m_terrain;
+
+	TerrainMap* createTile(const char* name);				// Create a new tile using existing settings
+	TerrainMap* loadTile(const base::XMLElement&);			// Load tile from xml
 	void saveTile(TerrainMap*, base::XMLElement&) const;	// Save tile data to xml
 
 

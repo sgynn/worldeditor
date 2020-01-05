@@ -1,12 +1,11 @@
 #ifndef _DYNAMIC_HEIGHTMAP_
 #define _DYNAMIC_HEIGHTMAP_
 
-#include "object.h"
 #include "terraineditor/editor.h"
 #include "scene/material.h"
 
 
-class DynamicHeightmap : public Object {
+class DynamicHeightmap : public HeightmapInterface {
 	friend class DynamicHeightmapEditor;
 	public:
 
@@ -26,6 +25,8 @@ class DynamicHeightmap : public Object {
 	int   ray(const vec3& start, const vec3& direction, float& out) const;
 	int   ray(const vec3& start, const vec3& direction, vec3& out) const;
 
+	scene::Drawable* createDrawable();
+
 	private:
 	void setup(int w, int h, float r);
 	float getHeight(int x, int z) const;
@@ -36,6 +37,7 @@ class DynamicHeightmap : public Object {
 	float  m_resolution;
 	float* m_heightData;
 	class Landscape* m_land;
+	std::vector<scene::Drawable*> m_drawables;
 };
 
 

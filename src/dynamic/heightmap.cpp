@@ -34,7 +34,7 @@ DynamicHeightmap::DynamicHeightmap() : m_width(0), m_height(0), m_resolution(0),
 DynamicHeightmap::~DynamicHeightmap() {
 	delete m_land;
 	delete [] m_heightData;
-	deleteAttachments();
+	for(scene::Drawable* d: m_drawables) delete d;
 }
 
 void DynamicHeightmap::setup(int w, int h, float r) {
@@ -47,32 +47,42 @@ void DynamicHeightmap::setup(int w, int h, float r) {
 	m_heightData = new float[w*h];
 	m_land = new Landscape(w);
 	m_land->setLimits(0, p-3);
-	m_land->setHeightFunction( bind(this, &DynamicHeightmap::heightFunc) );
-	deleteAttachments();
-	attach( new DynamicHeightmapDrawable(m_land) );
 }
 
 void DynamicHeightmap::create(int w, int h, float res, const ubyte* data, int stride, float scale, float offset) {
 	setup(w,h,res);
 	int size = w * h;
 	for(int i=0; i<size; ++i) m_heightData[i] = data[i] * scale + offset;
+	m_land->setHeightFunction( bind(this, &DynamicHeightmap::heightFunc) );
 }
 
 void DynamicHeightmap::create(int w, int h, float res, const float* data) {
 	setup(w,h,res);
 	int size = w * h;
 	for(int i=0; i<size; ++i) m_heightData[i] = data[i];
+	m_land->setHeightFunction( bind(this, &DynamicHeightmap::heightFunc) );
 }
 
 void DynamicHeightmap::create(int w, int h, float res, const float height) {
 	setup(w,h,res);
 	int size = w * h;
 	for(int i=0; i<size; ++i) m_heightData[i] = height;
+	m_land->setHeightFunction( bind(this, &DynamicHeightmap::heightFunc) );
 }
 
 void DynamicHeightmap::setMaterial(scene::Material* m) {
-	if(getAttachmentCount()==0) return;
-	getAttachment(0)->setMaterial(m);
+	for(scene::Drawable* d: m_drawables) d->setMaterial(m);
+}
+
+void DynamicHeightmap::setDetail(float value) {
+	if(m_land) m_land->setThreshold(value);
+}
+
+scene::Drawable* DynamicHeightmap::createDrawable() {
+	if(!m_land) return 0;
+	DynamicHeightmapDrawable* d = new DynamicHeightmapDrawable(m_land);
+	m_drawables.push_back(d);
+	return d;
 }
 
 // =================================== //

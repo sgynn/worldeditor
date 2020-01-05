@@ -6,8 +6,18 @@
 #include <vector>
 
 namespace base { class Material; }
+namespace scene { class Drawable; }
 class EditableTexture;
 class DynamicMaterial;
+
+/** Access interface for heightmaps */
+class HeightmapInterface {
+	public:
+	virtual ~HeightmapInterface() {}
+	virtual void setDetail(float) {}
+	virtual scene::Drawable* createDrawable() { return 0; }
+};
+
 
 /** Access interface for heightmap data */
 class HeightmapEditorInterface {
@@ -25,17 +35,22 @@ class HeightmapEditorInterface {
 	virtual void setMaterial(const DynamicMaterial*) = 0;
 };
 
+/** Editor target interface */
+class TerrainEditorTargetInterface {
+	public:
+	virtual ~TerrainEditorTargetInterface() {}
+	virtual int getHeightmaps(const Brush&, HeightmapEditorInterface**, vec3* offsets) = 0;
+	virtual int getTextureMaps(int id, const Brush&, EditableTexture**, vec3* offsets) = 0;
+};
 
 /** Main editor class - handles all painting stuff */
 class TerrainEditor {
 	public:
-	TerrainEditor();
+	TerrainEditor(TerrainEditorTargetInterface*);
 	~TerrainEditor();
 
 	void setHeightmap(HeightmapEditorInterface*);
-
 	void setTool(ToolInstance*);
-	void addTool(ToolInstance*);
 
 	const Brush& getBrush() const;
 	void setBrush(const Brush&);
@@ -47,8 +62,9 @@ class TerrainEditor {
 	void updateRing(std::vector<vec3>&, const vec3& centre, float radius) const;
 	
 	private:
-	HeightmapEditorInterface*  m_heightmap;
-	std::vector<ToolInstance*> m_tool;		 // The active tool. Can consist of multiple tools
+	TerrainEditorTargetInterface* m_target;		// Editable data access
+	HeightmapEditorInterface*     m_heightmap;	// deprecated
+	ToolInstance*                 m_tool;		// Active tool
 	std::vector<vec3> m_ring0;
 	std::vector<vec3> m_ring1;
 	Brush             m_brush;

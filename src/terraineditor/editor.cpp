@@ -11,7 +11,7 @@ inline float clamp(float f, float min=0, float max=1) {
 	return f;
 }
 
-TerrainEditor::TerrainEditor() : m_heightmap(0) {
+TerrainEditor::TerrainEditor(TerrainEditorTargetInterface* t) : m_target(t), m_heightmap(0), m_tool(0) {
 	m_brush.radius = 10;
 	m_brush.falloff = 0.5;
 	m_brush.strength = 1;
@@ -28,11 +28,7 @@ void TerrainEditor::setHeightmap(HeightmapEditorInterface* map) {
 void TerrainEditor::setTool(ToolInstance* t) {
 	m_ring0.clear();
 	m_ring1.clear();
-	m_tool.clear();
-	addTool(t);
-}
-void TerrainEditor::addTool(ToolInstance* t) {
-	if(t) m_tool.push_back(t);
+	m_tool = t;
 }
 
 const Brush& TerrainEditor::getBrush() const {
@@ -45,7 +41,7 @@ void TerrainEditor::setBrush(const Brush& b) {
 }
 
 void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, int wheel, int shift) {
-	if(m_tool.empty() || !m_heightmap) return;
+	if(!m_tool || !m_target) return;
 
 	// update current brush
 	float hitDistance = 0;
@@ -82,7 +78,7 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 	if(btn&1) {
 		// Start
 		if(~lb&1) {
-			for(uint i=0; i<m_tool.size(); ++i) m_tool[i]->tool->begin();
+			m_tool->tool->begin();
 			lp = position.xz();
 		}
 		// Paint
@@ -97,19 +93,16 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 		vec2 step = (lp - m_brush.position) / distance * spacing;
 		//uint64 ticks = base::Game::getTicks();
 		if(samples==1) step.set(0,0);
-		for(uint i=0; i<m_tool.size(); ++i) {
-			ToolInstance* t = m_tool[i];
-			for(int j=0; j<samples; ++j) {
-				m_brush.position = position.xz() + step * j;
-				t->tool->paint(m_brush, shift&1? t->shift: t->flags);
-			}
-			t->tool->commit();
+		for(int j=0; j<samples; ++j) {
+			m_brush.position = position.xz() + step * j;
+			m_tool->tool->paint(m_brush, shift&1? m_tool->shift: m_tool->flags);
 		}
+		m_tool->tool->commit();
 		//printf("Paint %d samples in %fms\n", num, (base::Game::getTicks()-ticks) *   (1000.0f / base::Game::getTickFrequency()));
 		lp = position.xz();
 	} else if(lb&1) {
 		// End
-		for(uint i=0; i<m_tool.size(); ++i) m_tool[i]->tool->end();
+		m_tool->tool->end();
 	}
 	lb = btn;
 }

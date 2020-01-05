@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
 
 //// Make a world - this file will be a complete mess while I test stuff ////
 
-WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_materials(0) {
+WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_materials(0), m_terrain(0) {
 	m_scene = new scene::Scene;
 	m_renderer = new scene::Renderer;
 	m_fileSystem = new FileSystem;
@@ -194,6 +194,18 @@ void WorldEditor::clear() {
 	m_editor = 0;
 	m_file = 0;
 	m_streams.clear();
+
+	// Delete scene data
+	delete m_terrain;
+
+	// Delete tiles
+	for(TerrainMap* map: m_maps) {
+		for(EditableTexture* t: map->maps) delete t;
+		delete map->heightMap;
+		delete map->editor;
+		delete map;
+	}
+	m_maps.clear();
 
 	// delete materials
 	if(m_materials) delete m_materials;
@@ -384,6 +396,7 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	//const char* source = panel->getWidget<Textbox>("source")->getText();
 	int size = panel->getWidget<Combobox>("size")->getSelectedData().getValue(128);
 	float height = panel->getWidget<Spinbox>("height")->getValue();
+	/*
 	switch(mode) {
 	case 0: create(size, 1, height, HEIGHT_FLOAT, false); break;
 	case 1: create(size, 1, height, HEIGHT_UINT8, false); break;
@@ -392,6 +405,27 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	case 4: create(size, 1, height, HEIGHT_UINT16, true); break;
 	}
 	// ToDo: convert source
+	*/
+
+	// New version
+	HeightFormat formats[] = { HEIGHT_FLOAT, HEIGHT_UINT8, HEIGHT_UINT16 };
+	m_heightFormat = formats[mode];
+	m_mapSize = size;
+	m_streaming = false; // This could be in the options ?
+	m_resolution = 1;
+	m_verticalScale = height;
+
+	m_terrain = new MapGrid( (size-1)*m_resolution );
+	m_scene->add(m_terrain);
+
+	// Create first tile
+	TerrainMap* tile = createTile( "Tile 0,0" );
+	m_terrain->assign( Point(0,0), tile );
+
+
+	// Setup editor
+	m_editor = new TerrainEditor(m_terrain);
+	setupHeightTools();
 }
 void WorldEditor::cancelNewTerrain(gui::Button*) {
 	Widget* w = m_gui->getWidget<Widget>("newdialog");
@@ -780,16 +814,10 @@ void WorldEditor::create(int size, float res, float scale, HeightFormat format, 
 		printf("Created %dx%d heightmap stream as %s\n", size,size, "tmp.tiff");
 
 	} else {
-		/*
 		SimpleHeightmap* map = new SimpleHeightmap();
 		map->create(size, size, res, 0.f);
 		m_scene->add(map);
 		m_heightMap = new SimpleHeightmapEditor(map);
-		*/
-		DynamicHeightmap* map = new DynamicHeightmap();
-		map->create(size, size, res, 0.f);
-		m_scene->add(map);
-		m_heightMap = new DynamicHeightmapEditor(map);
 
 		m_objects["terrain"] = map;
 		m_terrainOffset = vec2();
@@ -805,7 +833,7 @@ void WorldEditor::create(int size, float res, float scale, HeightFormat format, 
 	m_materials->addMaterial(0);
 
 	// Set up editor
-	m_editor = new TerrainEditor();
+	m_editor = new TerrainEditor(m_terrain);
 	m_editor->setHeightmap(m_heightMap);
 	setupHeightTools(res, m_terrainOffset);
 	updateTitle();
@@ -823,12 +851,72 @@ void WorldEditor::create(int size, float res, float scale, HeightFormat format, 
 	ENABLE_BUTTON( "texturebutton" )
 }
 
-// ======================================================================================= //
+// ====================  Map Grid ======================================================== //
+WorldEditor::MapGrid::MapGrid(float res) : m_gridResolution(res) {
+}
+void WorldEditor::MapGrid::assign(const Point& p, TerrainMap* map) {
+	remove(p);
+	TerrainSlot& slot = m_slots[p];
+	vec3 offset(p.x * m_gridResolution, 0, p.y * m_gridResolution);
+	char name[32]; snprintf(name, 32, "Tile %d,%d", p.x, p.y);
 
-WorldEditor::TerrainMap* WorldEditor::createTile(const Point& index) {
-	char buffer[64];
+	slot.map = map;
+	slot.index = p;
+	slot.node = createChild(name, offset);
+	slot.node->attach( map->heightMap->createDrawable() );
+	slot.node->setPosition(offset);
+}
+void WorldEditor::MapGrid::remove(const Point& p) {
+	auto it = m_slots.find(p);
+	if(it!=m_slots.end() && it->second.node) {
+		// ToDo: Delete drawable - tracked by HeightMap class
+		delete it->second.node;
+		it->second.node = 0;
+		it->second.map = 0;
+	}
+}
+void WorldEditor::MapGrid::setVisible(const Point& p, bool v) {
+	std::map<Point, TerrainSlot>::iterator it = m_slots.find(p);
+	if(it!=m_slots.end() && it->second.node) it->second.node->setVisible(v);
+}
+int WorldEditor::MapGrid::getHeightmaps(const Brush& brush, HeightmapEditorInterface** maps, vec3* offsets) {
+	int result = 0;
+	vec2 a = floor( (brush.position - brush.radius) / m_gridResolution );
+	vec2 b = ceil( (brush.position + brush.radius) / m_gridResolution );
+	for(Point p(a.x,a.y); p.x<=b.x; ++p.x) {
+		for(p.y=a.y; p.y<=b.y; ++p.y) {
+			auto it = m_slots.find(p);
+			if(it != m_slots.end() && it->second.map) {
+				maps[result] = it->second.map->editor;
+				offsets[result].set(p.x*m_gridResolution,0, p.y*m_gridResolution);
+				++result;
+			}
+		}
+	}
+	return result;
+}
+int WorldEditor::MapGrid::getTextureMaps(int id, const Brush& brush, EditableTexture** tex, vec3* offsets) {
+	int result = 0;
+	vec2 a = floor( (brush.position - brush.radius) / m_gridResolution );
+	vec2 b = ceil( (brush.position + brush.radius) / m_gridResolution );
+	for(Point p(a.x,a.y); p.x<=b.x; ++p.x) {
+		for(p.y=a.y; p.y<=b.y; ++p.y) {
+			auto it = m_slots.find(p);
+			if(it != m_slots.end() && it->second.map) {
+				tex[result] = it->second.map->maps[id];
+				offsets[result].set(p.x*m_gridResolution,0, p.y*m_gridResolution);
+				// ToDo: create new EditableTexture if it doesn't exist
+				++result;
+			}
+		}
+	}
+	return result;
+}
+
+// ==================== Tiles ============================================================ //
+WorldEditor::TerrainMap* WorldEditor::createTile(const char* name) {
 	TerrainMap* map = new TerrainMap;
-	if(m_streaming) {
+/*	if(m_streaming) {
 		Streamer* data = new Streamer(m_verticalScale);
 		data->createStream("tmp.tiff", m_mapSize, m_mapSize, 1, m_heightFormat==HEIGHT_UINT8? 8: 16);
 		data->setLod( m_options.detail );
@@ -836,34 +924,20 @@ WorldEditor::TerrainMap* WorldEditor::createTile(const Point& index) {
 		map->heightMap = data;
 		map->editor = new StreamingHeightmapEditor(data);
 	}
-	else {
-		SimpleHeightmap* data = new SimpleHeightmap();
+	else*/ {
+		DynamicHeightmap* data = new DynamicHeightmap();
 		data->create(m_mapSize, m_mapSize, m_resolution, 0.f);
+		data->setDetail( m_options.detail );
 		map->heightMap = data;
-		map->editor = new SimpleHeightmapEditor(data);
+		map->editor = new DynamicHeightmapEditor(data);
 	}
-	sprintf(buffer, "Tile_%d.%d", index.x, index.y);
-	map->name = buffer;
-	m_objects[buffer] = map->heightMap;
+	map->name = name;
 	m_maps.push_back(map);
-	assignTile(index, map);
 	return map;
 }
-void WorldEditor::assignTile(const Point& p, TerrainMap* map) {
-	bool exists = m_slots.find(p) != m_slots.end();
-	TerrainSlot& slot = m_slots[p];
-	if(exists && slot.map) slot.map->heightMap->setVisible(false);
-	slot.map = map;
-	slot.index = p;
-	slot.offset = vec3(p.x, 0, p.y) * (m_mapSize-1)*m_resolution;
-	map->heightMap->setVisible(true);
-}
-void WorldEditor::setTileVisible(const Point& p, bool v) {
-	std::map<Point, TerrainSlot>::iterator it = m_slots.find(p);
-	if(it!=m_slots.end() && it->second.map) it->second.map->heightMap->setVisible(v);
-}
 
-WorldEditor::TerrainMap* WorldEditor::loadTile(const XMLElement& e, bool add) {
+
+WorldEditor::TerrainMap* WorldEditor::loadTile(const XMLElement& e) {
 	const XMLElement& data = e.find("data");
 	const char* file = data.attribute("file");
 	const char* type = data.attribute("type");
@@ -873,14 +947,12 @@ WorldEditor::TerrainMap* WorldEditor::loadTile(const XMLElement& e, bool add) {
 	// Load maps
 	for(const XMLElement& i: e) {
 		if(i=="map") {
-			
-			
 		}
 	}
 	return 0;
 }
-
 // ======================================================================================= //
+
 
 void WorldEditor::loadWorld(const char* file) {
 	clear();
@@ -982,7 +1054,7 @@ void WorldEditor::loadWorld(const char* file) {
 
 
 	// Set up terrain editor
-	m_editor = new TerrainEditor();
+	m_editor = new TerrainEditor(0);
 	m_editor->setHeightmap( m_heightMap );
 	setupHeightTools(res, m_terrainOffset);
 	

@@ -222,8 +222,6 @@
 			<item>Raw Float</item>
 			<item>8 bit texture</item>
 			<item>16 bit texture</item>
-			<item>8 bit streamed</item>
-			<item>16 bit streamed</item>
 		</widget>
 		<widget template="droplist" rect="64 40 136 20" name="size" anchor="tlr"/>
 		<widget class="Label" rect="8 88 56 20" caption="Height" />
