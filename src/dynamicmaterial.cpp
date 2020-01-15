@@ -138,29 +138,10 @@ const char* addIndex(const char* base, int index) {
 
 void DynamicMaterial::update(int index) {
 	if(!m_material) return;
-	GL_CHECK_ERROR;
 
 	// Set all the variables
 	MaterialLayer* layer = m_layers[index];
 	m_vars->set( addIndex("opacity",index), layer->visible? layer->opacity: 0);
-
-	// Map coordinates - create the variables so they are bound correctly. will change them later
-	if(layer->mapIndex) {
-		char buffer[32];
-		sprintf(buffer, "map%dInfo", layer->mapIndex);
-		if(!m_vars->contains(buffer)) {
-			m_vars->set(buffer, 4, 1, m_coords);
-			sprintf(buffer, "map%dSize", layer->mapIndex);
-			m_vars->set(buffer, 1024.f, 1024.f);
-			//sprintf(buffer, "map%d", layer->mapIndex);
-			//m_material->getPass(0)->getParameters().set(buffer, 0);
-			//if(layer->mapData&0x100) {
-			//	sprintf(buffer, "map%dW", layer->mapIndex);
-			//	m_material->getPass(0)->getParameters().set(buffer, 0);
-			//}
-		}
-	}
-
 
 	// Splat texture scaling
 	if(layer->type != LAYER_COLOUR) {
@@ -181,12 +162,15 @@ void DynamicMaterial::update(int index) {
 		m_vars->set( addIndex("autoBlend",index), blend);
 		//m_vars->set( addIndex("autoNoise",index), noise);
 	}
-	GL_CHECK_ERROR;
 }
 
 void DynamicMaterial::setTextures(MaterialEditor* src) {
 	if(!m_material) return;
 	if(m_stream) m_stream->build();
+
+	// Map bounds
+	m_vars->set("mapBounds", 4, 1, m_coords);
+
 
 	// Textures
 	m_material->getPass(0)->setTexture("diffuseArray", &src->getDiffuseArray());
@@ -197,32 +181,19 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 		printf("Textures set\n");
 	}
 
-	// Bind all the maps
+	// Bind all the map data
 	char buffer[32];
+	uint64 used = 1;
 	std::set<uint> usedMaps;
 	for(size_t i=0; i<m_layers.size(); ++i) {
 		MaterialLayer* layer = m_layers[i];
-		if(layer->mapIndex) usedMaps.insert(layer->mapIndex);
-		update(i);
-	}
-	for(uint mapIndex : usedMaps) {
-		const MaterialEditor::MapData& map = src->getMap(mapIndex);
-		if(map.name) {
-			sprintf(buffer, "map%d", mapIndex);
-			m_vars->set(buffer, 0);
-			sprintf(buffer, "map%dInfo", mapIndex);
-			m_vars->set(buffer, 4, 1, m_coords);
-			sprintf(buffer, "map%dSize", mapIndex);
+		if(~used&(1<<layer->mapIndex)) {
+			used |= 1<<layer->mapIndex;
+			const MaterialEditor::MapData& map = src->getMap(layer->mapIndex);
+			sprintf(buffer, "map%dSize", layer->mapIndex);
 			m_vars->set(buffer, (float)map.size, (float)map.size);
-			if(map.flags & 0x100) {
-				sprintf(buffer, "map%dW", mapIndex);
-				m_vars->set(buffer, 0);
-			}
-//			if(m_stream) {
-//				if(map->getTextureStream()) m_stream->addStream(img.first, map->getTextureStream());
-//				else m_stream->setOverlayTexture(img.first, map->getTexture());
-//			}
 		}
+		update(i);
 	}
 	m_material->getPass(0)->compile();
 	GL_CHECK_ERROR;
@@ -303,7 +274,8 @@ bool DynamicMaterial::compile() {
 	"in vec3 worldNormal;\n"
 	"in vec3 worldPos;\n"
 	"out vec4 fragment;\n\n"
-	"uniform vec3 lightDirection;\n\n";
+	"uniform vec3 lightDirection;\n"
+	"uniform vec4 mapBounds;\n\n";
 	
 	// Texture array samplers
 	if(hasTextureArray) source +=
@@ -324,7 +296,6 @@ bool DynamicMaterial::compile() {
 	}
 	for(int i=1; mapMask>>i; ++i) {
 		if(mapMask&(1<<i)) {
-			source += format("uniform vec4 map{}Info;\n", i);
 			source += format("uniform vec2 map{}Size;\n", i);
 		}
 	}
@@ -544,9 +515,9 @@ bool DynamicMaterial::compile() {
 		source +=  "	// Sample maps\n";
 		for(MaterialLayer* layer : m_layers) {
 			if(layer->mapIndex) {
-				source +=  format("	vec4 map{}Sample = sampleMap(map{}, map{}Info, worldPos.xz);\n", layer->mapIndex);
+				source +=  format("	vec4 map{}Sample = sampleMap(map{}, mapBounds, worldPos.xz);\n", layer->mapIndex);
 				if(layer->mapData&0x100) {
-					source +=  format("	vec4 map{}WSample = sampleMap(map{}W, map{}Info, worldPos.xz);\n", layer->mapIndex);
+					source +=  format("	vec4 map{}WSample = sampleMap(map{}W, mapBounds, worldPos.xz);\n", layer->mapIndex);
 				}
 			}
 		}
@@ -585,9 +556,9 @@ bool DynamicMaterial::compile() {
 			else {
 				source += "	weight=1;\n";
 				if(layer->mapData&0x100) 
-					source += format(" 	sampleIndexedWeighted(map{1}, map{1}W, map{1}Info, map{1}Size, worldPos.xz, scale{2}, diff, norm);\n", layer->mapIndex, i);
+					source += format(" 	sampleIndexedWeighted(map{1}, map{1}W, mapBounds, map{1}Size, worldPos.xz, scale{2}, diff, norm);\n", layer->mapIndex, i);
 				else
-					source += format("	sampleIndexedQuad(map{1}, map{1}Info, map{1}Size, worldPos.xz, scale{2}, diff, norm);\n", layer->mapIndex, i);
+					source += format("	sampleIndexedQuad(map{1}, mapBounds, map{1}Size, worldPos.xz, scale{2}, diff, norm);\n", layer->mapIndex, i);
 			}
 			break;
 		case LAYER_GRADIENT:

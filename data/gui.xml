@@ -362,7 +362,6 @@
 			<item>Colour</item>
 			<item>Weight</item>
 			<item>Index</item>
-			<item>Weighted index</item>
 		</widget>
 		<widget anchor="lrt" class="Textbox" rect="64 40 136 20" name="editorname" skin="default"/>
 		<widget anchor="lrt" template="droplist" name="editorsize" skin="default" rect="64 64 136 20">

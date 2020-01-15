@@ -73,6 +73,7 @@ int MapGrid::getMaps(unsigned id, const Brush& brush, EditableMap** maps, vec3* 
 					EditableTexture* newTex = new EditableTexture(def.size, def.size, def.channels, true);
 					if(data->maps.size() <= id) data->maps.resize(id+1, 0);
 					data->maps[id] = newTex;
+					if(def.flags>1) newTex->getTexture(0)->setFilter(base::Texture::NEAREST);
 					if(eventMapCreated) eventMapCreated(it->second.map);
 				}
 
@@ -123,9 +124,9 @@ const BoundingBox& MapGrid::getBounds() const {
 }
 
 
-int MapGrid::createTextureMap(int size, int channels) {
+int MapGrid::createTextureMap(int size, int channels, int flags) {
 	int id = m_mapDefinitions.size();
-	m_mapDefinitions.push_back( MapDef{size, channels} );
+	m_mapDefinitions.push_back( MapDef{size, channels, flags} );
 	return id;
 }
 

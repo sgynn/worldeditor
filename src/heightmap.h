@@ -54,13 +54,13 @@ class MapGrid : public TerrainEditorDataInterface, public scene::SceneNode {
 	TerrainMap* getMap(const vec3&) const;
 	vec3 getOffset(const Point&) const;
 
-	int createTextureMap(int size, int channels); // Definition for creating EditibleImage maps
+	int createTextureMap(int size, int channels, int flags); // Definition for creating EditibleImage maps
 	void updateBounds();
 
 	Delegate<void(TerrainMap*)> eventMapCreated;
 
 	protected:
-	struct MapDef { int size, channels; };
+	struct MapDef { int size, channels, flags; };
 	struct Slot { TerrainMap* map; scene::SceneNode* node; };
 	std::map<Point, Slot> m_slots;
 	std::vector<MapDef> m_mapDefinitions;

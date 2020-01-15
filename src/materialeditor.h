@@ -55,6 +55,7 @@ class MaterialEditor {
 	const MapData& getMap(uint id) const;
 	void addMap(uint id, const char* name, int size, int flags);
 	void deleteMap(uint id);
+	void setTerrainSize(const vec2& s) { m_terrainSize = s; }
 	
 	public:
 	Delegate<void(DynamicMaterial*)> eventChangeMaterial;
@@ -133,6 +134,7 @@ class MaterialEditor {
 	std::vector<TerrainTexture*>  m_textures;		// Textures
 	std::vector<MapData>          m_mapInfo;		// Texture map data
 	float          m_textureTiling[256];	// Texture tiling values
+	vec2           m_terrainSize;			// Terrain map size
 	bool           m_streaming;				// Use streamed textures
 	FileSystem*    m_fileSystem;			// For finding files
 	gui::Root*     m_gui;					// Gui

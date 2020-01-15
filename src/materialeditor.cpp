@@ -99,6 +99,7 @@ DynamicMaterial* MaterialEditor::createMaterial(const char* name) {
 	DynamicMaterial* m = new DynamicMaterial(m_streaming);
 	m->setName(name);
 	m->setTilingData(m_textureTiling);
+	m->setCoordinates(m_terrainSize, vec2());
 	m_materials.push_back(m);
 	m_materialList->addItem( name );
 	return m;
@@ -636,8 +637,8 @@ void MaterialEditor::selectMaterial(gui::Combobox*, int index) {
 
 	// compile and activate
 	if(m->needsCompiling()) m->compile();
-	eventChangeMaterial(m);
 	m->setTextures(this);
+	eventChangeMaterial(m);
 }
 void MaterialEditor::renameMaterial(gui::Combobox* c) {
 	m_materials[m_selectedMaterial]->setName( c->getText() );

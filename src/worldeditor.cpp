@@ -420,6 +420,7 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	m_materials = new MaterialEditor(m_gui, m_fileSystem, m_streaming);
 	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
 	m_materials->eventChangeTextureList.bind(this, &WorldEditor::textureListChanged);
+	m_materials->setTerrainSize( vec2(size,size) );
 	m_materials->addMaterial(0);
 
 	// Create first tile
@@ -511,15 +512,15 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 	// Create tool group
 	switch(mode) {
 	case 0: // Colour map
-		mapIndex = m_terrain->createTextureMap(size, channels);
+		mapIndex = m_terrain->createTextureMap(size, channels, 0);
 		group = new ColourToolGroup(name, mapIndex);
 		break;
 	case 1: // Weight map
-		mapIndex = m_terrain->createTextureMap(size, channels);
+		mapIndex = m_terrain->createTextureMap(size, channels, 1);
 		group = new WeightToolGroup(name, channels, mapIndex);
 		break;
 	case 2: // Index map
-		mapIndex = m_terrain->createTextureMap(size, channels);
+		mapIndex = m_terrain->createTextureMap(size, channels, 2);
 		if(channels>1) group = new IndexWeightToolGroup(name, mapIndex);
 		else group = new IndexToolGroup(name, mapIndex);
 		break;
@@ -535,73 +536,12 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 
 	// Set up a material for it ? - add checkbox option
 	DynamicMaterial* mat = m_materials->createMaterial(name);
-	mat->setCoordinates(m_terrainSize, m_terrainOffset);
 	MaterialLayer* layer = mat->addLayer(mode<2? LAYER_COLOUR: LAYER_INDEXED);
 	layer->name = "Map";
 	layer->mapIndex = mapIndex;
 	m_materials->selectMaterial(mat);
-
-
-
-	/*
-
-	switch(mode) {
-	case 0: // Colour layer
-		name = "Colour map";
-		createUniqueMapName("colour%d", safeName);
-		tex = new EditableTexture(size, size, 4, true);
-		m_materials->addMap(safeName, tex);
-		createMapData(tex, safeName, 0, USAGE_COLOUR);
-		group = new ColourToolGroup(name, tex);
-		break;
-	case 1: // Weight layer
-		name = "Weight map";
-		createUniqueMapName("weight%d", safeName);
-		tex = new EditableTexture(size, size, 4, true);
-		m_materials->addMap(safeName, tex);
-		createMapData(tex, safeName, 0, USAGE_WEIGHT);
-		group = new WeightToolGroup(name, tex);
-		break;
-	case 2:	// Indexed layer
-		name = "Index map";
-		createUniqueMapName("index%d", safeName);
-		tex = new EditableTexture(size, size, 1, true);
-		m_materials->addMap(safeName, tex);
-		createMapData(tex, safeName, 0, USAGE_INDEX);
-		group = new IndexToolGroup(name, tex);
-		break;
-	case 3: // Weighted Indexed layer
-		name = "Indexed Map";
-		createUniqueMapName("index%d", safeName);
-		tex = new EditableTexture(size, size, 4, true);
-		m_materials->addMap(safeName, tex);
-		img = createMapData(tex, safeName, 0, USAGE_INDEX);
-
-		sprintf(safeName2, "%sW", safeName);
-		img->map2 = tex2 = new EditableTexture(size, size, 4, true);
-		m_materials->addMap(safeName2, tex2);
-
-		group = new IndexWeightToolGroup(name, tex, tex2);
-		break;
-	}
-
-	// Add texture to world
-	if(group) {
-		group->setup(m_gui);
-		group->setResolution(m_terrainOffset, m_terrainSize, 1);
-		addGroup(group, "texture", true);
-
-		// Set up a material for it ?
-		DynamicMaterial* mat = m_materials->createMaterial(name);
-		mat->setCoordinates(m_terrainSize, m_terrainOffset);
-		MaterialLayer* layer = mat->addLayer(mode<2? LAYER_COLOUR: LAYER_INDEXED);
-		layer->name = "Map";
-		layer->map = safeName;
-		if(mode==3) layer->map2 = safeName2;
-		m_materials->selectMaterial(mat);
-	}
-	*/
 }
+
 void WorldEditor::cancelNewEditor(gui::Button*) {
 	Widget* w = m_gui->getWidget<Widget>("neweditor");
 	if(w) w->setVisible(false);

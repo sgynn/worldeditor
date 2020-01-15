@@ -76,24 +76,21 @@ void DynamicHeightmap::create(int w, int h, float res, const float height) {
 }
 
 void DynamicHeightmap::setMaterial(DynamicMaterial* dyn, const MapList& maps) {
-	dyn->setCoordinates( vec2(m_width*m_resolution, m_height*m_resolution), vec2(0,0) );
-
 	// Instanciate dynamic material
 	delete m_material;
 	m_material = dyn->getMaterial()->clone();
 	// Apply maps
 	for(MaterialLayer* layer : *dyn) {
-		if(layer->mapIndex && layer->mapIndex<maps.size()) {
-			EditableMap* map = maps[layer->mapIndex];
-			if(!map) continue;
+		if(layer->mapIndex) {
+			EditableMap* map = layer->mapIndex<maps.size()? maps[layer->mapIndex]: 0;
 
 			char mapName[32];
 			sprintf(mapName, "map%u", layer->mapIndex);
-			m_material->getPass(0)->setTexture( mapName, map->getTexture() );
+			m_material->getPass(0)->setTexture( mapName, map? map->getTexture(): 0 );
 			
 			if(layer->mapData&0x100) {
 				sprintf(mapName, "map%dW", layer->mapIndex);
-				m_material->getPass(0)->setTexture( mapName, map->getTexture(1) );
+				m_material->getPass(0)->setTexture( mapName, map? map->getTexture(1): 0 );
 			}
 		}
 	}
