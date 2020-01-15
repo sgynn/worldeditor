@@ -5,55 +5,40 @@
 #include "tool.h"
 #include <vector>
 
-namespace base { class Material; }
-namespace scene { class Drawable; }
-class EditableTexture;
-class DynamicMaterial;
+namespace base { class Texture; }
 
-/** Access interface for heightmaps */
-class HeightmapInterface {
+/// Interface for maps that can be painted on
+class EditableMap {
 	public:
-	virtual ~HeightmapInterface() {}
-	virtual void setDetail(float) {}
-	virtual scene::Drawable* createDrawable() { return 0; }
+	virtual ~EditableMap() {}
+	virtual int  getChannels() const = 0;
+	virtual Rect getRect() const = 0;
+	virtual void prepare(const Rect&) {}
+	virtual void getValue(int x, int y, float* values) const = 0;	// assume x,y valid.
+	virtual void setValue(int x, int y, const float* values) = 0;
+	virtual void apply(const Rect&) {}
+	virtual const base::Texture* getTexture(uint flags=0) const { return 0; }	// For texture type maps
 };
 
-
-/** Access interface for heightmap data */
-class HeightmapEditorInterface {
+/// Editor target data interface
+class TerrainEditorDataInterface {
 	public:
-	virtual ~HeightmapEditorInterface() {}
-	virtual void  getInfo(float& resolution, vec3& offset) const = 0;
-	virtual float getHeight(const vec3& pos) const = 0;
-	virtual float getHeight(const vec3& pos, vec3& normal) const = 0;
-	virtual int   castRay(const vec3& start, const vec3& direction, float& out) const = 0;
-
-	virtual int getHeights(const Rect& rect, float* array) const = 0;
-	virtual int setHeights(const Rect& rect, const float* array) = 0;
-
-	virtual void setDetail(float detail) {}
-	virtual void setMaterial(const DynamicMaterial*) = 0;
+	virtual ~TerrainEditorDataInterface() {}
+	virtual int getMaps(unsigned id, const Brush&, EditableMap**, vec3* offsets) = 0;
+	virtual int castRay(const vec3& start, const vec3& direction, float& out) const = 0;
+	virtual float getHeight(const vec3& point) const = 0;
+	virtual float getResolution(unsigned id) const = 0;
 };
 
-/** Editor target interface */
-class TerrainEditorTargetInterface {
-	public:
-	virtual ~TerrainEditorTargetInterface() {}
-	virtual int getHeightmaps(const Brush&, HeightmapEditorInterface**, vec3* offsets) = 0;
-	virtual int getTextureMaps(int id, const Brush&, EditableTexture**, vec3* offsets) = 0;
-};
-
-/** Main editor class - handles all painting stuff */
+/// Main editor class - handles all painting stuff
 class TerrainEditor {
 	public:
-	TerrainEditor(TerrainEditorTargetInterface*);
+	TerrainEditor(TerrainEditorDataInterface*);
 	~TerrainEditor();
 
-	void setHeightmap(HeightmapEditorInterface*);
 	void setTool(ToolInstance*);
-
-	const Brush& getBrush() const;
 	void setBrush(const Brush&);
+	const Brush& getBrush() const;
 
 	void update(const vec3& rayStart, const vec3& rayDir, int btn, int wheel, int shift);
 	void draw();
@@ -62,12 +47,12 @@ class TerrainEditor {
 	void updateRing(std::vector<vec3>&, const vec3& centre, float radius) const;
 	
 	private:
-	TerrainEditorTargetInterface* m_target;		// Editable data access
-	HeightmapEditorInterface*     m_heightmap;	// deprecated
+	TerrainEditorDataInterface*   m_target;		// Editable data access
 	ToolInstance*                 m_tool;		// Active tool
 	std::vector<vec3> m_ring0;
 	std::vector<vec3> m_ring1;
 	Brush             m_brush;
+	BrushData         m_buffer;
 	
 };
 

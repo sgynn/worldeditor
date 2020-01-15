@@ -16,7 +16,6 @@ using namespace base;
 
 MaterialEditor::MaterialEditor(gui::Root* gui, FileSystem* fs, bool stream): m_streaming(stream), m_fileSystem(fs), m_gui(gui) {
 	// Selector lists
-	m_mapSelector = new gui::ItemList();
 	m_textureSelector = new gui::ItemList();
 	m_textureSelector->addItem("Select colour", gui::Any(), -1);
 
@@ -54,13 +53,8 @@ MaterialEditor::~MaterialEditor() {
 	for(size_t i=0; i<m_materials.size(); ++i) delete m_materials[i];
 	for(size_t i=0; i<m_textures.size(); ++i) delete m_textures[i];
 
-	// Delete maps
-	for(HashMap<EditableTexture*>::iterator i=m_imageMaps.begin(); i!=m_imageMaps.end(); ++i) delete i->value;
-	m_imageMaps.clear();
-
 	// Delete selector lists
 	delete m_textureSelector;
-	delete m_mapSelector;
 }
 
 void MaterialEditor::selectMaterial(DynamicMaterial* m) {
@@ -136,7 +130,7 @@ DynamicMaterial* MaterialEditor::loadMaterial(const XMLElement& e) {
 	// read layers
 	for(XML::iterator i=e.begin(); i!=e.end(); ++i) {
 		if(*i=="layer") {
-			int mode = enumerate(i->attribute("type", "normal"), layerTypes, 4);
+			LayerType mode = (LayerType)enumerate(i->attribute("type", "normal"), layerTypes, 4);
 			MaterialLayer* layer = mat->addLayer((LayerType) mode);
 			layer->name = i->attribute("name");
 			layer->blend = (::BlendMode) enumerate(i->attribute("blend", "normal"), blendModes, 4);
@@ -153,19 +147,26 @@ DynamicMaterial* MaterialEditor::loadMaterial(const XMLElement& e) {
 				layer->scale.z = layer->scale.x;
 			}
 
-			if(mode<3) {
-				layer->map = i->attribute("map");
-				layer->mapData = enumerate(i->attribute("channel", "r"), channels, 5);
-			} else {
-				layer->map = i->attribute("indexmap");
-				layer->map2 = i->attribute("weightmap");
-				layer->mapData = i->attribute("offset", 0);
-			}
+			layer->mapIndex = i->attribute("map", 0);
 
-			if(mode==0) {
+			switch(mode) {
+			case LAYER_COLOUR:
+				layer->mapIndex = i->attribute("map", 0);
+				break;
+			case LAYER_WEIGHT:
+				layer->mapIndex = i->attribute("map", 0);
+				layer->mapData = enumerate(i->attribute("channel", "r"), channels, 5); // Which channel
+				break;
+			case LAYER_INDEXED:
+				layer->mapIndex = i->attribute("map", 0);
+				layer->mapData = i->attribute("channels", 1);	// Number of blended channels 1-4
+				break;
+			case LAYER_AUTO:
 				readAutoParams( i->find("height"), layer->height );
 				readAutoParams( i->find("slope"), layer->slope );
 				readAutoParams( i->find("concavity"), layer->concavity );
+				break;
+			default: break;
 			}
 		}
 	}
@@ -213,15 +214,15 @@ XMLElement MaterialEditor::serialiseMaterial(int index) {
 			writeAutoParams(layer, "concavity", l->concavity, dummy.getLayer(0)->concavity);
 			break;
 		case LAYER_WEIGHT:
-			layer.setAttribute("map", l->map);
+			layer.setAttribute("map", (int)l->mapIndex);
 			layer.setAttribute("channel", channels[l->mapData]);
 			break;
 		case LAYER_COLOUR:
-			layer.setAttribute("map", l->map);
+			layer.setAttribute("map", (int)l->mapIndex);
 			break;
 		case LAYER_INDEXED:
-			layer.setAttribute("indexmap", l->map);
-			layer.setAttribute("weightmap", l->map2);
+			layer.setAttribute("map", (int)l->mapIndex);
+			layer.setAttribute("channels", (int)l->mapData);
 			break;
 		case LAYER_GRADIENT:
 			printf("TODO: save gradient layer\n");
@@ -305,26 +306,33 @@ const base::Texture& MaterialEditor::getHeightArray() const {
 }
 
 // ------------------------------------------------------------------------------ //
-
-
-void MaterialEditor::addMap(const char* name, EditableTexture* map) {
-	m_imageMaps[name] = map;
-	m_mapSelector->addItem(name);
+const MaterialEditor::MapData& MaterialEditor::getMap(uint index) const {
+	return m_mapInfo[index];
 }
 
-void MaterialEditor::deleteMap(const char* name) {
-	if(!m_imageMaps.contains(name)) return;
-	delete m_imageMaps[name];
-	m_imageMaps.erase(name);
-	int ix = getListIndex(m_mapSelector, name);
-	if(ix>=0) m_mapSelector->removeItem(ix);
+void MaterialEditor::addMap(uint index, const char* name, int size, int flags) {
+	if(m_mapInfo.size() <= index) m_mapInfo.resize(index+1, MapData{0,0});
+	m_mapInfo[index].name = name;
+	m_mapInfo[index].size = size;
+	m_mapInfo[index].flags = flags;
 }
 
-EditableTexture* MaterialEditor::getMap(const char* name) const {
-	if(!m_imageMaps.contains(name)) return 0;
-	return m_imageMaps[name];
+void MaterialEditor::deleteMap(uint index) {
+	if(index < m_mapInfo.size()) {
+		m_mapInfo[index].name.clear();
+		m_mapInfo[index].flags = 0;
+	}
 }
 
+void MaterialEditor::populateMaps(gui::ItemList* list, int mask, uint selected) const {
+	list->clearItems();
+	for(uint i=0; i<m_mapInfo.size(); ++i) {
+		if(m_mapInfo[i].flags & mask) {
+			list->addItem(m_mapInfo[i].name, i);
+			if(selected == i) list->selectItem(list->getItemCount()-1);
+		}
+	}
+}
 
 // ------------------------------------------------------------------------------ //
 
@@ -793,8 +801,7 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 	if(layer->type == LAYER_WEIGHT || layer->type == LAYER_COLOUR) {
 		gui::Combobox* map = addLayerWidget<gui::Combobox>(m_gui, w, "Map", "droplist");
 		map->eventSelected.bind(this, &MaterialEditor::changeMap);
-		map->shareList(m_mapSelector);
-		map->selectItem( getListIndex(map, layer->map) );
+		populateMaps(map, 0x3, layer->mapIndex);
 		if(layer->type == LAYER_WEIGHT) {
 			gui::Combobox* channel = addLayerWidget<gui::Combobox>(m_gui, w, "Channel", "droplist");
 			channel->addItem("Red");
@@ -806,11 +813,9 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 		}
 	}
 	else if(layer->type == LAYER_INDEXED) {
-		gui::Combobox* index = addLayerWidget<gui::Combobox>(m_gui, w, "Index Map", "droplist");
-		index->eventSelected.bind(this, &MaterialEditor::changeMap);
-		index->shareList(m_mapSelector);
-		index->selectItem( getListIndex(index, layer->map) );
-		// Second weight texture is automatic
+		gui::Combobox* map = addLayerWidget<gui::Combobox>(m_gui, w, "Index Map", "droplist");
+		map->eventSelected.bind(this, &MaterialEditor::changeMap);
+		populateMaps(map, 0x4, layer->mapIndex);
 	}
 
 	// Texture tiling
@@ -893,20 +898,16 @@ void MaterialEditor::rebuildMaterial(bool bindMaps) {
 	DynamicMaterial* mat = m_materials[ m_selectedMaterial ];
 	mat->compile();
 	if(bindMaps) mat->setTextures(this);
+	eventChangeMaterial( getMaterial() );	// Reapply material to all terrain patches
 }
 
 void MaterialEditor::changeMap(gui::Combobox* w, int i) {
-	char secondMap[64];
-	snprintf(secondMap, 64, "%sW", w->getItem(i));
-	if(m_imageMaps.contains(secondMap)) getLayer(w)->map2 = secondMap;
-
-	getLayer(w)->map = w->getItem(i);
+	int index;
+	w->getItemData(i).getValue(index);
+	MaterialLayer* layer = getLayer(w);
+	layer->mapIndex = index;
 	rebuildMaterial(true);
-	eventChangeMaterial( m_materials[m_selectedMaterial] );	// Reapply material to all terrain patches
-}
-void MaterialEditor::changeIndexMap(gui::Combobox* w, int i) {
-	getLayer(w)->map2 = w->getItem(i);
-	rebuildMaterial(true);
+	eventChangeMaterial( getMaterial() );	// Reapply material to all terrain patches
 }
 void MaterialEditor::changeChannel(gui::Combobox* w, int i) {
 	getLayer(w)->mapData = i;

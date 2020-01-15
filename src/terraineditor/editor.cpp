@@ -5,24 +5,44 @@
 
 #include <base/game.h>
 
+void BrushData::reset(const Brush& brush, float resolution, int channels) {
+	m_resolution = resolution;
+	vec2 min = ceil ((brush.position - brush.radius) / resolution);
+	vec2 max = floor((brush.position + brush.radius) / resolution);
+	m_intOffset.set(min.x, min.y);
+	m_offset = min * resolution;
+	m_size.x = max.x - min.x + 1;
+	m_size.y = max.y - min.y + 1;
+	m_channels = channels;
+
+	int count = m_size.x * m_size.y * m_channels;
+	if(m_dataSize < count) {
+		delete [] m_data;
+		m_data = new float[count];
+		m_dataSize = count;
+	}
+
+	m_mx = m_channels;
+	m_my = m_channels * m_size.x;
+	memset(m_data, 0, count * sizeof(float));
+}
+
+// --------------------------------------------- //
+
+
 inline float clamp(float f, float min=0, float max=1) {
 	if(f<min) return min;
 	if(f>max) return max;
 	return f;
 }
 
-TerrainEditor::TerrainEditor(TerrainEditorTargetInterface* t) : m_target(t), m_heightmap(0), m_tool(0) {
+TerrainEditor::TerrainEditor(TerrainEditorDataInterface* t) : m_target(t), m_tool(0) {
 	m_brush.radius = 10;
 	m_brush.falloff = 0.5;
 	m_brush.strength = 1;
 }
 
 TerrainEditor::~TerrainEditor() {
-}
-
-void TerrainEditor::setHeightmap(HeightmapEditorInterface* map) {
-	m_heightmap = map;
-	// Setup height tools
 }
 
 void TerrainEditor::setTool(ToolInstance* t) {
@@ -45,7 +65,7 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 
 	// update current brush
 	float hitDistance = 0;
-	int r = m_heightmap->castRay(rayStart, rayDir, hitDistance);
+	int r = m_target->castRay(rayStart, rayDir, hitDistance);
 	vec3 position = rayStart + rayDir * hitDistance;
 	if(r) m_brush.position = position.xz();
 	else {
@@ -78,7 +98,7 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 	if(btn&1) {
 		// Start
 		if(~lb&1) {
-			m_tool->tool->begin();
+			m_tool->tool->begin(m_brush);
 			lp = position.xz();
 		}
 		// Paint
@@ -88,17 +108,57 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 			lb = btn;
 			return;
 		}
+		int toolFlags = shift&1? m_tool->shift: m_tool->flags;
+		Tool* tool = m_tool->tool;
 		float spacing = fmin(m_brush.getRadius(0.8), m_brush.radius * 0.4) * 0.5;
 		int samples = (int) floor(distance / spacing) + 1;
 		vec2 step = (lp - m_brush.position) / distance * spacing;
+		float resolution = 1; //m_tool->getResolution(); // should be from maps?
+		vec3 offsets[9];
+		EditableMap* maps[9];
+		Rect local[9];
+		Point base[9];
+		int mapCount;
 		//uint64 ticks = base::Game::getTicks();
 		if(samples==1) step.set(0,0);
 		for(int j=0; j<samples; ++j) {
 			m_brush.position = position.xz() + step * j;
-			m_tool->tool->paint(m_brush, shift&1? m_tool->shift: m_tool->flags);
+			mapCount = m_target->getMaps(tool->getTarget(), m_brush, maps, offsets);
+			if(mapCount==0) continue;
+
+			// Fill buffer
+			resolution = m_target->getResolution(tool->getTarget());
+			m_buffer.reset(m_brush, resolution, maps[0]->getChannels());
+			for(int k=0; k<mapCount; ++k) {
+				vec2 basef = floor((m_brush.position - offsets[k].xz() - m_brush.radius) / resolution);
+				base[k].set(basef.x, basef.y);
+				local[k].set(base[k], m_buffer.getSize());
+				local[k].intersect(maps[k]->getRect());
+				maps[k]->prepare(local[k]);
+				const Point& end = local[k].bottomRight();
+				for(int x=local[k].x; x<end.x; ++x) for(int y=local[k].y; y<end.y; ++y) {
+					float* data = m_buffer.getValue(x-base[k].x, y-base[k].y);
+					maps[k]->getValue(x, y, data);
+				}
+			}
+
+			// Run tool
+			tool->paint(m_buffer, m_brush, toolFlags);
+
+			// Write from buffer 
+			for(int k=0; k<mapCount; ++k) {
+				const Point& end = local[k].bottomRight();
+				for(int x=local[k].x; x<end.x; ++x) for(int y=local[k].y; y<end.y; ++y) {
+					float* data = m_buffer.getValue(x-base[k].x, y-base[k].y);
+					maps[k]->setValue(x, y, data);
+				}
+			}
+
+			// Apply changes
+			for(int k=0; k<mapCount; ++k) {
+				maps[k]->apply(local[k]);
+			}
 		}
-		m_tool->tool->commit();
-		//printf("Paint %d samples in %fms\n", num, (base::Game::getTicks()-ticks) *   (1000.0f / base::Game::getTickFrequency()));
 		lp = position.xz();
 	} else if(lb&1) {
 		// End
@@ -118,7 +178,7 @@ void TerrainEditor::updateRing(std::vector<vec3>& v, const vec3& c, float r) con
 	for(int i=0; i<=sides; ++i) {
 		p.x = c.x + r*sin(i*step);
 		p.z = c.z + r*cos(i*step);
-		p.y = m_heightmap->getHeight(p);
+		p.y = m_target->getHeight(p);
 		v.push_back(p);
 	}
 }

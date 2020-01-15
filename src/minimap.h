@@ -4,7 +4,7 @@
 #include <base/vec.h>
 #include <base/texture.h>
 
-class HeightmapEditorInterface;
+class MapGrid;
 
 // Minimap texture for gui
 class MiniMap {
@@ -14,7 +14,7 @@ class MiniMap {
 	base::Texture& getTexture();
 	void resize(int width, int height);
 
-	void setWorld(HeightmapEditorInterface* world, const vec2& size, const vec2& offset=vec2());
+	void setWorld(MapGrid* world);
 	void setRange(float max, float min=0);
 
 	void clear();
@@ -25,13 +25,13 @@ class MiniMap {
 	float getWorldHeight(int px, int py) const;
 
 	protected:
-	HeightmapEditorInterface* m_map;
-	base::Texture             m_texture;
-	vec2                      m_worldSize;
-	vec2                      m_worldOffset;
-	float                     m_base;
-	float                     m_scale;
-	unsigned char*            m_data;
+	MapGrid*         m_map;
+	base::Texture    m_texture;
+	vec2             m_worldSize;
+	vec2             m_worldOffset;
+	float            m_base;
+	float            m_scale;
+	unsigned char*   m_data;
 };
 
 #endif

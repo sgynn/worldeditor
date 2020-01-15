@@ -14,6 +14,7 @@ class TiffStream;
 class TextureStream;
 class MaterialStream;
 class PatchGeometry;
+class DynamicMaterial;
 
 /** Interface between scene and landscape */
 class StreamerDrawable : public scene::Drawable {
@@ -76,7 +77,7 @@ class Streamer : public Object, public BufferedStream {
 
 
 /** The editor interface for this heightmap */
-class StreamingHeightmapEditor : public HeightmapEditorInterface {
+class StreamingHeightmapEditor {
 	Streamer* m_map;
 	public:
 	StreamingHeightmapEditor(Streamer* map) : m_map(map) {}

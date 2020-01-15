@@ -91,24 +91,17 @@ EditableTexture::~EditableTexture() {
 
 // ------------------------------------------------------------------------------------------------------- //
 
-int EditableTexture::getChannels() const {
-	return m_channels;
-}
 int EditableTexture::getWidth() const {
 	return m_width;
 }
 int EditableTexture::getHeight() const {
 	return m_height;
 }
-const base::Texture& EditableTexture::getTexture() const {
-	return m_texture;
+const base::Texture* EditableTexture::getTexture(uint) const {
+	return &m_texture;
 }
 EditableTexture::Mode EditableTexture::getMode() const {
 	return m_mode;
-}
-TextureStream* EditableTexture::getTextureStream() const {
-	if(m_mode == TEXTURESTREAM) return static_cast<TextureStream*>(m_stream);
-	else return 0;
 }
 
 // ------------------------------------------------------------------------------------------------------- //
@@ -166,6 +159,17 @@ void EditableTexture::setPixel(int x, int y, ubyte* pixel) {
 	else if(m_stream) m_stream->setPixel(x, y, pixel);
 }
 
+
+void EditableTexture::getValue(int x, int y, float* v) const {
+	ubyte pixel[4];
+	getPixel(x,y,pixel);
+	for(int i=0; i<m_channels; ++i) v[i] = pixel[i];
+}
+void EditableTexture::setValue(int x, int y, const float* v) {
+	ubyte pixel[4];
+	for(int i=0; i<m_channels; ++i) pixel[i] = v[i];
+	setPixel(x,y,pixel);
+}
 
 
 // ========================================================================================================= //

@@ -36,9 +36,8 @@ struct MaterialLayer {
 	AutoParams concavity;
 
 	// Maps
-	String map;
-	String map2;
-	int mapData;	// IndexOffset or Channel
+	uint mapIndex;	 // Map index in TerrainMap maps list
+	uint mapData;	 // IndexOffset or Channel, plus flag for two textures
 };
 
 class DynamicMaterial {
@@ -64,7 +63,11 @@ class DynamicMaterial {
 	void			flagRecompile();		// Flag material to be compiled when activated
 
 	scene::Material* getMaterial() const;	// Get material pointer
-	MaterialStream* getStream() const;		// Get material stream
+	MaterialStream* getStream() const;		// Get material stream ( not here )
+
+	// Layers iterator
+	std::vector<MaterialLayer*>::iterator begin() { return m_layers.begin(); }
+	std::vector<MaterialLayer*>::iterator end() { return m_layers.end(); }
 
 	protected:
 	String m_name;

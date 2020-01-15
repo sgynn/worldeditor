@@ -3,14 +3,23 @@
 
 #include "terraineditor/editor.h"
 #include "scene/material.h"
+#include "heightmap.h"
 
 
+/// Heightmap object.
 class DynamicHeightmap : public HeightmapInterface {
 	friend class DynamicHeightmapEditor;
 	public:
-
 	DynamicHeightmap();
 	~DynamicHeightmap();
+	
+	void setDetail(float) override;
+	scene::Drawable* createDrawable() override;
+	int castRay(const vec3& start, const vec3& direction, float& out) const override;
+	float getHeight(const vec3& point) const override;
+	void setMaterial(class DynamicMaterial*, const MapList&) override;
+
+	public:
 
 	void create(int w, int h, float res, const uint8* data, int stride, float scale, float offset);
 	void create(int w, int h, float res, const uint16* data, int stride, float scale, float offset);
@@ -18,14 +27,9 @@ class DynamicHeightmap : public HeightmapInterface {
 	void create(int w, int h, float res, float height);
 
 	void setMaterial(scene::Material*);
-	void setDetail(float);
 
 	float height( float x, float z ) const;
 	float height( float x, float z, vec3& normal) const;
-	int   ray(const vec3& start, const vec3& direction, float& out) const;
-	int   ray(const vec3& start, const vec3& direction, vec3& out) const;
-
-	scene::Drawable* createDrawable();
 
 	private:
 	void setup(int w, int h, float r);
@@ -38,23 +42,23 @@ class DynamicHeightmap : public HeightmapInterface {
 	float* m_heightData;
 	class Landscape* m_land;
 	std::vector<scene::Drawable*> m_drawables;
+	scene::Material* m_material;
 };
 
-
-/** The editor interface for this heightmap */
-class DynamicHeightmapEditor : public HeightmapEditorInterface {
-	DynamicHeightmap* m_map;
+// Heightmap editor interface
+class DynamicHeightmapEditor : public EditableMap {
 	public:
 	DynamicHeightmapEditor(DynamicHeightmap* map) : m_map(map) {}
-	void  getInfo(float& r, vec3& o) const                        { r = m_map->m_resolution; o = vec3(0,0,0); }
-	float getHeight(const vec3& pos) const                        { return m_map->height(pos.x, pos.z); }
-	float getHeight(const vec3& pos, vec3& normal) const          { return m_map->height(pos.x, pos.z, normal); }
-	int   castRay(const vec3& s, const vec3& d, float& out) const { return m_map->ray(s,d,out); }
+	~DynamicHeightmapEditor() {}
 
-	int setHeights(const Rect&, const float*);
-	int getHeights(const Rect&, float*) const;
+	int  getChannels() const { return 1; }
+	Rect getRect() const { return Rect(0,0,m_map->m_width,m_map->m_height); }
+	void getValue(int x, int y, float* values) const;
+	void setValue(int x, int y, const float* values);
+	void apply(const Rect&);
 
-	void setMaterial(const DynamicMaterial* m);
+	private:
+	DynamicHeightmap* m_map;
 };
 
 #endif

@@ -16,7 +16,6 @@ class ToolGroup {
 	virtual ~ToolGroup();
 
 	virtual void          setup(gui::Root* gui);
-	virtual void          setResolution(const vec2& offset, const vec2& size, float res) = 0;
 	virtual void          setTextures(int count) {}
 	virtual void          setActive();
 	virtual ToolInstance* getTool() const;	// Get selected tool in this group
@@ -45,17 +44,15 @@ class GeometryToolGroup : public ToolGroup {
 	GeometryToolGroup();
 	~GeometryToolGroup();
 	void addTool(const char* icon, Tool* tool, int flag, int shift);
-	void setResolution(const vec2& offset, const vec2& size, float res);
 };
 
 class ColourToolGroup : public ToolGroup {
 	public:
-	ColourToolGroup(const char* name, EditableTexture*);
+	ColourToolGroup(const char* name, unsigned map);
 	~ColourToolGroup();
 	void setActive();
 	void setup(gui::Root* gui);
 	void openPicker(gui::Button*);
-	void setResolution(const vec2& offset, const vec2& size, float res);
 	protected:
 	void colourChanged(const Colour&);
 	ColourTool* m_tool;
@@ -64,11 +61,10 @@ class ColourToolGroup : public ToolGroup {
 
 class WeightToolGroup : public ToolGroup {
 	public:
-	WeightToolGroup(const char* name, EditableTexture* image);
+	WeightToolGroup(const char* name, int channels, unsigned map);
 	~WeightToolGroup();
 	void setup(gui::Root* gui);
 	void setChannel(int index, const char* icon);
-	void setResolution(const vec2& offset, const vec2& size, float res);
 
 	protected:
 	TextureTool* m_tool;
@@ -77,9 +73,8 @@ class WeightToolGroup : public ToolGroup {
 
 class IndexToolGroup : public ToolGroup {
 	public:
-	IndexToolGroup(const char* name, EditableTexture* indexMap);
+	IndexToolGroup(const char* name, unsigned map);
 	~IndexToolGroup();
-	void setResolution(const vec2& offset, const vec2& size, float res);
 	void setTextures(int count);
 
 	protected:
@@ -89,7 +84,7 @@ class IndexToolGroup : public ToolGroup {
 
 class IndexWeightToolGroup : public IndexToolGroup {
 	public:
-	IndexWeightToolGroup(const char* name, EditableTexture* indexMap, EditableTexture* weightMap);
+	IndexWeightToolGroup(const char* name, unsigned map);
 };
 
 

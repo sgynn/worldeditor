@@ -11,7 +11,7 @@
 
 #include "resource/file.h"
 #include "simple/heightmap.h"
-#include "dynamic/heightmap.h"
+#include "dynamic/dynamicmap.h"
 #include "streaming/streamer.h"
 #include "streaming/texturestream.h"
 
@@ -40,6 +40,11 @@ using namespace gui;
 using namespace base;
 
 #define INIFILE "settings.cfg"
+
+// GUI Macros
+#define BIND(Type, name, event, callback) { Type* w = m_gui->getWidget<Type>(name); if(w) w->event.bind(this, &WorldEditor::callback); else printf("Missing widget %s\n", name); }
+#define ENABLE_BUTTON(name)  { Button* b = m_gui->getWidget<Button>(name); if(b) b->setEnabled(true), b->setIconColour(0xffffff); }
+#define DISABLE_BUTTON(name) { Button* b = m_gui->getWidget<Button>(name); if(b) b->setEnabled(false), b->setIconColour(0x606060); }
 
 #ifdef WIN32
 #define main _main
@@ -74,7 +79,7 @@ int main(int argc, char* argv[]) {
 
 //// Make a world - this file will be a complete mess while I test stuff ////
 
-WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_materials(0), m_terrain(0) {
+WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_terrain(0) {
 	m_scene = new scene::Scene;
 	m_renderer = new scene::Renderer;
 	m_fileSystem = new FileSystem;
@@ -107,7 +112,6 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	m_mapMarker = 0;
 
 	// Setup event callbacks
-	#define BIND(Type, name, event, callback) { Type* w = m_gui->getWidget<Type>(name); if(w) w->event.bind(this, &WorldEditor::callback); else printf("Missing widget %s\n", name); }
 	BIND(Button, "newmap",  eventPressed, showNewDialog);
 	BIND(Button, "openmap", eventPressed, showOpenDialog);
 	BIND(Button, "savemap", eventPressed, showSaveDialog);
@@ -138,7 +142,6 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	BIND(Button, "editorcreate", eventPressed, createNewEditor);
 	BIND(Button, "editorcancel", eventPressed, cancelNewEditor);
 	BIND(gui::Window, "neweditor", eventClosed, cancelNewEditor);
-	BIND(Button, "editorsourcebutton", eventPressed, browseNewEditor);
 
 	// Settings
 	BIND(Scrollbar, "viewdistance",  eventChanged, changeViewDistance);
@@ -155,7 +158,6 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_editor(0), m_heightMap(0), m_ma
 	m_gui->getWidget<Checkbox>("collision")->setSelected(m_options.collide);
 
 	// Disable some buttons
-	#define DISABLE_BUTTON(name) { Button* b = m_gui->getWidget<Button>(name); if(b) b->setEnabled(false), b->setIconColour(0x606060); }
 	DISABLE_BUTTON( "savemap" );
 	DISABLE_BUTTON( "minimap" );
 	DISABLE_BUTTON( "materialbutton" )
@@ -186,12 +188,8 @@ void WorldEditor::clear() {
 		delete i->value;
 	}
 	// Delete the editor module
-	if(m_editor) delete m_editor;
-	if(m_heightMap) delete m_heightMap;
 	for(uint i=0; i<m_groups.size(); ++i) delete m_groups[i];
 	m_groups.clear();
-	m_heightMap = 0;
-	m_editor = 0;
 	m_file = 0;
 	m_streams.clear();
 
@@ -200,9 +198,8 @@ void WorldEditor::clear() {
 
 	// Delete tiles
 	for(TerrainMap* map: m_maps) {
-		for(EditableTexture* t: map->maps) delete t;
+		for(EditableMap* t: map->maps) delete t;
 		delete map->heightMap;
-		delete map->editor;
 		delete map;
 	}
 	m_maps.clear();
@@ -212,6 +209,10 @@ void WorldEditor::clear() {
 	m_materials = 0;
 	showMaterialList(0);
 	showTextureList(0);
+
+	// delete editor
+	delete m_editor;
+	m_editor = 0;
 
 	// delete tools from dropdown list
 	Combobox* list = m_gui->getWidget<Combobox>("toollist");
@@ -289,9 +290,9 @@ void WorldEditor::update() {
 	}
 
 	// Collide with terrain
-	if(m_heightMap && m_options.collide) {
+	if(m_terrain && m_options.collide) {
 		vec3 p = m_camera->getPosition();
-		float h = m_heightMap->getHeight( p );
+		float h = m_terrain->getHeight( p );
 		if(p.y < h + 0.1) {
 			p.y = h + 0.1;
 			m_camera->setPosition( p );
@@ -321,6 +322,9 @@ void WorldEditor::update() {
 	for(base::HashMap<Object*>::iterator i=m_objects.begin(); i!=m_objects.end(); ++i) {
 		i->value->update();
 	}
+
+	// Scene graph
+	m_scene->updateSceneGraph();
 }
 
 void WorldEditor::drawScene() {
@@ -394,18 +398,10 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	Widget* panel = b->getParent();
 	int mode = panel->getWidget<Combobox>("mode")->getSelectedIndex();
 	//const char* source = panel->getWidget<Textbox>("source")->getText();
-	int size = panel->getWidget<Combobox>("size")->getSelectedData().getValue(128);
+	int size = panel->getWidget<Combobox>("size")->getSelectedData().getValue(129);
 	float height = panel->getWidget<Spinbox>("height")->getValue();
-	/*
-	switch(mode) {
-	case 0: create(size, 1, height, HEIGHT_FLOAT, false); break;
-	case 1: create(size, 1, height, HEIGHT_UINT8, false); break;
-	case 2: create(size, 1, height, HEIGHT_UINT16, false); break;
-	case 3: create(size, 1, height, HEIGHT_UINT8, true); break;
-	case 4: create(size, 1, height, HEIGHT_UINT16, true); break;
-	}
-	// ToDo: convert source
-	*/
+
+	clear();
 
 	// New version
 	HeightFormat formats[] = { HEIGHT_FLOAT, HEIGHT_UINT8, HEIGHT_UINT16 };
@@ -416,16 +412,37 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	m_verticalScale = height;
 
 	m_terrain = new MapGrid( (size-1)*m_resolution );
+	m_terrain->eventMapCreated.bind(this, &WorldEditor::textureMapCreated);
 	m_scene->add(m_terrain);
+
+
+	// Setup material editor
+	m_materials = new MaterialEditor(m_gui, m_fileSystem, m_streaming);
+	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
+	m_materials->eventChangeTextureList.bind(this, &WorldEditor::textureListChanged);
+	m_materials->addMaterial(0);
 
 	// Create first tile
 	TerrainMap* tile = createTile( "Tile 0,0" );
 	m_terrain->assign( Point(0,0), tile );
+	m_terrain->assign( Point(1,0), tile );
+	m_terrain->assign( Point(0,1), tile );
+	m_terrain->assign( Point(1,1), tile );
 
+	// Minimap
+	m_minimap->setWorld(m_terrain);
+	m_minimap->setRange(100);
+	m_minimap->build();
 
 	// Setup editor
 	m_editor = new TerrainEditor(m_terrain);
-	setupHeightTools();
+	setupHeightTools(m_resolution);
+
+	// Buttons
+	ENABLE_BUTTON( "savemap" );
+	ENABLE_BUTTON( "minimap" );
+	ENABLE_BUTTON( "materialbutton" )
+	ENABLE_BUTTON( "texturebutton" )
 }
 void WorldEditor::cancelNewTerrain(gui::Button*) {
 	Widget* w = m_gui->getWidget<Widget>("newdialog");
@@ -439,8 +456,9 @@ void WorldEditor::changeTerrainMode(gui::Combobox* list, int index) {
 	int min = streamed? 8: 6;
 	int max = streamed? 14: 10;
 	for(int i=min; i<=max; ++i) {
-		sprintf(buffer, "%dx%d", 1<<i, 1<<i);
-		sizes->addItem(buffer, 1<<i);
+		int size = (1<<i) + 1;
+		sprintf(buffer, "%dx%d", size, size);
+		sizes->addItem(buffer, size);
 	}
 	sizes->selectItem(0);
 	list->getParent()->getWidget<gui::Button>("create")->setEnabled( true );
@@ -473,7 +491,7 @@ WorldEditor::ImageMapData* WorldEditor::createMapData(EditableTexture* tex, cons
 int WorldEditor::createUniqueMapName(const char* pattern, char* out) const {
 	int index=0;
 	do { sprintf(out, pattern, ++index); }
-	while(m_materials->getMap(out));
+	while(false); // FIXME: broken
 	return index;
 }
 
@@ -482,16 +500,50 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 	cancelNewEditor(); // to hide window
 	Widget* panel = b->getParent();
 	int mode = panel->getWidget<Combobox>("editormode")->getSelectedIndex();
-	//const char* source = panel->getWidget<Textbox>("editorsource")->getText();
+	const char* name = panel->getWidget<Textbox>("editorname")->getText();
 	int size = atoi(panel->getWidget<Combobox>("editorsize")->getSelectedItem());
-	EditableTexture* tex = 0;
-	EditableTexture* tex2 = 0;
-	ImageMapData* img = 0;
-	ToolGroup* group = 0;
-	const char* name = 0;
-	char safeName[32];
-	char safeName2[32];
 	if(size > 8192) return; // TODO: streaming textures
+	ToolGroup* group = 0;
+	int mapIndex = 0;
+	int channels = 4;
+
+	
+	// Create tool group
+	switch(mode) {
+	case 0: // Colour map
+		mapIndex = m_terrain->createTextureMap(size, channels);
+		group = new ColourToolGroup(name, mapIndex);
+		break;
+	case 1: // Weight map
+		mapIndex = m_terrain->createTextureMap(size, channels);
+		group = new WeightToolGroup(name, channels, mapIndex);
+		break;
+	case 2: // Index map
+		mapIndex = m_terrain->createTextureMap(size, channels);
+		if(channels>1) group = new IndexWeightToolGroup(name, mapIndex);
+		else group = new IndexToolGroup(name, mapIndex);
+		break;
+	default: return;
+	}
+
+	// Register map with material editor
+	m_materials->addMap(mapIndex, name, size, mode);
+	
+	// Add group
+	group->setup(m_gui);
+	addGroup(group, "texture", true);
+
+	// Set up a material for it ? - add checkbox option
+	DynamicMaterial* mat = m_materials->createMaterial(name);
+	mat->setCoordinates(m_terrainSize, m_terrainOffset);
+	MaterialLayer* layer = mat->addLayer(mode<2? LAYER_COLOUR: LAYER_INDEXED);
+	layer->name = "Map";
+	layer->mapIndex = mapIndex;
+	m_materials->selectMaterial(mat);
+
+
+
+	/*
 
 	switch(mode) {
 	case 0: // Colour layer
@@ -548,6 +600,7 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 		if(mode==3) layer->map2 = safeName2;
 		m_materials->selectMaterial(mat);
 	}
+	*/
 }
 void WorldEditor::cancelNewEditor(gui::Button*) {
 	Widget* w = m_gui->getWidget<Widget>("neweditor");
@@ -558,22 +611,16 @@ void WorldEditor::cancelNewEditor(gui::Button*) {
 	selectToolGroup(list, 0);
 }
 void WorldEditor::cancelNewEditor(gui::Window*) { cancelNewEditor(); }
-void WorldEditor::browseNewEditor(gui::Button*) {
-	FileDialog* d = m_gui->getWidget<FileDialog>("filedialog");
-	d->eventConfirm.bind(this, &WorldEditor::setEditorSource);
-	d->setFilter("*.png,*.tif,*.tiff");
-	d->setFileName("");
-	d->showOpen();
-}
-void WorldEditor::setEditorSource(const char* file) {
-	Textbox* w = m_gui->getWidget<Textbox>("editorsource");
-	if(w) w->setText(file);
-}
 void WorldEditor::validateNewEditor(gui::Combobox* c, int) {
 	Combobox* mode = m_gui->getWidget<Combobox>("editormode");
 	Combobox* size = m_gui->getWidget<Combobox>("editorsize");
 	bool valid = mode->getSelectedIndex()>=0 && size->getSelectedIndex()>=0;
 	m_gui->getWidget<gui::Button>("editorcreate")->setEnabled(valid);
+	// Initial name
+	if(c==mode) {
+		Textbox* name = m_gui->getWidget<Textbox>("editorname");
+		name->setText(c->getSelectedItem());
+	}
 }
 
 // ----------------------------------------------------------- //
@@ -585,7 +632,7 @@ void WorldEditor::changeViewDistance(Scrollbar*, int v) {
 void WorldEditor::changeDetail(Scrollbar*, int v) {
 	float value = v / 1000.f;
 	m_options.detail = 16 - value * 15;
-	if(m_heightMap) m_heightMap->setDetail( m_options.detail );
+	for(TerrainMap* map: m_maps) map->heightMap->setDetail( m_options.detail );
 }
 void WorldEditor::changeSpeed(Scrollbar*, int v) {
 	float value = v / 1000.f;
@@ -616,7 +663,7 @@ void WorldEditor::saveSettings(gui::Window*) {
 
 void WorldEditor::showWorldMap(Button*) {
 	Widget* w = m_gui->getWidget<Widget>("worldmap");
-	if(m_heightMap && !w->isVisible()) showDialog(w);
+	if(m_terrain && !w->isVisible()) showDialog(w);
 	else w->setVisible(false);
 	m_mapMarker = w->isVisible()? w->getWidget<Widget>("mapmarker"): 0;
 	if(w->isVisible()) m_minimap->build();
@@ -649,7 +696,7 @@ void WorldEditor::showTextureList(Button*) {
 }
 
 void WorldEditor::setTerrainMaterial(DynamicMaterial* m) {
-	m_heightMap->setMaterial(m);
+	for(TerrainMap* map: m_maps) map->heightMap->setMaterial(m, map->maps);
 }
 
 void WorldEditor::textureListChanged() {
@@ -657,6 +704,11 @@ void WorldEditor::textureListChanged() {
 	for(size_t i=0; i<m_groups.size(); ++i) {
 		m_groups[i]->setTextures(count);
 	}
+}
+
+void WorldEditor::textureMapCreated(TerrainMap* map) {
+	DynamicMaterial* m = m_materials->getMaterial();
+	map->heightMap->setMaterial(m, map->maps);
 }
 
 
@@ -740,14 +792,14 @@ void WorldEditor::messageBox(const char* c, const char* m, ...) {
 
 // ======================= Tool Setup ========================== //
 
-void WorldEditor::setupHeightTools(float res, const vec2& offset) {
+void WorldEditor::setupHeightTools(float res) {
 	GeometryToolGroup* group = new GeometryToolGroup();
 	group->setup(m_gui);
-	group->addTool("raise",   new HeightTool(m_heightMap), 0, 1);
-	group->addTool("smooth",  new SmoothTool(m_heightMap), 0, 0);
-	group->addTool("level",   new LevelTool(m_heightMap), 0, 1);
-	group->addTool("flatten", new FlattenTool(m_heightMap), 0, 1);
-	group->setResolution(offset, offset * -2, res);
+	group->addTool("raise",   new HeightTool(), 0, 1);
+	group->addTool("smooth",  new SmoothTool(), 0, 0);
+	group->addTool("level",   new LevelTool(), 0, 1);
+	group->addTool("flatten", new FlattenTool(), 0, 1);
+	//group->setResolution(vec2(), vec2(), res);
 	addGroup(group, "terrain", true);
 
 	// Add 'New Layer' option
@@ -797,6 +849,7 @@ inline const char* cat(const char* a, const char* b, const char* c=0, const char
 }
 
 void WorldEditor::create(int size, float res, float scale, HeightFormat format, bool streamed) {
+/*
 	clear();
 	m_heightFormat = format;
 	if(streamed) {
@@ -835,7 +888,7 @@ void WorldEditor::create(int size, float res, float scale, HeightFormat format, 
 	// Set up editor
 	m_editor = new TerrainEditor(m_terrain);
 	m_editor->setHeightmap(m_heightMap);
-	setupHeightTools(res, m_terrainOffset);
+	setupHeightTools(res);
 	updateTitle();
 
 
@@ -844,77 +897,16 @@ void WorldEditor::create(int size, float res, float scale, HeightFormat format, 
 	m_minimap->setRange(100);
 	m_minimap->build();
 
-	#define ENABLE_BUTTON(name) { Button* b = m_gui->getWidget<Button>(name); if(b) b->setEnabled(true), b->setIconColour(0xffffff); }
 	ENABLE_BUTTON( "savemap" );
 	ENABLE_BUTTON( "minimap" );
 	ENABLE_BUTTON( "materialbutton" )
 	ENABLE_BUTTON( "texturebutton" )
-}
-
-// ====================  Map Grid ======================================================== //
-WorldEditor::MapGrid::MapGrid(float res) : m_gridResolution(res) {
-}
-void WorldEditor::MapGrid::assign(const Point& p, TerrainMap* map) {
-	remove(p);
-	TerrainSlot& slot = m_slots[p];
-	vec3 offset(p.x * m_gridResolution, 0, p.y * m_gridResolution);
-	char name[32]; snprintf(name, 32, "Tile %d,%d", p.x, p.y);
-
-	slot.map = map;
-	slot.index = p;
-	slot.node = createChild(name, offset);
-	slot.node->attach( map->heightMap->createDrawable() );
-	slot.node->setPosition(offset);
-}
-void WorldEditor::MapGrid::remove(const Point& p) {
-	auto it = m_slots.find(p);
-	if(it!=m_slots.end() && it->second.node) {
-		// ToDo: Delete drawable - tracked by HeightMap class
-		delete it->second.node;
-		it->second.node = 0;
-		it->second.map = 0;
-	}
-}
-void WorldEditor::MapGrid::setVisible(const Point& p, bool v) {
-	std::map<Point, TerrainSlot>::iterator it = m_slots.find(p);
-	if(it!=m_slots.end() && it->second.node) it->second.node->setVisible(v);
-}
-int WorldEditor::MapGrid::getHeightmaps(const Brush& brush, HeightmapEditorInterface** maps, vec3* offsets) {
-	int result = 0;
-	vec2 a = floor( (brush.position - brush.radius) / m_gridResolution );
-	vec2 b = ceil( (brush.position + brush.radius) / m_gridResolution );
-	for(Point p(a.x,a.y); p.x<=b.x; ++p.x) {
-		for(p.y=a.y; p.y<=b.y; ++p.y) {
-			auto it = m_slots.find(p);
-			if(it != m_slots.end() && it->second.map) {
-				maps[result] = it->second.map->editor;
-				offsets[result].set(p.x*m_gridResolution,0, p.y*m_gridResolution);
-				++result;
-			}
-		}
-	}
-	return result;
-}
-int WorldEditor::MapGrid::getTextureMaps(int id, const Brush& brush, EditableTexture** tex, vec3* offsets) {
-	int result = 0;
-	vec2 a = floor( (brush.position - brush.radius) / m_gridResolution );
-	vec2 b = ceil( (brush.position + brush.radius) / m_gridResolution );
-	for(Point p(a.x,a.y); p.x<=b.x; ++p.x) {
-		for(p.y=a.y; p.y<=b.y; ++p.y) {
-			auto it = m_slots.find(p);
-			if(it != m_slots.end() && it->second.map) {
-				tex[result] = it->second.map->maps[id];
-				offsets[result].set(p.x*m_gridResolution,0, p.y*m_gridResolution);
-				// ToDo: create new EditableTexture if it doesn't exist
-				++result;
-			}
-		}
-	}
-	return result;
+	*/
 }
 
 // ==================== Tiles ============================================================ //
-WorldEditor::TerrainMap* WorldEditor::createTile(const char* name) {
+
+TerrainMap* WorldEditor::createTile(const char* name) {
 	TerrainMap* map = new TerrainMap;
 /*	if(m_streaming) {
 		Streamer* data = new Streamer(m_verticalScale);
@@ -929,15 +921,16 @@ WorldEditor::TerrainMap* WorldEditor::createTile(const char* name) {
 		data->create(m_mapSize, m_mapSize, m_resolution, 0.f);
 		data->setDetail( m_options.detail );
 		map->heightMap = data;
-		map->editor = new DynamicHeightmapEditor(data);
+		map->maps.push_back( new DynamicHeightmapEditor(data) );
 	}
+	map->heightMap->setMaterial(m_materials->getMaterial(), map->maps);
 	map->name = name;
 	m_maps.push_back(map);
 	return map;
 }
 
 
-WorldEditor::TerrainMap* WorldEditor::loadTile(const XMLElement& e) {
+TerrainMap* WorldEditor::loadTile(const XMLElement& e) {
 	const XMLElement& data = e.find("data");
 	const char* file = data.attribute("file");
 	const char* type = data.attribute("type");
@@ -955,6 +948,7 @@ WorldEditor::TerrainMap* WorldEditor::loadTile(const XMLElement& e) {
 
 
 void WorldEditor::loadWorld(const char* file) {
+/*
 	clear();
 	m_fileSystem->setRootPath(file, true);
 	m_file = file;
@@ -1183,9 +1177,11 @@ void WorldEditor::loadWorld(const char* file) {
 	ENABLE_BUTTON( "minimap" );
 	ENABLE_BUTTON( "materialbutton" )
 	ENABLE_BUTTON( "texturebutton" )
+	*/
 }
 
 void WorldEditor::saveWorld(const char* file) {
+/*
 	if(!file && !m_file) return;
 	if(m_file != file) m_file = file;
 	m_fileSystem->setRootPath(m_file, true);
@@ -1295,6 +1291,7 @@ void WorldEditor::saveWorld(const char* file) {
 	}
 	xml.save(file);
 	printf("Saved %s\n", file);
+*/
 }
 
 

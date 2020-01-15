@@ -1,5 +1,5 @@
 #include "minimap.h"
-#include "terraineditor/editor.h"
+#include "heightmap.h"
 #include <cstring>
 
 using base::Texture;
@@ -21,10 +21,11 @@ void MiniMap::resize(int w, int h) {
 	// Need a way to recreate a texture on a specific texture unit?
 }
 
-void MiniMap::setWorld(HeightmapEditorInterface* map, const vec2& size, const vec2& offset) {
+void MiniMap::setWorld(MapGrid* map) {
 	m_map = map;
-	m_worldSize = size;
-	m_worldOffset = offset;
+	BoundingBox b = map->getBounds();
+	m_worldSize = b.size().xz();
+	m_worldOffset = b.min.xz();
 }
 void MiniMap::setRange(float max, float min) {
 	m_base = min;

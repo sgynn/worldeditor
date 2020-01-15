@@ -5,6 +5,7 @@
 #include <base/hashmap.h>
 #include "gui/gui.h"
 #include "object.h"
+#include "heightmap.h"
 #include "resource/library.h"
 #include "scene/scene.h"
 #include "terraineditor/editor.h"
@@ -40,7 +41,7 @@ class WorldEditor : public base::SceneState {
 	void updateTitle();
 
 	void messageBox(const char* title, const char* message, ...);
-	void setupHeightTools(float resolution, const vec2& offset);
+	void setupHeightTools(float resolution);
 	void addGroup(ToolGroup* group, const char* icon, bool select=false);
 
 	private:
@@ -65,8 +66,7 @@ class WorldEditor : public base::SceneState {
 	void createNewEditor(gui::Button*);
 	void cancelNewEditor(gui::Button* = 0);
 	void cancelNewEditor(gui::Window*);
-	void browseNewEditor(gui::Button*);
-	void setEditorSource(const char* file);
+	void textureMapCreated(TerrainMap*);
 
 	void changeViewDistance(gui::Scrollbar*, int);
 	void changeDetail(gui::Scrollbar*, int);
@@ -83,6 +83,12 @@ class WorldEditor : public base::SceneState {
 	void moveWorldMap(gui::Widget*, const Point&, int);
 	void setTerrainMaterial(DynamicMaterial*);
 	void textureListChanged();
+
+	protected:
+	TerrainMap* createTile(const char* name);				// Create a new tile using existing settings
+	TerrainMap* loadTile(const base::XMLElement&);			// Load tile from xml
+	void saveTile(TerrainMap*, base::XMLElement&) const;	// Save tile data to xml
+
 
 	private:
 	scene::Scene*    m_scene;
@@ -103,52 +109,18 @@ class WorldEditor : public base::SceneState {
 
 
 	gui::String    m_file;
-	TerrainEditor* m_editor;				// Terrain Editor
-	HeightmapEditorInterface* m_heightMap;	// Terrain object
 	std::vector<ToolGroup*> m_groups;		// Terrain tool groups
 	MaterialEditor* m_materials;			// Terrain material editor
-
 	MiniMap* m_minimap;						// Minimap data
+	TerrainEditor* m_editor;				// Terrain editor
 
 	// List of streams that need flushing on save ?
 	std::vector<BufferedStream*> m_streams;
 
 
 	// Terrain data
-	typedef std::vector<EditableTexture*> MapList;
-	struct TerrainMap {
-		HeightmapEditorInterface* editor;
-		HeightmapInterface* heightMap;
-		int         size;
-		gui::String name;
-		gui::String file;
-		MapList     maps;
-	};
-	struct TerrainSlot {
-		TerrainMap*       map;
-		scene::SceneNode* node;
-		Point             index;
-	};
 	std::vector<TerrainMap*> m_maps;
-
-	class MapGrid : public TerrainEditorTargetInterface, public scene::SceneNode {
-		public:
-		MapGrid(float grid);
-		int getHeightmaps(const Brush&, HeightmapEditorInterface**, vec3* offsets) override;
-		int getTextureMaps(int id, const Brush&, EditableTexture**, vec3* offsets) override;
-		void assign(const Point&, TerrainMap*);
-		void setVisible(const Point&, bool);
-		void remove(const Point&);
-		protected:
-		std::map<Point, TerrainSlot> m_slots;
-		float m_gridResolution;
-	};
 	MapGrid* m_terrain;
-
-	TerrainMap* createTile(const char* name);				// Create a new tile using existing settings
-	TerrainMap* loadTile(const base::XMLElement&);			// Load tile from xml
-	void saveTile(TerrainMap*, base::XMLElement&) const;	// Save tile data to xml
-
 
 
 	// Image map data
@@ -163,7 +135,8 @@ class WorldEditor : public base::SceneState {
 		MapUsage 	usage;	// usage hint
 	};
 	std::vector<ImageMapData*> m_imageMaps;
-	ImageMapData* createMapData(EditableTexture* tex, const char* name, const char* file, MapUsage usage); 
+
+	struct ImageMapData* createMapData(EditableTexture* tex, const char* name, const char* file, MapUsage usage); 
 	int createUniqueMapName(const char* pattern, char* out) const;
 
 

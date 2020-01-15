@@ -1,3 +1,4 @@
+#if 0
 #ifndef _SIMPLE_HEIGHTMAP_
 #define _SIMPLE_HEIGHTMAP_
 
@@ -56,4 +57,4 @@ class SimpleHeightmapEditor : public HeightmapEditorInterface {
 };
 
 #endif
-
+#endif

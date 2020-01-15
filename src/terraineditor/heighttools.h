@@ -13,52 +13,45 @@ class HeightTool : public Tool {
 	void   resizeData(int s);
 
 	public:
-	HeightTool(HeightmapEditorInterface* h) : m_data(0), heightmap(h) {}
-	virtual void paint(const Brush&, int flags);
-	virtual void end();
-
-	HeightmapEditorInterface* heightmap;
+	HeightTool() : m_data(0) {}
+	void paint(BrushData&, const Brush&, int flags) override;
 };
 
 /** Terrain smoothing */
 class SmoothTool : public HeightTool {
 	public:
-	SmoothTool(HeightmapEditorInterface* h) : HeightTool(h) {}
-	virtual void paint(const Brush&, int flags);
+	void paint(BrushData&, const Brush&, int flags) override;
 };
 
 /** Level tool. flag = use last sample */
 class LevelTool : public HeightTool {
 	public:
-	LevelTool(HeightmapEditorInterface* h) : HeightTool(h), target(-1e8f) {}
-	virtual void paint(const Brush&, int flags);
-	virtual void end() { HeightTool::end(); target=-1e8f; }
+	LevelTool() : target(-1e8f) {}
+	void paint(BrushData&, const Brush&, int flags) override;
+	void end() override { HeightTool::end(); target=-1e8f; }
+	protected:
 	float target;
 };
 
 /** Flatten tool. flag = use last sample */
-class FlattenTool : public HeightTool {
+class FlattenTool : public LevelTool {
 	public:
-	FlattenTool(HeightmapEditorInterface* h) : HeightTool(h), target(-1e8f) {}
-	virtual void paint(const Brush&, int flags);
-	virtual void end() { HeightTool::end(); target=-1e8f; }
+	void paint(BrushData&, const Brush&, int flags) override;
+	protected:
 	vec3 normal;
-	float target;
 };
 
 
 /** Noise tool. flag = inverse */
 class NoiseTool : public HeightTool {
 	public:
-	NoiseTool(HeightmapEditorInterface* h) : HeightTool(h) {}
-	virtual void paint(const Brush&, int flags);
+	void paint(BrushData&, const Brush&, int flags) override;
 };
 
 /** Erosion tool */
 class ErosionTool : public HeightTool {
 	public:
-	ErosionTool(HeightmapEditorInterface* h) : HeightTool(h) {}
-	virtual void paint(const Brush&, int flags);
+	void paint(BrushData&, const Brush&, int flags) override;
 };
 
 

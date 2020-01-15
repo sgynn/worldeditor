@@ -51,10 +51,10 @@ class MaterialEditor {
 	const base::Texture& getHeightArray() const;
 
 	// Maps
-	void addMap(const char* name, EditableTexture*);
-	void deleteMap(const char* name);
-	EditableTexture* getMap(const char* name) const;
-	int serialiseMaps(base::XMLElement& e) const;
+	struct MapData { String name; int size; int flags; };
+	const MapData& getMap(uint id) const;
+	void addMap(uint id, const char* name, int size, int flags);
+	void deleteMap(uint id);
 	
 	public:
 	Delegate<void(DynamicMaterial*)> eventChangeMaterial;
@@ -86,7 +86,6 @@ class MaterialEditor {
 	void selectLayer(gui::Widget*);
 
 	void changeMap(gui::Combobox*, int);
-	void changeIndexMap(gui::Combobox*, int);
 	void changeChannel(gui::Combobox*, int);
 	void changeTexture(gui::Combobox*, int);
 	void changeBlendMode(gui::Combobox*, int);
@@ -105,7 +104,6 @@ class MaterialEditor {
 	gui::Scrollpane* m_layerList;
 	gui::Combobox*   m_materialList;
 	gui::ItemList*   m_textureSelector;
-	gui::ItemList*   m_mapSelector;
 
 	int m_selectedLayer;
 	int m_selectedTexture;
@@ -114,6 +112,7 @@ class MaterialEditor {
 
 	static int getListIndex(gui::ItemList*, const char*);
 	static int getItemIndex(gui::Widget* w, gui::Widget* list);
+	void populateMaps(gui::ItemList* list, int mask, uint sel) const;
 	MaterialLayer* getLayer(gui::Widget*) const;
 	void updateMaterial(gui::Widget*);
 	void rebuildMaterial(bool bind=false);
@@ -132,7 +131,7 @@ class MaterialEditor {
 	ArrayTexture m_heightMaps;
 	std::vector<DynamicMaterial*> m_materials;		// Materials
 	std::vector<TerrainTexture*>  m_textures;		// Textures
-	base::HashMap<EditableTexture*> m_imageMaps;	// Image maps
+	std::vector<MapData>          m_mapInfo;		// Texture map data
 	float          m_textureTiling[256];	// Texture tiling values
 	bool           m_streaming;				// Use streamed textures
 	FileSystem*    m_fileSystem;			// For finding files

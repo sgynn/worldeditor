@@ -353,21 +353,23 @@
 
 	<!-- New editor layer -->
 	<widget template="dialogfixed" rect="300 100 224 152" skin="default" caption="New Editor Layer" name="neweditor" visible="0">
-		<widget class="Label" tangible="0" rect="8 40 56 20" caption="Size" skin="default"/>
 		<widget class="Label" tangible="0" rect="8 16 48 20" caption="Type" skin="default"/>
+		<widget class="Label" tangible="0" rect="8 40 48 20" caption="Name" skin="default"/>
+		<widget class="Label" tangible="0" rect="8 64 56 20" caption="Size" skin="default"/>
 		<widget anchor="rt" class="Button" rect="80 96 56 20" name="editorcreate" skin="button" caption="Create" enabled="0"/>
 		<widget anchor="rt" class="Button" rect="144 96 56 20" name="editorcancel" skin="button" caption="Cancel"/>
-		<widget class="Label" tangible="0" rect="8 64 56 20" caption="Source" skin="default"/>
-		<widget anchor="lrt" class="Textbox" rect="64 64 120 20" name="editorsource" skin="default" text=""/>
-		<widget anchor="rt" class="Button" rect="184 64 16 20" name="editorsourcebutton" skin="button" caption="..."/>
 		<widget anchor="lrt" template="droplist" name="editormode" skin="default" rect="64 16 136 20">
 			<item>Colour</item>
 			<item>Weight</item>
 			<item>Index</item>
 			<item>Weighted index</item>
 		</widget>
-		<widget anchor="lrt" template="droplist" name="editorsize" skin="default" rect="64 40 136 20">
+		<widget anchor="lrt" class="Textbox" rect="64 40 136 20" name="editorname" skin="default"/>
+		<widget anchor="lrt" template="droplist" name="editorsize" skin="default" rect="64 64 136 20">
 			<item>64</item>
+			<item>128</item>
+			<item>256</item>
+			<item>512</item>
 			<item>1024</item>
 			<item>2048</item>
 			<item>4096</item>

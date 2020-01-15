@@ -1,3 +1,4 @@
+#if 0
 #include "heightmap.h"
 #include "dynamicmaterial.h"
 #include "scene/scene.h"
@@ -253,5 +254,5 @@ void SimpleHeightmapEditor::setMaterial(const DynamicMaterial* m) {
 	m->setCoordinates( vec2(m_map->m_width*m_map->m_resolution, m_map->m_height*m_map->m_resolution), vec2(0,0) );
 }
 
-
+#endif
 

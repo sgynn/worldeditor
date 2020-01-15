@@ -84,18 +84,13 @@ void GeometryToolGroup::addTool(const char* icon, Tool* tool, int flag, int shif
 	ToolGroup::addTool(tool, flag, shift);
 }
 
-void GeometryToolGroup::setResolution(const vec2& offset, const vec2& size, float res) {
-	for(size_t i=0; i<m_tools.size(); ++i) {
-		m_tools[i]->tool->setResolution(res, offset);
-	}
-}
 
 // --------------------------------------------------------------------------------------------- //
 
-WeightToolGroup::WeightToolGroup(const char* name, EditableTexture* image) : ToolGroup(name) {
-	m_tool = new TextureTool(image);
+WeightToolGroup::WeightToolGroup(const char* name, int channels, unsigned map) : ToolGroup(name) {
+	m_tool = new TextureTool(map);
 	// Create tool for each channel
-	for(int i=0; i<image->getChannels(); ++i) {
+	for(int i=0; i<channels; ++i) {
 		addTool(m_tool, i|4, i);
 	}
 }
@@ -116,15 +111,10 @@ void WeightToolGroup::setChannel(int index, const char* icon) {
 	if(b) b->setIcon(icon);
 }
 
-void WeightToolGroup::setResolution(const vec2& offset, const vec2& size, float res) {
-	res = (float) size.x / m_tool->texture->getWidth();
-	m_tool->setResolution(res, offset);
-}
-
 // --------------------------------------------------------------------------------------------- //
 
-IndexToolGroup::IndexToolGroup(const char* name, EditableTexture* ix) : ToolGroup(name) {
-	m_tool = new IndexTool(ix);
+IndexToolGroup::IndexToolGroup(const char* name, unsigned map) : ToolGroup(name) {
+	m_tool = new IndexTool(map);
 }
 IndexToolGroup::~IndexToolGroup() {
 	delete m_tool;
@@ -154,16 +144,12 @@ void IndexToolGroup::setTextures(int count) {
 		m_tools.pop_back();
 	}
 }
-void IndexToolGroup::setResolution(const vec2& offset, const vec2& size, float res) {
-	res = (float) size.x / m_tool->indexMap->getWidth();
-	m_tool->setResolution(res, offset);
-}
 
 // --------------------------------------------------------------------------------------------- //
 
-IndexWeightToolGroup::IndexWeightToolGroup(const char* name, EditableTexture* ix, EditableTexture* wt) : IndexToolGroup(name, ix) {
+IndexWeightToolGroup::IndexWeightToolGroup(const char* name, unsigned map) : IndexToolGroup(name, map) {
 	delete m_tool;
-	m_tool = new IndexWeightTool(ix, wt);
+	m_tool = new IndexWeightTool(map);
 }
 
 
@@ -171,8 +157,8 @@ IndexWeightToolGroup::IndexWeightToolGroup(const char* name, EditableTexture* ix
 // --------------------------------------------------------------------------------------------- //
 
 
-ColourToolGroup::ColourToolGroup(const char* name, EditableTexture* image) : ToolGroup(name) {
-	m_tool = new ColourTool(image);
+ColourToolGroup::ColourToolGroup(const char* name, unsigned map) : ToolGroup(name) {
+	m_tool = new ColourTool(map);
 	addTool(m_tool, 0xffffff, 0);
 	m_colour = white;
 }
@@ -183,10 +169,6 @@ void ColourToolGroup::setup(Root* r) {
 	ToolGroup::setup(r);
 	Button* b = addButton( "white" );
 	b->eventPressed.bind(this, &ColourToolGroup::openPicker);
-}
-void ColourToolGroup::setResolution(const vec2& offset, const vec2& size, float res) {
-	res = (float) size.x / m_tool->texture->getWidth();
-	m_tool->setResolution(res, offset);
 }
 
 void ColourToolGroup::openPicker(Button* b) {

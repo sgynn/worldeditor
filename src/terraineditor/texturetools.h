@@ -9,20 +9,21 @@
 template<class BT>
 class TextureToolBase : public Tool {
 	public:
-	TextureToolBase() { buffer = new PaintBuffer<BT>(64); }
-	virtual ~TextureToolBase() { delete buffer; }
-	virtual void end() { buffer->clear(); }
+	TextureToolBase(unsigned map) : m_map(map) { buffer = new PaintBuffer<BT>(64); }
+	~TextureToolBase() { delete buffer; }
+	uint getTarget() const override { return m_map; }
+	void end() override { buffer->clear(); }
+
 	protected:
 	PaintBuffer<BT>* buffer;
+	unsigned m_map;
 };
 
 /* Modify a single channel of the texture */
 class TextureTool : public TextureToolBase<ubyte> {
 	public:
-	TextureTool(EditableTexture* tex=0) : texture(tex) {}
-	virtual void paint(const Brush&, int flags);
-	virtual void commit() { texture->updateGPU(); }
-	EditableTexture* texture;
+	TextureTool(unsigned map) : TextureToolBase(map) {}
+	void paint(BrushData&, const Brush&, int flags) override;
 };
 
 struct ColourToolBuffer { bool set; ubyte o[3]; float w[3]; };
@@ -30,32 +31,22 @@ struct ColourToolBuffer { bool set; ubyte o[3]; float w[3]; };
 /** Modify all channels of the texture */
 class ColourTool : public TextureToolBase<ColourToolBuffer> {
 	public:
-	ColourTool(EditableTexture* tex=0) : texture(tex) {}
-	virtual void paint(const Brush&, int flags);
-	virtual void commit() { texture->updateGPU(); }
-	EditableTexture* texture;
+	ColourTool(unsigned map) : TextureToolBase(map) {}
+	void paint(BrushData&, const Brush&, int flags) override;
 };
 
 /** Set material index map */
 class IndexTool : public TextureToolBase<ubyte> {
 	public:
-	IndexTool(EditableTexture* ix=0) : indexMap(ix) {}
-	virtual void paint(const Brush&, int flags);
-	virtual void commit() { indexMap->updateGPU(); }
-
-	public:
-	EditableTexture* indexMap;
+	IndexTool(unsigned map) : TextureToolBase(map) {}
+	void paint(BrushData&, const Brush&, int flags) override;
 };
 
-/** Set material weight and index maps */
+/** Set material weight and index maps. EditableMap may contain two textures */
 class IndexWeightTool : public IndexTool {
 	public:
-	IndexWeightTool(EditableTexture* ix=0, EditableTexture* wt=0) : IndexTool(ix), weightMap(wt) {}
-	virtual void paint(const Brush&, int flags);
-	virtual void commit() { weightMap->updateGPU(); indexMap->updateGPU(); }
-
-	public:
-	EditableTexture* weightMap;
+	IndexWeightTool(unsigned ix) : IndexTool(ix)  {}
+	void paint(BrushData&, const Brush&, int flags) override;
 };
 
 #endif
