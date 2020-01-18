@@ -16,12 +16,14 @@ vec3 MapGrid::getOffset(const Point& p) const {
 
 void MapGrid::assign(const Point& p, TerrainMap* map) {
 	remove(p);
+	if(!map) return;
 	Slot& slot = m_slots[p];
 	vec3 offset(p.x * m_gridSize, 0, p.y * m_gridSize);
-	char name[32]; snprintf(name, 32, "Tile %d,%d", p.x, p.y);
+	char nodeName[32];
+	snprintf(nodeName, 32, "Tile %d,%d", p.x, p.y);
 
 	slot.map = map;
-	slot.node = createChild(name, offset);
+	slot.node = createChild(nodeName, offset);
 	slot.node->attach( map->heightMap->createDrawable() );
 	slot.node->setPosition(offset);
 	updateBounds();
@@ -36,6 +38,11 @@ void MapGrid::remove(const Point& p) {
 		it->second.map = 0;
 		updateBounds();
 	}
+}
+
+Point MapGrid::getTile(const vec3& p) const {
+	vec2 t = floor(p.xz() / m_gridSize);
+	return Point(t.x, t.y);
 }
 
 TerrainMap* MapGrid::getMap(const Point& index) const {
@@ -56,7 +63,7 @@ void MapGrid::setVisible(const Point& p, bool v) {
 	if(it!=m_slots.end() && it->second.node) it->second.node->setVisible(v);
 }
 
-int MapGrid::getMaps(unsigned id, const Brush& brush, EditableMap** maps, vec3* offsets) {
+int MapGrid::getMaps(unsigned id, const Brush& brush, EditableMap** maps, vec3* offsets, int* flags) {
 	int result = 0;
 	vec2 a = floor( (brush.position - brush.radius) / m_gridSize );
 	vec2 b = floor( (brush.position + brush.radius) / m_gridSize );
@@ -65,11 +72,12 @@ int MapGrid::getMaps(unsigned id, const Brush& brush, EditableMap** maps, vec3* 
 			auto it = m_slots.find(p);
 			if(it != m_slots.end() && it->second.map) {
 				TerrainMap* data = it->second.map;
+				if(!data) continue;
 
 				// Create new map if it doesn't exist
 				if( (id>=data->maps.size() || !data->maps[id]) && id<m_mapDefinitions.size() && m_mapDefinitions[id].size) {
-					printf("Creating map %u\n", id);
 					const MapDef& def = m_mapDefinitions[id];
+					printf("Creating map %u %dx%d with %d channels\n", id, def.size, def.size, def.channels);
 					EditableTexture* newTex = new EditableTexture(def.size, def.size, def.channels, true);
 					if(data->maps.size() <= id) data->maps.resize(id+1, 0);
 					data->maps[id] = newTex;
@@ -79,6 +87,7 @@ int MapGrid::getMaps(unsigned id, const Brush& brush, EditableMap** maps, vec3* 
 
 				maps[result] = data->maps[id];
 				offsets[result] = getOffset(p);
+				flags[result] = data->locked? 1: 0;
 				if(maps[result]) ++result;
 			}
 		}
@@ -98,6 +107,7 @@ int MapGrid::castRay(const vec3& start, const vec3& dir, float& out) const {
 	out = 1e16f;
 	int result = 0;
 	for(auto& s: m_slots) {
+		if(!s.second.map) continue;
 		float tmp = out;
 		vec3 offset = getOffset(s.first);
 		if(s.second.map->heightMap->castRay(start-offset, dir, tmp) && tmp < out) {

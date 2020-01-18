@@ -18,7 +18,7 @@ class DynamicMaterial;
 class MaterialEditor;
 class MiniMap;
 
-namespace gui { class Button; class Combobox; class Scrollbar; class Window; }
+namespace gui { class Button; class Combobox; class Scrollbar; class Window; class Listbox; }
 namespace base { class INIFile; class XMLElement; }
 
 enum HeightFormat { HEIGHT_UINT8, HEIGHT_UINT16, HEIGHT_FLOAT };
@@ -68,6 +68,16 @@ class WorldEditor : public base::SceneState {
 	void cancelNewEditor(gui::Window*);
 	void textureMapCreated(TerrainMap*);
 
+	void createNewTile(gui::Button*);
+	void duplicateTile(gui::Button*);
+	void lockTile(gui::Button*);
+	void loadTile(gui::Button*);
+	void unloadTile(gui::Button*);
+	void showTileList(gui::Button*);
+	void assignTile(gui::Listbox*, int);
+	void showRenameTile(gui::Button*);
+	void renameTile(gui::Button*);
+
 	void changeViewDistance(gui::Scrollbar*, int);
 	void changeDetail(gui::Scrollbar*, int);
 	void changeSpeed(gui::Scrollbar*, int);
@@ -113,6 +123,9 @@ class WorldEditor : public base::SceneState {
 	MaterialEditor* m_materials;			// Terrain material editor
 	MiniMap* m_minimap;						// Minimap data
 	TerrainEditor* m_editor;				// Terrain editor
+	gui::Widget* m_contextMenu;				// Terrain tile context menu
+	ToolGroup* m_activeGroup;				// Active tool
+	Point m_currentTile;					// Tile for context menu
 
 	// List of streams that need flushing on save ?
 	std::vector<BufferedStream*> m_streams;

@@ -38,6 +38,13 @@ const char* ToolGroup::getName() const {
 	return m_name;
 }
 
+void ToolGroup::deselect() {
+	Widget* w = m_panel->getWidget(m_currentTool);
+	if(w) w->setSelected(false);
+	m_currentTool = -1;
+	if(eventToolSelected) eventToolSelected( 0 );
+}
+
 Button* ToolGroup::addButton(const char* icon) {
 	// Create gui button
 	int index = m_panel->getWidgetCount();

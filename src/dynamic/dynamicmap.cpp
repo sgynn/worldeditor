@@ -115,6 +115,19 @@ scene::Drawable* DynamicHeightmap::createDrawable() {
 
 // =================================== //
 
+size_t DynamicHeightmap::getDataSize() const {
+	return m_width * m_height;
+}
+void DynamicHeightmap::getData(float* out) const {
+	memcpy(out, m_heightData, getDataSize() * sizeof(float));
+}
+void DynamicHeightmap::setData(const float* data) {
+	memcpy(m_heightData, data, getDataSize() * sizeof(float));
+	m_land->updateGeometry( BoundingBox(0, 0, 0, m_width*m_resolution, 0,  m_height*m_resolution), true);
+}
+
+// =================================== //
+
 float DynamicHeightmap::getHeight(const vec3& p) const {
 	return height(p.x, p.z);
 }

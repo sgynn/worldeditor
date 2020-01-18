@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
 
 //// Make a world - this file will be a complete mess while I test stuff ////
 
-WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_terrain(0) {
+WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_activeGroup(0), m_terrain(0) {
 	m_scene = new scene::Scene;
 	m_renderer = new scene::Renderer;
 	m_fileSystem = new FileSystem;
@@ -162,7 +162,18 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_te
 	DISABLE_BUTTON( "minimap" );
 	DISABLE_BUTTON( "materialbutton" )
 	DISABLE_BUTTON( "texturebutton" )
-	
+
+	// context menu
+	m_contextMenu = m_gui->getWidget<Widget>("contextmenu");
+	BIND(Button, "newtile", eventPressed, createNewTile);
+	BIND(Button, "settile", eventPressed, showTileList);
+	BIND(Button, "loadtile", eventPressed, loadTile);
+	BIND(Button, "copytile", eventPressed, duplicateTile);
+	BIND(Button, "locktile", eventPressed, lockTile);
+	BIND(Button, "hidetile", eventPressed, unloadTile);
+	BIND(Button, "nametile", eventPressed, showRenameTile);
+	BIND(Listbox, "tilelist", eventSelected, assignTile);
+	BIND(Button, "applyname", eventPressed, renameTile);
 
 	// Initial alignment - would be good to do this in the xml somehow
 	Widget* brush = m_gui->getWidget<Widget>("brushinfo");
@@ -301,12 +312,35 @@ void WorldEditor::update() {
 
 	// Update editor
 	if(m_editor) {
+		if(mb && m_contextMenu->isVisible()) m_contextMenu->setVisible(false);
 		if(guiHasMouse) mb = mw = 0;
 		vec3 cp = m_camera->getPosition();
 		vec3 cd = m_camera->unproject( vec3(mouse.x, Game::height()-mouse.y, 1), Game::getSize() ) - cp;
 		m_editor->update(cp, cd, mb, mw, shift);
 		if(mw) updateBrushSliders();
+
+		// Right click menu
+		static ubyte menuState = 0;
+		static Point lastMouse = mouse;
+		static vec3 lastCam = m_camera->getPosition();
+		if(mb&4) menuState |= 1;
+		if(menuState && (mouse!=lastMouse || lastCam!=m_camera->getPosition())) menuState |= 2;
+		if(menuState==1 && (~mb&4)) {
+			float t;
+			if(!m_terrain->castRay(cp, cd, t)) t = -cp.y / cd.y;
+			vec3 p = cp + cd * t;
+			m_currentTile = m_terrain->getTile(p);
+			m_contextMenu->setPosition(mouse);
+			m_contextMenu->setVisible(true);
+			m_activeGroup->deselect();
+			TerrainMap* map = m_terrain->getMap(m_currentTile);
+			for(int i=3; i<m_contextMenu->getWidgetCount(); ++i) m_contextMenu->getWidget(i)->setEnabled(map);
+		}
+		if(!mb) menuState = 0;
+		lastMouse = mouse;
+		lastCam = m_camera->getPosition();
 	}
+
 
 	// Other shortcuts
 	if(!editingText) {
@@ -474,6 +508,76 @@ void WorldEditor::browseTerrainSource(gui::Button*) {
 void WorldEditor::setTerrainSource(const char* file) {
 	Textbox* w = m_gui->getWidget<Textbox>("source");
 	if(w) w->setText(file);
+}
+
+// ----------------------------------------------------------- //
+
+void WorldEditor::createNewTile(Button*) {
+	char name[32];
+	int e = sprintf(name, "Tile %d,%d", m_currentTile.x, m_currentTile.y);
+	int alt = 0;
+	bool used = true;
+	while(used) {
+		used = false;
+		for(TerrainMap* m: m_maps) {
+			if(m->name == name) { sprintf(name+e, " [%d]", ++alt); used=true; break; }
+		}
+	}
+	TerrainMap* map = createTile(name);
+	m_terrain->assign(m_currentTile, map);
+}
+void WorldEditor::showTileList(Button*) {
+	// open dialogue
+	gui::Window* w = m_gui->getWidget<gui::Window>("assigntile");
+	char title[32]; sprintf(title, "Assign tile %d,%d", m_currentTile.x, m_currentTile.y);
+	w->setCaption(title);
+	w->setVisible(true);
+
+	Listbox* list = w->getWidget(0)->cast<Listbox>();
+	list->clearItems();
+	for(TerrainMap* m: m_maps) list->addItem(m->name);
+}
+void WorldEditor::duplicateTile(::Button*) {
+	TerrainMap* src = m_terrain->getMap(m_currentTile);
+	if(!src) return;
+
+	TerrainMap* map = createTile(src->name);
+	// Copy height data
+	float* data = new float[src->heightMap->getDataSize()];
+	src->heightMap->getData(data);
+	map->heightMap->setData(data);
+	delete [] data;
+	// ToDo: copy texture maps too
+	m_terrain->assign(m_currentTile, map);
+}
+void WorldEditor::lockTile(Button*) {
+	TerrainMap* map = m_terrain->getMap(m_currentTile);
+	if(map) map->locked = !map->locked;
+}
+void WorldEditor::loadTile(::Button*) {
+}
+void WorldEditor::unloadTile(::Button*) {
+	m_terrain->assign(m_currentTile, 0);
+}
+
+void WorldEditor::assignTile(Listbox* list, int index) {
+	if(index<0) return;
+	m_terrain->assign(m_currentTile, m_maps[index]);
+	list->getParent()->setVisible(false);
+}
+void WorldEditor::showRenameTile(Button*) {
+	TerrainMap* map = m_terrain->getMap(m_currentTile);
+	Widget* w = m_gui->getWidget<Widget>("renametile");
+	if(map && w) {
+		w->getWidget(0)->cast<Textbox>()->setText(map->name);
+		w->setVisible(true);
+	}
+}
+void WorldEditor::renameTile(Button*) {
+	TerrainMap* map = m_terrain->getMap(m_currentTile);
+	Widget* w = m_gui->getWidget<Widget>("renametile");
+	map->name = w->getWidget(0)->cast<Textbox>()->getText();
+	w->setVisible(false);
 }
 
 // ----------------------------------------------------------- //
@@ -663,6 +767,7 @@ void WorldEditor::selectToolGroup(Combobox* c, int index) {
 		p->add( group->getPanel() );
 		group->getPanel()->setPosition( c->getPosition().x + c->getSize().x + 4, 0 );
 		group->setActive();
+		m_activeGroup = group;
 	}
 	// New group
 	else {
@@ -865,6 +970,7 @@ TerrainMap* WorldEditor::createTile(const char* name) {
 	}
 	map->heightMap->setMaterial(m_materials->getMaterial(), map->maps);
 	map->name = name;
+	map->locked = false;
 	m_maps.push_back(map);
 	return map;
 }

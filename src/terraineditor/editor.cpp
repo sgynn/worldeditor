@@ -118,12 +118,13 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 		EditableMap* maps[9];
 		Rect local[9];
 		Point base[9];
+		int flags[9];
 		int mapCount;
 		//uint64 ticks = base::Game::getTicks();
 		if(samples==1) step.set(0,0);
 		for(int j=0; j<samples; ++j) {
 			m_brush.position = position.xz() + step * j;
-			mapCount = m_target->getMaps(tool->getTarget(), m_brush, maps, offsets);
+			mapCount = m_target->getMaps(tool->getTarget(), m_brush, maps, offsets, flags);
 			if(mapCount==0) continue;
 
 			// Fill buffer
@@ -147,6 +148,7 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 
 			// Write from buffer 
 			for(int k=0; k<mapCount; ++k) {
+				if(flags[k]&1) continue; // Read only flag
 				const Point& end = local[k].bottomRight();
 				for(int x=local[k].x; x<end.x; ++x) for(int y=local[k].y; y<end.y; ++y) {
 					float* data = m_buffer.getValue(x-base[k].x, y-base[k].y);

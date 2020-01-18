@@ -21,6 +21,7 @@ class ToolGroup {
 	virtual ToolInstance* getTool() const;	// Get selected tool in this group
 	virtual gui::Widget*  getPanel() const;	// Get gui panel for this tool group
 	const char*           getName() const;	// Get name
+	void                  deselect();		// Deselect active tool
 
 
 	public:

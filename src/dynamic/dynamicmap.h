@@ -19,6 +19,10 @@ class DynamicHeightmap : public HeightmapInterface {
 	float getHeight(const vec3& point) const override;
 	void setMaterial(class DynamicMaterial*, const MapList&) override;
 
+	void setData(const float* data) override;
+	void getData(float* out) const override;
+	size_t getDataSize() const override;
+
 	public:
 
 	void create(int w, int h, float res, const uint8* data, int stride, float scale, float offset);

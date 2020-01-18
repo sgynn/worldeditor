@@ -19,6 +19,9 @@ class HeightmapInterface {
 	virtual int castRay(const vec3& start, const vec3& direction, float& out) const = 0;
 	virtual float getHeight(const vec3& point) const = 0;
 	virtual void setMaterial(class DynamicMaterial*, const MapList&) = 0;
+	virtual void setData(const float* data) = 0;
+	virtual void getData(float* out) const = 0;
+	virtual size_t getDataSize() const = 0;
 };
 
 
@@ -30,6 +33,7 @@ struct TerrainMap {
 	int         size;
 	gui::String name;
 	gui::String file;
+	bool        locked;
 };
 
 
@@ -39,7 +43,7 @@ class MapGrid : public TerrainEditorDataInterface, public scene::SceneNode {
 	MapGrid(float size);
 	~MapGrid();
 
-	int getMaps(unsigned id, const Brush&, EditableMap**, vec3*) override;
+	int getMaps(unsigned id, const Brush&, EditableMap**, vec3*, int*) override;
 	int castRay(const vec3& start, const vec3& dir, float& out) const override;
 	float getHeight(const vec3&) const override;
 	float getResolution(unsigned id) const override;
@@ -50,6 +54,7 @@ class MapGrid : public TerrainEditorDataInterface, public scene::SceneNode {
 	void remove(const Point&);
 
 	const BoundingBox& getBounds() const;
+	Point       getTile(const vec3&) const;
 	TerrainMap* getMap(const Point&) const;
 	TerrainMap* getMap(const vec3&) const;
 	vec3 getOffset(const Point&) const;
