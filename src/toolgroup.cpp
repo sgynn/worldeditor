@@ -6,7 +6,7 @@
 
 using namespace gui;
 
-ToolGroup::ToolGroup(const char* name): m_root(0), m_panel(0), m_currentTool(0) {
+ToolGroup::ToolGroup(const char* name): m_root(0), m_panel(0), m_currentTool(-1) {
 	strncpy(m_name, name, 64);
 }
 

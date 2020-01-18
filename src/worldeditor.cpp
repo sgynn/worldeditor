@@ -332,11 +332,13 @@ void WorldEditor::update() {
 			m_currentTile = m_terrain->getTile(p);
 			m_contextMenu->setPosition(mouse);
 			m_contextMenu->setVisible(true);
-			m_activeGroup->deselect();
 			TerrainMap* map = m_terrain->getMap(m_currentTile);
 			for(int i=3; i<m_contextMenu->getWidgetCount(); ++i) m_contextMenu->getWidget(i)->setEnabled(map);
+			m_editor->setTool(0);
+			menuState = 4;
 		}
-		if(!mb) menuState = 0;
+		if(!mb) menuState &= 4;
+		if(!mb && (menuState&4) && !m_contextMenu->isVisible()) m_editor->setTool(m_activeGroup->getTool()), menuState=0;
 		lastMouse = mouse;
 		lastCam = m_camera->getPosition();
 	}
