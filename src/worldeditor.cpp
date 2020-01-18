@@ -312,7 +312,7 @@ void WorldEditor::update() {
 
 	// Update editor
 	if(m_editor) {
-		if(mb && m_contextMenu->isVisible()) m_contextMenu->setVisible(false);
+		int cmb = mb;
 		if(guiHasMouse) mb = mw = 0;
 		vec3 cp = m_camera->getPosition();
 		vec3 cd = m_camera->unproject( vec3(mouse.x, Game::height()-mouse.y, 1), Game::getSize() ) - cp;
@@ -337,8 +337,9 @@ void WorldEditor::update() {
 			m_editor->setTool(0);
 			menuState = 4;
 		}
-		if(!mb) menuState &= 4;
-		if(!mb && (menuState&4) && !m_contextMenu->isVisible()) m_editor->setTool(m_activeGroup->getTool()), menuState=0;
+		if(!cmb) menuState &= 4;
+		if(!cmb && (menuState&4) && !m_contextMenu->isVisible()) m_editor->setTool(m_activeGroup->getTool()), menuState=0;
+		if(cmb && m_contextMenu->isVisible()) m_contextMenu->setVisible(false);
 		lastMouse = mouse;
 		lastCam = m_camera->getPosition();
 	}
