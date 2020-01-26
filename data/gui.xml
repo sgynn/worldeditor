@@ -212,7 +212,7 @@
 	<!-- New dialog  -->
 	<widget caption="New Terrain" template="dialogfixed" name="newdialog" rect="100 100 224 168" visible="0">
 		<widget class="Label" rect="8 40 56 20" caption="Size" />
-		<widget class="Label" rect="8 16 48 20" caption="Mode" />
+		<widget class="Label" rect="8 16 48 20" caption="Format" />
 		<widget class="Button" rect="80 114 56 20" name="create"  caption="Create" anchor="tr" skin="button" enabled="0"/>
 		<widget class="Button" rect="144 114 56 20" name="cancel"  caption="Cancel" anchor="tr" skin="button"/>
 		<widget class="Label" rect="8 64 56 20" caption="Source" />
@@ -220,12 +220,12 @@
 		<widget class="Button" rect="184 64 16 20" name="sourcebutton"  caption="..." anchor="tr" skin="button"/>
 		<widget template="droplist" rect="64 16 136 20" name="mode" anchor="tlr">
 			<item>Raw Float</item>
-			<item>8 bit texture</item>
-			<item>16 bit texture</item>
+			<item>Tiff 16bit</item>
 		</widget>
 		<widget template="droplist" rect="64 40 136 20" name="size" anchor="tlr"/>
-		<widget class="Label" rect="8 88 56 20" caption="Height" />
-		<widget template="spinbox" rect="64 88 136 20" name="height" value="300" max="10000" anchor="tlr"/>
+		<widget class="Label" rect="8 88 56 20" caption="Range" />
+		<widget template="spinbox" rect="64 88 90 20"  name="minheight" value="0" min="-1000" max="10000" anchor="tlr"/>
+		<widget template="spinbox" rect="100 88 90 20" name="maxheight" value="300" min="-1000" max="10000" anchor="tlr"/>
 	</widget>
 
 

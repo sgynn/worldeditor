@@ -34,7 +34,7 @@ class Brush {
 /** Cached block of map data to apply tool on */
 class BrushData {
 	public:
-	BrushData() : m_data(0), m_dataSize(0) {}
+	BrushData() : m_data(0), m_lock(0), m_dataSize(0) {}
 	~BrushData() { delete [] m_data; }
 	void   reset(const Brush&, float resolution, int channels);
 	int    getChannels() const { return m_channels; }
@@ -43,8 +43,12 @@ class BrushData {
 	const Point& getOffset() const { return m_intOffset; }
 	vec2   getWorldPosition(int x, int y) const { return vec2(x*m_resolution, y*m_resolution) + m_offset; }
 	float* getValue(int x, int y) { return m_data + x*m_mx + y*m_my; }
+	bool   locked(int x, int y) const { int k = x+y*m_size.x; return m_lock[k>>6]&(1ull<<(k&0x3f)); }
+	void   lock(int x, int y) { int k = x+y*m_size.x; m_lock[k>>6]|=(1ull<<(k&0x3f)); }
+	
 	private:
 	float* m_data;
+	uint64* m_lock;
 	int m_dataSize;
 	int m_channels;
 	int m_mx, m_my;

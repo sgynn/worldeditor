@@ -70,4 +70,23 @@ bool FileSystem::copyFile(const char* source, const char* dest) {
 	fclose(dst);
 	return true;
 }
+String FileSystem::getUniqueFile(const char* name) {
+	String file = getFile(name);
+	if(!exists(file)) return name;
+	
+	// Try to make it unique
+	char tmp[512];
+	strcpy(tmp, name);
+	const char* ext = strrchr(name, '.');
+	char* end = tmp + (ext-name);
+	// try some new numbers
+	int index = 0;
+	while(true) {
+		sprintf(end, "_%d%s", ++index, ext);
+		if(!exists( getFile(tmp) )) return tmp;
+	}
+	return 0; // can't get here
+}
+
+
 

@@ -21,7 +21,7 @@ class MiniMap;
 namespace gui { class Button; class Combobox; class Scrollbar; class Window; class Listbox; }
 namespace base { class INIFile; class XMLElement; }
 
-enum HeightFormat { HEIGHT_UINT8, HEIGHT_UINT16, HEIGHT_FLOAT };
+enum class SaveFormat { RAW, TIF16, PNG16 };
 
 class WorldEditor : public base::SceneState {
 	public:
@@ -35,7 +35,7 @@ class WorldEditor : public base::SceneState {
 
 	void resized();
 	void clear();
-	void create(int size, float res, float scale, HeightFormat format, bool streamed);
+	void createNewTerrain(int size);
 	void loadWorld(const char* file);
 	void saveWorld(const char* file);
 	void updateTitle();
@@ -109,13 +109,13 @@ class WorldEditor : public base::SceneState {
 	bool  m_streaming;					// Use streaming editor
 	int   m_mapSize;					// Map size
 	float m_resolution;					// Map horizontal resolution
-	float m_verticalScale;				// Map vertical resolution
 
 	vec2 m_terrainOffset;
 	vec2 m_terrainSize;
 	float m_terrainScale;
 	gui::String m_terrainFile;
-	HeightFormat m_heightFormat;
+	SaveFormat m_heightFormat;
+	Rangef m_heightRange;
 
 
 	gui::String    m_file;

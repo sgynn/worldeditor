@@ -64,6 +64,8 @@ class MapGrid : public TerrainEditorDataInterface, public scene::SceneNode {
 
 	Delegate<void(TerrainMap*)> eventMapCreated;
 
+	std::vector<Point> getUsedSlots() const;
+
 	protected:
 	struct MapDef { int size, channels, flags; };
 	struct Slot { TerrainMap* map; scene::SceneNode* node; };

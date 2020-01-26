@@ -4,26 +4,29 @@
 #include <base/math.h>
 #include <cstdio>
 
-/** Image base class - move this into base */
+/** Image base class - move this into base ? */
 class Image {
 	public:
-	virtual ~Image();
-	uint bpp() const { return m_bpp; }
-	uint width() const { return m_width; }
-	uint height() const { return m_height; }
-	const char* data() const { return m_data; }
+	Image(): m_width(0), m_height(0), m_depth(0), m_channels(0), m_data(0) {}
+	virtual ~Image() { delete [] m_data; }
+	int channels() const { return m_channels; }
+	int bitDepth() const { return m_depth; }
+	int width() const { return m_width; }
+	int height() const { return m_height; }
+	const uint8* data() const { return m_data; }
 	protected:
-	char* m_data;
-	uint m_width, m_height;
-	uint m_bpp;
+	int m_width, m_height;
+	uint8 m_depth;		// bits per channel (8/16)
+	uint8 m_channels;	// Number of channels
+	uint8* m_data;		// Raw data
 };
 
 
 /** Only need these static functions for API */
 class Tiff {
 	public:
-	static Tiff* loadImage(const char* filename);
-	static bool save(const Image* image);
+	static Image* loadImage(const char* filename);
+	static bool save(const Image* image, const char* filename);
 };
 
 

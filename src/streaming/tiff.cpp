@@ -210,13 +210,12 @@ TiffStream* TiffStream::createStream(const char* file, int w, int h, int ch, int
 
 	// Initialise data
 	size_t bytes = desc[10].offset;
-	if(data && len==0) fwrite(data, 1, bytes, fp);
+	if(data && (len==0 || len==bytes)) fwrite(data, 1, bytes, fp);
 	else {
 		// Set all pixels to 0
 		static const int bs = 6000;
 		char buffer[bs];
-		if(data) for(int i=0; i<bs; i+=len) memcpy(buffer+i, data, len);
-		else memset(buffer, 0, bs);
+		memset(buffer, 0, bs);
 		for(dword i=0; bytes>bs; i+=bs) bytes -= fwrite(buffer, 1, bs, fp);
 		if(bytes>0) fwrite(buffer, 1, bytes, fp);
 	}

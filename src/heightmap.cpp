@@ -153,3 +153,10 @@ void MapGrid::updateBounds() {
 	}
 }
 
+std::vector<Point> MapGrid::getUsedSlots() const {
+	std::vector<Point> used;
+	used.reserve(m_slots.size());
+	for(auto i: m_slots) if(i.second.map) used.push_back(i.first);
+	return used;
+}
+

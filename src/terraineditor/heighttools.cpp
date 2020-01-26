@@ -17,6 +17,7 @@ void HeightTool::paint(BrushData& data, const Brush& brush, int flags) {
 	vec2 worldPosition;
 	const Point& e = data.getSize();
 	for(int x=0; x<e.x; ++x) for(int y=0; y<e.y; ++y) {
+		if(data.locked(x,y)) continue;
 		worldPosition = data.getWorldPosition(x, y);
 		weight = brush.getWeight(worldPosition);
 		*data.getValue(x,y) += weight * direction;
@@ -36,6 +37,7 @@ void SmoothTool::paint(BrushData& data, const Brush& brush, int flags) {
 		worldPosition = data.getWorldPosition(x, y);
 		weight = brush.getWeight(worldPosition);
 		if(weight<=0) continue;
+		if(data.locked(x,y)) continue;
 		// Sample 9 points
 		float& value = *data.getValue(x,y);
 		target = value * blur[0];
@@ -77,6 +79,7 @@ void LevelTool::paint(BrushData& data, const Brush& brush, int flags) {
 	vec2 worldPosition;
 	const Point& e = data.getSize();
 	for(int x=0; x<e.x; ++x) for(int y=0; y<e.y; ++y) {
+		if(data.locked(x,y)) continue;
 		worldPosition = data.getWorldPosition(x, y);
 		weight = brush.getWeight(worldPosition);
 		float& value = *data.getValue(x,y);
@@ -116,6 +119,7 @@ void FlattenTool::paint(BrushData& data, const Brush& brush, int flags) {
 	vec2 worldPosition;
 	const Point& e = data.getSize();
 	for(int x=0; x<e.x; ++x) for(int y=0; y<e.y; ++y) {
+		if(data.locked(x,y)) continue;
 		worldPosition = data.getWorldPosition(x, y);
 		weight = brush.getWeight(worldPosition);
 		t = (target - normal.x * worldPosition.x - normal.z * worldPosition.y) / normal.y; // Project to plane
@@ -131,6 +135,7 @@ void NoiseTool::paint(BrushData& data, const Brush& brush, int flags) {
 	vec2 worldPosition;
 	const Point& e = data.getSize();
 	for(int x=0; x<e.x; ++x) for(int y=0; y<e.y; ++y) {
+		if(data.locked(x,y)) continue;
 		worldPosition = data.getWorldPosition(x, y);
 		weight = brush.getWeight(worldPosition);
 		*data.getValue(x,y) += weight * (rand() / RAND_MAX) - 0.5;

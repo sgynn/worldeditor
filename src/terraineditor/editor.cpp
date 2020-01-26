@@ -16,15 +16,20 @@ void BrushData::reset(const Brush& brush, float resolution, int channels) {
 	m_channels = channels;
 
 	int count = m_size.x * m_size.y * m_channels;
+	int lock = m_size.x * m_size.y / 64 + 1;
 	if(m_dataSize < count) {
 		delete [] m_data;
 		m_data = new float[count];
 		m_dataSize = count;
+
+		delete [] m_lock;
+		m_lock = new uint64[lock];
 	}
 
 	m_mx = m_channels;
 	m_my = m_channels * m_size.x;
 	memset(m_data, 0, count * sizeof(float));
+	memset(m_lock, 0, lock * sizeof(uint64));
 }
 
 // --------------------------------------------- //
@@ -138,8 +143,12 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 				maps[k]->prepare(local[k]);
 				const Point& end = local[k].bottomRight();
 				for(int x=local[k].x; x<end.x; ++x) for(int y=local[k].y; y<end.y; ++y) {
+					if(m_buffer.locked(x-base[k].x, y-base[k].y)) continue;
 					float* data = m_buffer.getValue(x-base[k].x, y-base[k].y);
 					maps[k]->getValue(x, y, data);
+				}
+				if(flags[k]&1) for(int x=local[k].x; x<end.x; ++x) for(int y=local[k].y; y<end.y; ++y) {
+					m_buffer.lock(x-base[k].x, y-base[k].y);
 				}
 			}
 
