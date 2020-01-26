@@ -60,6 +60,7 @@ MaterialEditor::~MaterialEditor() {
 void MaterialEditor::selectMaterial(DynamicMaterial* m) {
 	for(size_t i=0; i<m_materials.size(); ++i) {
 		if(m == m_materials[i]) {
+			m_materialList->selectItem(i);
 			selectMaterial(m_materialList, i);
 			return;
 		}
@@ -636,7 +637,6 @@ void MaterialEditor::selectMaterial(gui::Combobox*, int index) {
 		addLayerGUI( m->getLayer(i) );
 	}
 
-	m_materialList->selectItem(index);
 	m_selectedMaterial = index;
 	m_selectedLayer = -1;
 

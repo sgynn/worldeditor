@@ -448,6 +448,10 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 
 	createNewTerrain(size);
 	
+	// Default material
+	m_materials->addMaterial(0);
+	m_materials->getMaterial()->setName("Default");
+	
 	// Create first tile
 	TerrainMap* tile = createTile( "Tile 0,0" );
 	m_terrain->assign( Point(0,0), tile );
@@ -502,7 +506,6 @@ void WorldEditor::createNewTerrain(int size) {
 	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
 	m_materials->eventChangeTextureList.bind(this, &WorldEditor::textureListChanged);
 	m_materials->setTerrainSize( vec2(size,size) );
-	m_materials->addMaterial(0);
 
 
 	// Minimap
@@ -1184,7 +1187,7 @@ bool saveHeightMapData(int size, float* data, SaveFormat format, const Rangef& r
 		if(!fp) return false;
 		fprintf(fp, "RAWFLOAT");
 		fwrite(&count, 4, 1, fp);
-		fwrite(&count, 4, count, fp);
+		fwrite(data, 4, count, fp);
 		fclose(fp);
 		printf("Saved %s\n", file);
 		return true;
@@ -1210,7 +1213,7 @@ bool loadHeightMapData(int size, float* data, const Rangef& range, const char* f
 		// Load tiff file
 		TiffStream* tiff = TiffStream::openStream(file);
 		if(!tiff) return false;
-		if(tiff->bpp()==16) {
+		if(tiff->bpp()==16 && tiff->channels()==1) {
 			uint16* raw = new uint16[tiff->width() * tiff->height()];
 			tiff->readBlock(0, 0, size, size, raw);
 			uint count = size * size;
@@ -1220,6 +1223,7 @@ bool loadHeightMapData(int size, float* data, const Rangef& range, const char* f
 			printf("Loaded %s\n", file);
 			return true;
 		}
+		else printf("Invalid tiff heightmap: %s: Must be uncompressed 16bit greyscale", file);
 		delete tiff;
 	}
 	else if(strcmp(ext, ".raw")==0) {
@@ -1230,11 +1234,10 @@ bool loadHeightMapData(int size, float* data, const Rangef& range, const char* f
 		if(memcmp(header, "RAWFLOAT", 8)==0) {
 			int total = 0;
 			fread(&total, 4, 1, fp);
-			uint8* temp = new uint8[total];
-			fread(temp, 1, total, fp);
-			for(int i=0; i<total; ++i) data[i] = (float)temp[i];
-			delete [] temp;
+			if(total > size*size) total = size*size; // Invalid ??
+			fread(data, 4, total, fp);
 		}
+		else printf("Invalid raw float data file: %s\n", file);
 		fclose(fp);
 		printf("Loaded %s\n", file);
 		return true;
@@ -1381,6 +1384,23 @@ void WorldEditor::loadWorld(const char* file) {
 			m_materials->addMap(index, name, size, channels, flags);
 		}
 	}
+
+	// Load materials
+	const XMLElement& mat = xml.getRoot().find("materials");
+	for(const XMLElement& e: mat) {
+		if(e == "material") m_materials->loadMaterial(e);
+		else if(e == "texture") m_materials->loadTexture(e, m_materials->getTextureCount());
+	}
+	m_materials->buildTextures();	// Build texture arrays
+	if(m_materials->getMaterialCount()==0) {
+		m_materials->addMaterial(0);
+		m_materials->getMaterial()->setName("Default");
+	}
+	else {
+		DynamicMaterial* active = m_materials->getMaterial(mat.attribute("active"));
+		if(!active) active = m_materials->getMaterial(0);
+		m_materials->selectMaterial(active);
+	}
 	
 	// Load terrain tiles
 	for(const XMLElement& e: xml.getRoot()) {
@@ -1408,6 +1428,11 @@ void WorldEditor::loadWorld(const char* file) {
 					map->maps[index] = tex;
 				}
 			}
+
+			// Height format
+			const char* ext = strrchr(map->file, '.');
+			if(ext && (strcmp(ext, ".tif")==0 || strcmp(ext, ".tiff")==0)) m_heightFormat = SaveFormat::TIF16;
+			else m_heightFormat = SaveFormat::RAW;
 		}
 	}
 
@@ -1425,16 +1450,6 @@ void WorldEditor::loadWorld(const char* file) {
 		}
 	}
 	m_minimap->build();
-
-	// Load materials
-	const XMLElement& mat = xml.getRoot().find("materials");
-	for(const XMLElement& e: mat) {
-		if(e == "material") m_materials->loadMaterial(e);
-		else if(e == "texture") m_materials->loadTexture(e, m_materials->getTextureCount());
-	}
-	m_materials->buildTextures();	// Build texture arrays
-	DynamicMaterial* active = m_materials->getMaterial(mat.attribute("active"));
-	if(active) setTerrainMaterial(active);
 }
 
 

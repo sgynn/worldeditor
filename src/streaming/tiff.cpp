@@ -96,7 +96,7 @@ TiffStream* TiffStream::openStream( const char* file, Mode mode) {
 			switch(desc.tag) {
 			case WIDTH:           img->m_width = desc.offset; break;
 			case HEIGHT:          img->m_height = desc.offset; break;
-			case BITS_PER_SAMPLE: img->m_bitsPerSample = desc.offset; break;
+			case BITS_PER_SAMPLE: img->m_bitsPerSample = desc.offset&0xffff; break;
 			case COMPRESSION: if(desc.offset!=1) { printf("Error: Image compressed\n"); return 0; }
 			case PHOTOMETRIC_INTERPRETATION: break;
 			case STRIP_OFFSETS:

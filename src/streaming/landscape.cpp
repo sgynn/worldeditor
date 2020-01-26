@@ -729,7 +729,7 @@ void Patch::updateGeometry(const BoundingBox& box, bool normals) {
 	}
 
 	// Update error value
-	m_error = step.x * 0.1;	// factor resolution into error value
+	m_error = step.x * 0.3;	// factor resolution into error value
 	if(m_split) for(int i=0; i<4; ++i) m_error = fmax(m_error, m_child[i]->m_error);
 	for(int i=0; i<size*size; ++i) {
 		float* v = m_geometry.vertices + i * stride;
