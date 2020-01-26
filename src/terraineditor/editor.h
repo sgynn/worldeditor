@@ -53,6 +53,8 @@ class TerrainEditor {
 	std::vector<vec3> m_ring1;
 	Brush             m_brush;
 	BrushData         m_buffer;
+	bool              m_locked;
+	
 	
 };
 

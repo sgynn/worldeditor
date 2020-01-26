@@ -1266,6 +1266,8 @@ void WorldEditor::saveWorld(const char* file) {
 	XML xml;
 	xml.setRoot( XMLElement("scene") );
 	xml.getRoot().setAttribute("mapsize", m_mapSize);
+	xml.getRoot().setAttribute("min", m_heightRange.min);
+	xml.getRoot().setAttribute("max", m_heightRange.max);
 
 	// Terrain
 	for(TerrainMap* map: m_maps) {

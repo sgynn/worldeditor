@@ -41,7 +41,7 @@ inline float clamp(float f, float min=0, float max=1) {
 	return f;
 }
 
-TerrainEditor::TerrainEditor(TerrainEditorDataInterface* t) : m_target(t), m_tool(0) {
+TerrainEditor::TerrainEditor(TerrainEditorDataInterface* t) : m_target(t), m_tool(0), m_locked(false) {
 	m_brush.radius = 10;
 	m_brush.falloff = 0.5;
 	m_brush.strength = 1;
@@ -95,6 +95,12 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 	if(r) {
 		updateRing(m_ring0, position, m_brush.radius);
 		updateRing(m_ring1, position, m_brush.getRadius(0.5));
+
+		m_locked = true;
+		m_brush.position = position.xz();
+		EditableMap* maps[9]; vec3 offsets[9]; int flags[9];
+		int mapCount = m_target->getMaps(0, m_brush, maps, offsets, flags);
+		for(int i=0; i<mapCount; ++i) if(flags[i]==0) { m_locked = false; break; }
 	}
 
 	// Paint
@@ -198,7 +204,8 @@ void TerrainEditor::draw() {
 	if(m_ring0.empty()) return;
 
 	// Draw brush rings
-	glColor4f(0, 1, 1, 1);
+	if(m_locked) glColor4f(1,0.3,0,1);
+	else glColor4f(0, 1, 1, 1);
 	glDisable(GL_TEXTURE_2D);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glDisable(GL_DEPTH_TEST);
