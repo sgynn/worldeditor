@@ -641,7 +641,7 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 	}
 
 	// Register map with material editor
-	m_materials->addMap(mapIndex, name, size, mode);
+	m_materials->addMap(mapIndex, name, size, channels, mode);
 	
 	// Add group
 	group->setup(m_gui);
@@ -934,6 +934,7 @@ TerrainMap* WorldEditor::createTile(const char* name) {
 		map->maps.push_back( new DynamicHeightmapEditor(data) );
 	}
 	map->heightMap->setMaterial(m_materials->getMaterial(), map->maps);
+	map->heightMap->setHeightRange(m_heightRange);
 	map->name = name;
 	map->locked = false;
 	m_maps.push_back(map);
@@ -943,8 +944,8 @@ TerrainMap* WorldEditor::createTile(const char* name) {
 // ======================================================================================= //
 
 
-void WorldEditor::loadWorld(const char* file) {
 /*
+void WorldEditor::loadWorld(const char* file) {
 	clear();
 	m_fileSystem->setRootPath(file, true);
 	m_file = file;
@@ -1173,8 +1174,7 @@ void WorldEditor::loadWorld(const char* file) {
 	ENABLE_BUTTON( "minimap" );
 	ENABLE_BUTTON( "materialbutton" )
 	ENABLE_BUTTON( "texturebutton" )
-	*/
-}
+}*/
 
 
 bool saveHeightMapData(int size, float* data, SaveFormat format, const Rangef& range, const char* file) {
@@ -1193,7 +1193,7 @@ bool saveHeightMapData(int size, float* data, SaveFormat format, const Rangef& r
 	if(format == SaveFormat::TIF16) {
 		uint16* raw = new uint16[count];
 		float mul = 0xffff / range.size();
-		for(size_t i=0; i<count; ++i) raw[i] = (uint16)((data[i] - range.min) * mul);
+		for(size_t i=0; i<count; ++i) raw[i] = (uint16)((range.clamp(data[i]) - range.min) * mul);
 		TiffStream* tiff = TiffStream::createStream(file, size, size, 1, 16, TiffStream::WRITE, raw, count*2);
 		if(tiff) delete tiff;
 		delete [] raw;
@@ -1242,6 +1242,7 @@ bool loadHeightMapData(int size, float* data, const Rangef& range, const char* f
 	return false;
 }
 
+// ----------------------------------------------------------------------------------- //
 void WorldEditor::saveWorld(const char* file) {
 	if(!file && !m_file) return;
 	if(m_file != file) m_file = file;
@@ -1261,6 +1262,7 @@ void WorldEditor::saveWorld(const char* file) {
 	// Write xml file
 	XML xml;
 	xml.setRoot( XMLElement("scene") );
+	xml.getRoot().setAttribute("mapsize", m_mapSize);
 
 	// Terrain
 	for(TerrainMap* map: m_maps) {
@@ -1268,7 +1270,7 @@ void WorldEditor::saveWorld(const char* file) {
 		XMLElement& e = xml.getRoot().add("terrain");
 		e.setAttribute("name", map->name);
 		e.setAttribute("size", m_mapSize);
-		e.setAttribute("resolution", m_resolution);
+		if(map->locked) e.setAttribute("locked", 1);
 		String mapName = cat(name, "_", sanitise(map->name));
 
 		// Save height data
@@ -1280,7 +1282,7 @@ void WorldEditor::saveWorld(const char* file) {
 		saveHeightMapData(m_mapSize, rawData, m_heightFormat, m_heightRange, m_fileSystem->getFile(map->file));
 		delete [] rawData;
 		
-		// Height Data
+		// Height Data file name
 		XMLElement& data = e.add("data");
 		data.setAttribute("file", map->file);
 
@@ -1294,6 +1296,18 @@ void WorldEditor::saveWorld(const char* file) {
 			// save images
 			static_cast<EditableTexture*>(map->maps[i])->save(buffer);
 		}
+	}
+
+	// Overlays
+	for(uint i=0; m_materials->getMap(i).flags; ++i) {
+		const MaterialEditor::MapData& map = m_materials->getMap(i);
+		XMLElement& e = xml.getRoot().add("overlay");
+		const char* modes [] = { "weight", "colour", "index" };
+		e.setAttribute("index", (int)i);
+		e.setAttribute("name", map.name);
+		e.setAttribute("size", map.size);
+		e.setAttribute("channels", map.channels);
+		e.setAttribute("type", modes[map.flags-1]);
 	}
 
 	// Grid
@@ -1317,88 +1331,7 @@ void WorldEditor::saveWorld(const char* file) {
 	for(int i=0; i<m_materials->getTextureCount(); ++i) {
 		m.add( m_materials->serialiseTexture(i) );
 	}
-	
 
-
-/*
-
-	// Write Terrain
-	XMLElement& e = xml.getRoot().add("terrain");
-	e.setAttribute("width", m_terrainSize.x);
-	e.setAttribute("height", m_terrainSize.y);
-
-	// Heightmap
-	XMLElement& map = e.add("data");
-	map.setAttribute("file", m_terrainFile);
-	if(m_streaming) {
-		map.setAttribute("stream", 1);
-		map.setAttribute("scale", m_terrainScale);
-		map.setAttribute("type", "int16");
-	} else {
-		Rect box(0,0, m_terrainSize.x, m_terrainSize.y);
-		float* data = new float[ box.width * box.height ];
-		m_heightMap->getHeights(box, data);
-		if(m_heightFormat == HEIGHT_FLOAT) {
-			map.setAttribute("type", "float");
-			if(!m_terrainFile) m_terrainFile = cat(name,".raw");
-			File file( m_fileSystem->getFile(m_terrainFile) );
-			file.write(reinterpret_cast<char*>(data), box.width*box.height*sizeof(float));
-			file.save();
-		}
-		else if(m_heightFormat == HEIGHT_UINT8) {
-			map.setAttribute("type", "png");
-			if(!m_terrainFile) m_terrainFile = cat(name,".png");
-			int pixels = box.width * box.height;
-			float low = data[0], high = data[0];
-			for(int i=1; i<pixels; ++i) low = fmin(low, data[i]), high = fmax(high, data[i]);
-			PNG png = PNG::create(box.width, box.height, 4);
-			for(int i=0; i<pixels; ++i) {
-				uint8* pixel = reinterpret_cast<uint8*>(png.data+i*4);
-				pixel[0] = pixel[1] = pixel[2] = data[i] / high * 255u;
-				pixel[3] = 255u;
-			}
-			png.save( m_fileSystem->getFile(m_terrainFile) );
-		}
-
-		map.setAttribute("file", m_fileSystem->getRelative(m_terrainFile));
-	}
-	
-	// Materials
-	for(int i=0; i<m_materials->getMaterialCount(); ++i) {
-		XMLElement& mat = e.add( m_materials->serialiseMaterial(i) );
-		if(m_materials->getMaterial(i) == m_materials->getMaterial()) mat.setAttribute("active", "true");
-	}
-	// Textures
-	for(int i=0; i<m_materials->getTextureCount(); ++i) {
-		e.add( m_materials->serialiseTexture(i) );
-	}
-	// Maps
-	static const char* U[] = { "colour", "weight", "index" };
-	for(ImageMapData* data: m_imageMaps) {
-		bool stream = data->map->getMode() >= EditableTexture::STREAM;
-
-		// Need some filenames
-		if(!data->file) {
-			const char* ext = stream? ".tif": ".png";
-			data->file = m_fileSystem->getRelative( cat(data->name, ext));
-			if(data->map2) data->file2 = m_fileSystem->getRelative( cat(data->name, "W", ext) );
-		}
-
-		// Save images
-		data->map->save( m_fileSystem->getFile(data->file) );
-		if(data->map2) data->map2->save( m_fileSystem->getFile(data->file2) );
-
-
-		// Save definition
-		XMLElement& map = e.add("map");
-		map.setAttribute("name", data->name);
-		map.setAttribute("file", m_fileSystem->getRelative(data->file));
-		map.setAttribute("usage", U[data->usage]);
-		if(data->map2) map.setAttribute("file2", m_fileSystem->getRelative(data->file2));
-		if(data->usage == USAGE_INDEX && data->map2) map.setAttribute("layers", 4);
-		if(stream) map.setAttribute("stream", 1);
-	}
-	*/
 
 	// Save editor camera position (temp)
 	XMLElement& cam = xml.getRoot().add("camera");
@@ -1418,5 +1351,91 @@ void WorldEditor::saveWorld(const char* file) {
 	xml.save(file);
 	printf("Saved %s\n", file);
 }
+// ----------------------------------------------------------------------------------- //
+void WorldEditor::loadWorld(const char* file) {
+	XML xml = XML::load(file);
+	if(!(xml.getRoot() == "scene")) {
+		messageBox("Load error", "Invalid scene file");
+		return;
+	}
+
+	m_mapSize = xml.getRoot().attribute("mapsize", 0);
+	if(m_mapSize==0) return;
+	m_streaming = false;
+	m_resolution = 1;
+	m_heightRange.set(xml.getRoot().attribute("min",0.f), xml.getRoot().attribute("max", 0.f));
+
+	createNewTerrain(m_mapSize);
+	m_fileSystem->setRootPath(file, true);
+	m_file = file;
+
+	// Load overlay definitions
+	for(const XMLElement& e: xml.getRoot()) {
+		if(e=="overlay") {
+			const char* modes [] = { "weight", "colour", "index" };
+			const char* name = e.attribute("name");
+			int index = e.attribute("index",0);
+			int size = e.attribute("size",0);
+			int channels = e.attribute("channels", 0);
+			int flags = enumerate(e.attribute("type"), modes, 3);
+			m_materials->addMap(index, name, size, channels, flags);
+		}
+	}
+	
+	// Load terrain tiles
+	for(const XMLElement& e: xml.getRoot()) {
+		if(e == "terrain") {
+			int size = e.attribute("size", 0);
+			const char* mapFile = e.find("data").attribute("file");
+			if(size != m_mapSize) { printf("Error: Map size mismatch\n"); continue; }
+			TerrainMap* map = createTile(e.attribute("name"));
+			map->locked = e.attribute("locked", 0);
+			map->file = mapFile;
+			// load data
+			float* raw = new float[size*size];
+			if(loadHeightMapData(size, raw, m_heightRange, m_fileSystem->getFile(map->file))) {
+				map->heightMap->setData(raw);
+			}
+			delete [] raw;
+
+			for(const XMLElement& m: e) {
+				if(m=="map") {
+					// Load maps - ToDo: type for double map
+					size_t index = m.attribute("index", 0);
+					String file = m_fileSystem->getFile(m.attribute("file"));
+					EditableTexture* tex = new EditableTexture(file, true);
+					if(map->maps.size()<=index) map->maps.resize(index+1, 0);
+					map->maps[index] = tex;
+				}
+			}
+		}
+	}
+
+	// Load map grid
+	for(const XMLElement& e: xml.getRoot()) {
+		if(e == "tile") {
+			Point point;
+			TerrainMap* map = 0;
+			point.x = e.attribute("x", 0);
+			point.y = e.attribute("y", 0);
+			const char* name = e.attribute("map");
+			for(TerrainMap* m: m_maps) if(m->name==name) { map=m; break; }
+			if(map) m_terrain->assign(point, map);
+			else printf("Load error: Map %s not found\n", name);
+		}
+	}
+	m_minimap->build();
+
+	// Load materials
+	const XMLElement& mat = xml.getRoot().find("materials");
+	for(const XMLElement& e: mat) {
+		if(e == "material") m_materials->loadMaterial(e);
+		else if(e == "texture") m_materials->loadTexture(e, m_materials->getTextureCount());
+	}
+	m_materials->buildTextures();	// Build texture arrays
+	DynamicMaterial* active = m_materials->getMaterial(mat.attribute("active"));
+	if(active) setTerrainMaterial(active);
+}
+
 
 

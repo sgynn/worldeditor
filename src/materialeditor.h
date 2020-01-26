@@ -51,9 +51,9 @@ class MaterialEditor {
 	const base::Texture& getHeightArray() const;
 
 	// Maps
-	struct MapData { String name; int size; int flags; };
+	struct MapData { String name; int size; int channels; int flags; };
 	const MapData& getMap(uint id) const;
-	void addMap(uint id, const char* name, int size, int flags);
+	void addMap(uint id, const char* name, int size, int channels, int flags);
 	void deleteMap(uint id);
 	void setTerrainSize(const vec2& s) { m_terrainSize = s; }
 	

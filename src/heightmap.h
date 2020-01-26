@@ -22,6 +22,7 @@ class HeightmapInterface {
 	virtual void setData(const float* data) = 0;
 	virtual void getData(float* out) const = 0;
 	virtual size_t getDataSize() const = 0;
+	virtual void setHeightRange(const Rangef&) {}
 };
 
 

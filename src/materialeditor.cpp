@@ -308,20 +308,25 @@ const base::Texture& MaterialEditor::getHeightArray() const {
 
 // ------------------------------------------------------------------------------ //
 const MaterialEditor::MapData& MaterialEditor::getMap(uint index) const {
+	static MapData nullMap{0,0,0,0};
+	if(index>= m_mapInfo.size()) return nullMap;
 	return m_mapInfo[index];
 }
 
-void MaterialEditor::addMap(uint index, const char* name, int size, int flags) {
+void MaterialEditor::addMap(uint index, const char* name, int size, int channels, int flags) {
 	if(m_mapInfo.size() <= index) m_mapInfo.resize(index+1, MapData{0,0});
+	m_mapInfo[index].channels = channels;
+	m_mapInfo[index].flags = flags;
 	m_mapInfo[index].name = name;
 	m_mapInfo[index].size = size;
-	m_mapInfo[index].flags = flags;
 }
 
 void MaterialEditor::deleteMap(uint index) {
 	if(index < m_mapInfo.size()) {
 		m_mapInfo[index].name.clear();
+		m_mapInfo[index].channels = 0;
 		m_mapInfo[index].flags = 0;
+		m_mapInfo[index].size = 0;
 	}
 }
 
