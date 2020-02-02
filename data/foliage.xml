@@ -80,26 +80,25 @@
 			<widget class="Label" rect="4 0 38 19" caption="Mesh" skin="panel"/>
 			<widget anchor="lr" template="droplist" name="sprite" skin="default" rect="96 0 199 20"/>
 			<widget anchor="r" template="button" name="browsemesh" caption="..." rect="295 0 22 20"/>
-			<widget rect="96 24 221 16" anchor="lr" value="0" name="maxscale" min="0" template="slider"/>
 		</widget>
 		<widget anchor="lr" class="Widget" template="frame" name="common" skin="none" rect="0 140 322 216">
-			<widget autosize="1" template="label" caption="Range" rect="4 48 45 19"/>
-			<widget anchor="lr" template="slider" name="range" rect="96 48 221 16"/>
+			<widget autosize="1" template="label" caption="Range" rect="4 24 45 19"/>
+			<widget anchor="lr" template="slider" name="range" rect="96 24 221 16"/>
 			<widget class="Label" rect="4 72 77 19" caption="Min Height" skin="panel"/>
 			<widget rect="96 72 221 16" anchor="lr" value="0" name="minheight" min="0" template="slider"/>
 			<widget class="Label" rect="4 96 80 19" caption="Max Height" skin="panel"/>
-			<widget anchor="lr" value="0" name="maxheight" template="slider" rect="96 96 221 16"/>
+			<widget anchor="lr" value="1000" name="maxheight" template="slider" rect="96 96 221 16"/>
 			<widget class="Label" rect="4 120 70 19" caption="Min Slope" skin="panel"/>
 			<widget anchor="lr" template="slider" name="minslope" rect="96 120 221 16"/>
 			<widget class="Label" rect="4 144 73 19" caption="Max Slope" skin="panel"/>
-			<widget anchor="lr" value="0" name="maxslope" template="slider" rect="96 144 221 16"/>
+			<widget anchor="lr" value="1000" name="maxslope" template="slider" rect="96 144 221 16"/>
 			<widget autosize="1" template="label" caption="Min Scale" rect="4 168 69 19"/>
 			<widget autosize="1" template="label" caption="Max Scale" rect="4 192 72 19"/>
-			<widget class="Label" rect="4 24 54 19" caption="Density" skin="panel"/>
+			<widget class="Label" rect="4 48 54 19" caption="Density" skin="panel"/>
 			<widget class="Label" rect="4 0 31 19" caption="Map" skin="panel"/>
 			<widget anchor="lr" template="slider" name="minscale" rect="96 168 221 16"/>
 			<widget rect="96 192 221 16" anchor="lr" value="0" name="maxscale" min="0" template="slider"/>
-			<widget anchor="lr" template="slider" name="density" rect="96 24 221 16"/>
+			<widget anchor="lr" template="slider" name="density" rect="96 48 221 16"/>
 			<widget anchor="lr" template="droplist" name="densitymap" skin="default" rect="96 0 221 20"/>
 		</widget>
 	</widget>

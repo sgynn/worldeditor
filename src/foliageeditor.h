@@ -65,6 +65,7 @@ class FoliageLayerEditor {
 
 	void load(const base::XMLElement&);
 	base::XMLElement save() const;
+	void updateSliders();
 	void refresh();
 
 	private:

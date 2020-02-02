@@ -187,7 +187,7 @@ void FoliageEditor::layerRenamed(FoliageLayerEditor* e) {
 
 // ======================================================================== //
 
-#define CONNECT(Type, name, event, callback) { Widget* t=w->getNamedWidget(name); if(t&&t->cast<Type>()) t->cast<Type>()->event.bind(this, &FoliageLayerEditor::callback); }
+#define CONNECT(Type, name, event, callback) { Widget* t=w->getNamedWidget(name); if(t&&t->cast<Type>()) t->cast<Type>()->event.bind(this, &FoliageLayerEditor::callback); else printf("Missing widget: %s\n", name); }
 FoliageLayerEditor::FoliageLayerEditor(Widget* w, FoliageLayer* layer, FoliageType type, FileSystem* fs) : m_layer(layer), m_fileSystem(fs), m_panel(w) {
 	CONNECT(Textbox, "name", eventSubmit, renameLayer);
 
@@ -217,9 +217,25 @@ FoliageLayerEditor::FoliageLayerEditor(Widget* w, FoliageLayer* layer, FoliageTy
 		m_name = "New Grass Layer";
 	}
 
+	m_range = 100;
+	m_density = 1;
 	m_scale.set(1,1);
+	m_slope.set(0,1);
+	m_height.set(0,1000);
 	w->getNamedWidget("name")->cast<Textbox>()->setText(m_name);
-	w->getNamedWidget("density")->cast<Scrollbar>()->setValue(100);
+	updateSliders();
+}
+
+#define SET_SLIDER(name, value, max) { Scrollbar* t=m_panel->getNamedWidget(name)->cast<Scrollbar>(); if(t) t->setValue(value*1000/max); }
+void FoliageLayerEditor::updateSliders() {
+	SET_SLIDER("range", m_range, 1000);
+	SET_SLIDER("density", m_density, 10);
+	SET_SLIDER("minheight", m_height.min, 500);
+	SET_SLIDER("maxheight", m_height.max, 500);
+	SET_SLIDER("minslope", m_slope.min, 1);
+	SET_SLIDER("maxslope", m_slope.max, 1);
+	SET_SLIDER("minscale", m_scale.min, 10);
+	SET_SLIDER("maxscale", m_scale.max, 10);
 }
 
 void FoliageLayerEditor::renameLayer(gui::Textbox* t) {
@@ -231,13 +247,13 @@ void FoliageLayerEditor::setDensityMap(gui::Combobox*, int) {}
 void FoliageLayerEditor::setDensity(gui::Scrollbar*, int v) { m_density=v*0.01; refresh(); }
 void FoliageLayerEditor::setRange(gui::Scrollbar*, int v)   { m_range=v; m_layer->setViewRange(m_range); }
 
-void FoliageLayerEditor::setMinHeight(gui::Scrollbar*, int v) { m_height.min = v; refresh(); }
-void FoliageLayerEditor::setMaxHeight(gui::Scrollbar*, int v) { m_height.max = v; refresh(); }
-void FoliageLayerEditor::setMinSlope(gui::Scrollbar*, int v)  { m_slope.min = v*0.01; refresh(); }
-void FoliageLayerEditor::setMaxSlope(gui::Scrollbar*, int v)  { m_slope.max = v*0.01; refresh(); }
+void FoliageLayerEditor::setMinHeight(gui::Scrollbar*, int v) { m_height.min = v*0.5; refresh(); }
+void FoliageLayerEditor::setMaxHeight(gui::Scrollbar*, int v) { m_height.max = v*0.5; refresh(); }
+void FoliageLayerEditor::setMinSlope(gui::Scrollbar*, int v)  { m_slope.min = v*0.001; refresh(); }
+void FoliageLayerEditor::setMaxSlope(gui::Scrollbar*, int v)  { m_slope.max = v*0.001; refresh(); }
 
-void FoliageLayerEditor::setMinScale(gui::Scrollbar*, int v)  { m_scale.min = v*0.05; refresh(); }
-void FoliageLayerEditor::setMaxScale(gui::Scrollbar*, int v)  { m_scale.max = v*0.05; refresh(); }
+void FoliageLayerEditor::setMinScale(gui::Scrollbar*, int v)  { m_scale.min = v*0.01; refresh(); }
+void FoliageLayerEditor::setMaxScale(gui::Scrollbar*, int v)  { m_scale.max = v*0.01; refresh(); }
 
 void FoliageLayerEditor::loadMesh(gui::Button*) {}
 void FoliageLayerEditor::setMesh(gui::Combobox*, int) {}
