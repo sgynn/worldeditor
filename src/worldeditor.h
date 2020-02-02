@@ -16,6 +16,7 @@
 class EditableTexture;
 class DynamicMaterial;
 class MaterialEditor;
+class FoliageEditor;
 class MiniMap;
 
 namespace gui { class Button; class Combobox; class Scrollbar; class Window; class Listbox; }
@@ -55,6 +56,7 @@ class WorldEditor : public base::SceneState {
 	void showMaterialList(gui::Button*);
 	void showTextureList(gui::Button*);
 	void showWorldMap(gui::Button*);
+	void showFoliageList(gui::Button*);
 
 	void createNewTerrain(gui::Button*);
 	void cancelNewTerrain(gui::Button*);
@@ -121,6 +123,7 @@ class WorldEditor : public base::SceneState {
 	gui::String    m_file;
 	std::vector<ToolGroup*> m_groups;		// Terrain tool groups
 	MaterialEditor* m_materials;			// Terrain material editor
+	FoliageEditor* m_foliage;				// Foliage editor
 	MiniMap* m_minimap;						// Minimap data
 	TerrainEditor* m_editor;				// Terrain editor
 	gui::Widget* m_contextMenu;				// Terrain tile context menu

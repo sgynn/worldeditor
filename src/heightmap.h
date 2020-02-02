@@ -41,13 +41,17 @@ struct TerrainMap {
 // Grid of heightmaps
 class MapGrid : public TerrainEditorDataInterface, public scene::SceneNode {
 	public:
-	MapGrid(float size);
+	MapGrid(float size, const Range& range);
 	~MapGrid();
 
 	int getMaps(unsigned id, const Brush&, EditableMap**, vec3*, int*) override;
 	int castRay(const vec3& start, const vec3& dir, float& out) const override;
 	float getHeight(const vec3&) const override;
 	float getResolution(unsigned id) const override;
+
+	public:
+	const Range& getHeightRange() const { return m_heightRange; }
+	float        getTileSize() const { return m_gridSize; }
 
 	public:
 	void assign(const Point&, TerrainMap*);
@@ -73,6 +77,7 @@ class MapGrid : public TerrainEditorDataInterface, public scene::SceneNode {
 	std::map<Point, Slot> m_slots;
 	std::vector<MapDef> m_mapDefinitions;
 	BoundingBox m_bounds;
+	Range m_heightRange;
 	float m_gridSize;
 };
 

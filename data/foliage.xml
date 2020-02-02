@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<gui>
+	<!--Skins-->
+	<skin name="panel">
+		<font name="helvetica" size="16"/>
+		<generate selback="#800d1241" states="normal,disabled,selected normal,selected highlight,selected pressed,selected disabled" back="#800d1241" selline="#ffff00" line="#61cd5"/>
+	</skin>
+	<skin name="button">
+		<font align="middle centre" name="helvetica" size="16"/>
+		<image file="data/gui.png"/>
+		<state border="2 2 2 2" colour="#80c0ff" coord="0 8 4 4" name="normal"/>
+		<state border="2 2 2 2" colour="#ffa0a0" coord="4 8 4 4" name="highlight"/>
+		<state border="2 2 2 2" colour="#4080a0" coord="0 12 4 4" name="pressed"/>
+		<state border="2 2 2 2" colour="#607080" coord="4 12 4 4" name="disabled"/>
+		<state border="2 2 2 2" colour="#80c0ff" coord="8 0 4 4" name="selected normal"/>
+		<state border="2 2 2 2" colour="#80c0ff" coord="12 0 4 4" name="selected highlight"/>
+		<state border="2 2 2 2" colour="#80c0ff" coord="8 4 4 4" name="selected pressed"/>
+		<state border="2 2 2 2" colour="#607080" coord="12 4 4 4" name="selected disabled"/>
+	</skin>
+	<skin name="none">
+		<state name="normal"/>
+	</skin>
+	<skin name="clear">
+		<font name="helvetica" size="16"/>
+		<image file="data/gui.png"/>
+		<state name="normal"/>
+	</skin>
+	<skin name="listitem">
+		<font name="helvetica" size="16"/>
+		<image file="data/gui.png"/>
+		<state name="normal"/>
+		<state name="selected normal" colour="#ffa040"/>
+	</skin>
+	<!--Templates-->
+	<template rect="0 0 100 100" name="frame" skin="panel" category="Containers"/>
+	<template class="Icon" iconlist="icons" rect="0 0 32 32" name="icon" skin="panel" category="Display"/>
+	<template class="Listbox" rect="0 0 100 100" name="iconlistbox2">
+		<widget anchor="tlrb" rect="0 0 85 100" name="_client"/>
+		<widget anchor="trb" template="vscroll" name="_scroll" rect="84 0 16 100"/>
+		<widget anchor="lr" rect="18 0 67 20" name="_text" skin="listitem"/>
+		<widget class="Icon" iconlist="icons" rect="0 2 16 16" name="_icon"/>
+	</template>
+	<template class="Button" rect="0 0 32 32" name="iconbutton" skin="button">
+		<widget anchor="tlrb" class="Icon" iconlist="icons" rect="0 0 32 32" name="_icon"/>
+	</template>
+	<template class="Combobox" rect="0 0 100 20" name="dropbutton">
+		<widget anchor="trlb" class="Label" rect="0 0 100 20" name="text" caption="Add" align="3"/>
+		<widget anchor="blr" class="Listbox" rect="0 20 100 100" name="_list">
+			<widget rect="2 0 80 20" name="_text" skin="clear"/>
+		</widget>
+	</template>
+	<template class="Button" name="button" skin="button" category="Input"/>
+	<template class="Textbox" name="editbox" skin="panel" category="Input"/>
+	<template category="Display" class="Label" name="label" skin="panel" caption="Label"/>
+	<!--Layout-->
+	<widget visible="0" template="dialogfixed" name="foliage" caption="Foliage" rect="216 348 299 364">
+		<widget anchor="rb" template="button" name="removefoliage" caption="Remove" rect="214 312 75 20"/>
+		<widget anchor="lrtb" template="iconlistbox2" name="foliagelist" skin="default" rect="0 0 289 308"/>
+		<widget anchor="rb" template="dropbutton" name="addfoliage" skin="button" rect="118 312 83 20">
+			<widget anchor="cm" autosize="1" align="0" caption="Add" template="label" rect="28 1 29 19"/>
+			<item>Instanced</item>
+			<item>Grass</item>
+		</widget>
+	</widget>
+	<widget visible="0" layout="VerticalLayout" template="dialog" name="foliagelayer" caption="Foliage Layer" rect="576 359 332 381">
+		<widget class="Widget" template="frame" rect="0 0 322 32" skin="none">
+			<widget template="icon" name="icon" icon="20" rect="0 0 32 32"/>
+			<widget anchor="lr" text="Foliage name" name="name" template="editbox" rect="39 7 253 20"/>
+			<widget anchor="r" iconlist="icons" template="iconbutton" name="visible" icon="12" rect="292 7 20 20"/>
+		</widget>
+		<widget anchor="lr" class="Widget" template="frame" name="instanced" skin="none" rect="0 32 322 56">
+			<widget class="Label" rect="4 0 38 19" caption="Mesh" skin="panel"/>
+			<widget autosize="1" template="label" caption="Alignment" rect="4 24 72 19"/>
+			<widget anchor="lr" template="droplist" name="alignment" skin="default" rect="96 24 221 20"/>
+			<widget anchor="r" template="button" name="browsemesh" caption="..." rect="295 0 22 20"/>
+			<widget anchor="lr" template="droplist" name="mesh" skin="default" rect="96 0 199 20"/>
+		</widget>
+		<widget anchor="lr" class="Widget" template="frame" name="grass" skin="none" rect="0 88 322 52">
+			<widget autosize="1" template="label" caption="Size" rect="4 24 30 19"/>
+			<widget class="Label" rect="4 0 38 19" caption="Mesh" skin="panel"/>
+			<widget anchor="lr" template="droplist" name="sprite" skin="default" rect="96 0 199 20"/>
+			<widget anchor="r" template="button" name="browsemesh" caption="..." rect="295 0 22 20"/>
+			<widget rect="96 24 221 16" anchor="lr" value="0" name="maxscale" min="0" template="slider"/>
+		</widget>
+		<widget anchor="lr" class="Widget" template="frame" name="common" skin="none" rect="0 140 322 216">
+			<widget autosize="1" template="label" caption="Range" rect="4 48 45 19"/>
+			<widget anchor="lr" template="slider" name="range" rect="96 48 221 16"/>
+			<widget class="Label" rect="4 72 77 19" caption="Min Height" skin="panel"/>
+			<widget rect="96 72 221 16" anchor="lr" value="0" name="minheight" min="0" template="slider"/>
+			<widget class="Label" rect="4 96 80 19" caption="Max Height" skin="panel"/>
+			<widget anchor="lr" value="0" name="maxheight" template="slider" rect="96 96 221 16"/>
+			<widget class="Label" rect="4 120 70 19" caption="Min Slope" skin="panel"/>
+			<widget anchor="lr" template="slider" name="minslope" rect="96 120 221 16"/>
+			<widget class="Label" rect="4 144 73 19" caption="Max Slope" skin="panel"/>
+			<widget anchor="lr" value="0" name="maxslope" template="slider" rect="96 144 221 16"/>
+			<widget autosize="1" template="label" caption="Min Scale" rect="4 168 69 19"/>
+			<widget autosize="1" template="label" caption="Max Scale" rect="4 192 72 19"/>
+			<widget class="Label" rect="4 24 54 19" caption="Density" skin="panel"/>
+			<widget class="Label" rect="4 0 31 19" caption="Map" skin="panel"/>
+			<widget anchor="lr" template="slider" name="minscale" rect="96 168 221 16"/>
+			<widget rect="96 192 221 16" anchor="lr" value="0" name="maxscale" min="0" template="slider"/>
+			<widget anchor="lr" template="slider" name="density" rect="96 24 221 16"/>
+			<widget anchor="lr" template="droplist" name="densitymap" skin="default" rect="96 0 221 20"/>
+		</widget>
+	</widget>
+</gui>

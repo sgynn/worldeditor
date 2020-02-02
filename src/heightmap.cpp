@@ -2,7 +2,7 @@
 #include "terraineditor/editabletexture.h"
 
 
-MapGrid::MapGrid(float size) : m_gridSize(size) {
+MapGrid::MapGrid(float size, const Range& range) : m_heightRange(range), m_gridSize(size) {
 	m_mapDefinitions.push_back( MapDef{0,0} ); // Null definition for heightmap map
 }
 

@@ -254,9 +254,10 @@
 	</widget>
 	
 	<widget name="toolshelf" rect="174 0 800 36" anchor="tlr">
-		<widget name="materialbutton" template="iconbuttondark" rect="2 2 32 32" icon="material"/>
-		<widget name="texturebutton" template="iconbuttondark" rect="36 2 32 32" icon="texture"/>
-		<widget name="toollist" template="toolgrouplist" rect="70 2 160 32"/>
+		<widget name="foliagebutton" template="iconbuttondark" rect="2 2 32 32" icon="Foliage"/>
+		<widget name="materialbutton" template="iconbuttondark" rect="36 2 32 32" icon="material"/>
+		<widget name="texturebutton" template="iconbuttondark" rect="70 2 32 32" icon="texture"/>
+		<widget name="toollist" template="toolgrouplist" rect="108 2 160 32"/>
 		<!-- Other tools here -->
 	</widget>
 
@@ -379,7 +380,7 @@
 	</widget>
 
 	<!-- Context menu -->
-	<widget rect="200 200 100 140" visible="0" skin="default" layout="vertical" name="contextmenu">
+	<widget rect="200 200 100 140" visible="0" skin="default" layout="VerticalLayout" name="contextmenu">
 		<widget name="newtile"  caption="New Tile" class="Button" skin="button" rect="0 0 20 20"/>
 		<widget name="loadtile" caption="Load Tile" class="Button" skin="button" rect="0 0 20 20"/>
 		<widget name="settile"  caption="Assign Tile" class="Button" skin="button" rect="0 0 20 20"/>

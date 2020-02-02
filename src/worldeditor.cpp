@@ -16,6 +16,8 @@
 #include "streaming/texturestream.h"
 #include "streaming/tiff.h"
 
+#include "foliageeditor.h"
+
 #include "gui/skin.h"
 #include "gui/font.h"
 #include "gui/widgets.h"
@@ -80,7 +82,7 @@ int main(int argc, char* argv[]) {
 
 //// Make a world - this file will be a complete mess while I test stuff ////
 
-WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_activeGroup(0), m_terrain(0) {
+WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_foliage(0), m_editor(0), m_activeGroup(0), m_terrain(0) {
 	m_scene = new scene::Scene;
 	m_renderer = new scene::Renderer;
 	m_fileSystem = new FileSystem;
@@ -110,6 +112,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_ac
 	m_gui = new Root(Game::width(), Game::height());
 	m_gui->setRenderer( new gui::Renderer() );
 	m_gui->load("data/gui.xml");
+	m_gui->load("data/foliage.xml");
 	m_mapMarker = 0;
 
 	// Setup event callbacks
@@ -122,6 +125,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_ac
 	BIND(Combobox, "toollist", eventSelected, selectToolGroup);
 	BIND(Button, "materialbutton", eventPressed, showMaterialList);
 	BIND(Button, "texturebutton",  eventPressed, showTextureList);
+	BIND(Button, "foliagebutton",  eventPressed, showFoliageList);
 
 	BIND(Widget, "mapimage", eventMouseDown, moveWorldMap);
 	BIND(Widget, "mapimage", eventMouseMove, moveWorldMap);
@@ -161,8 +165,9 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_ac
 	// Disable some buttons
 	DISABLE_BUTTON( "savemap" );
 	DISABLE_BUTTON( "minimap" );
-	DISABLE_BUTTON( "materialbutton" )
-	DISABLE_BUTTON( "texturebutton" )
+	DISABLE_BUTTON( "materialbutton" );
+	DISABLE_BUTTON( "texturebutton" );
+	DISABLE_BUTTON( "foliagebutton" );
 
 	// context menu
 	m_contextMenu = m_gui->getWidget<Widget>("contextmenu");
@@ -218,7 +223,9 @@ void WorldEditor::clear() {
 
 	// delete materials
 	if(m_materials) delete m_materials;
+	if(m_foliage) delete m_foliage;
 	m_materials = 0;
+	m_foliage = 0;
 	showMaterialList(0);
 	showTextureList(0);
 
@@ -230,8 +237,7 @@ void WorldEditor::clear() {
 	Combobox* list = m_gui->getWidget<Combobox>("toollist");
 	if(list) {
 		list->clearItems();
-		Widget* panel = list->getParent();
-		if(panel->getWidgetCount() > 3) panel->remove( panel->getWidget(3) );
+		m_activeGroup = 0;
 	}
 }
 
@@ -343,7 +349,11 @@ void WorldEditor::update() {
 		if(cmb && m_contextMenu->isVisible()) m_contextMenu->setVisible(false);
 		lastMouse = mouse;
 		lastCam = m_camera->getPosition();
+
 	}
+
+	// update foliage
+	if(m_foliage) m_foliage->updateFoliage(m_camera->getPosition());
 
 
 	// Other shortcuts
@@ -496,7 +506,7 @@ void WorldEditor::createNewTerrain(int size) {
 	m_mapSize = size;
 
 	// Create terrain
-	m_terrain = new MapGrid( (size-1)*m_resolution );
+	m_terrain = new MapGrid( (size-1)*m_resolution, m_heightRange );
 	m_terrain->eventMapCreated.bind(this, &WorldEditor::textureMapCreated);
 	m_scene->add(m_terrain);
 
@@ -507,6 +517,8 @@ void WorldEditor::createNewTerrain(int size) {
 	m_materials->eventChangeTextureList.bind(this, &WorldEditor::textureListChanged);
 	m_materials->setTerrainSize( vec2(size,size) );
 
+	// Setup foliage editor
+	m_foliage = new FoliageEditor(m_gui, m_fileSystem, m_terrain, m_scene);
 
 	// Minimap
 	m_minimap->setWorld(m_terrain);
@@ -521,6 +533,7 @@ void WorldEditor::createNewTerrain(int size) {
 	ENABLE_BUTTON( "minimap" );
 	ENABLE_BUTTON( "materialbutton" )
 	ENABLE_BUTTON( "texturebutton" )
+	ENABLE_BUTTON( "foliagebutton" )
 	
 }
 
@@ -767,13 +780,18 @@ void WorldEditor::textureMapCreated(TerrainMap* map) {
 	map->heightMap->setMaterial(m, map->maps);
 }
 
+void WorldEditor::showFoliageList(Button*) {
+	Widget* w = m_gui->getWidget<Widget>("foliage");
+	if(m_materials && !w->isVisible()) showDialog(w);
+	else w->setVisible(false);
+}
 
 void WorldEditor::selectToolGroup(Combobox* c, int index) {
 	ToolGroup* group = 0;
 	c->getItemData(index).read(group);
 	m_editor->setTool(0);
 	Widget* p = c->getParent();
-	if(p->getWidgetCount() > 3) p->remove( p->getWidget(3) );
+	if(m_activeGroup) p->remove( m_activeGroup->getPanel() );
 	// Set up toolbar for editor
 	if(group) {
 		p->add( group->getPanel() );
