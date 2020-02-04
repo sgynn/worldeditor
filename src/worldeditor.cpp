@@ -964,240 +964,6 @@ TerrainMap* WorldEditor::createTile(const char* name) {
 
 // ======================================================================================= //
 
-
-/*
-void WorldEditor::loadWorld(const char* file) {
-	clear();
-	m_fileSystem->setRootPath(file, true);
-	m_file = file;
-
-	XML xml = XML::load(file);
-	if(!(xml.getRoot() == "scene")) {
-		messageBox("Load error", "Invalid scene file");
-		m_file = 0;
-		return;
-	}
-
-	const XMLElement& terrain = xml.getRoot().find("terrain");
-	if(!terrain.name()) {
-		messageBox("Load error", "Scene file missing terrain object");
-		m_file = 0;
-		return;
-	}
-
-	// Terrain info
-	char buffer[2058];
-	int size = terrain.attribute("width", 0);
-	const XMLElement& info = terrain.find("data");
-	float res = info.attribute("resolution", 1.f);
-	float scale = info.attribute("scale", 1.f);
-	String format = info.attribute("type");
-	m_terrainFile = m_fileSystem->getFile( info.attribute("file") );
-	if(!m_terrainFile) {
-		messageBox("Error", "Could not find file %s", m_terrainFile.str());
-		return;
-	}
-
-
-	Streamer* streamer = 0;
-	SimpleHeightmap* simple = 0;
-	updateTitle();
-
-
-	// Create terrain - maybe use a plugin system for different types?
-	if(info.attribute("stream", 0)) {
-		streamer = new Streamer(scale);
-		if(streamer->openStream( m_terrainFile )) {
-			m_scene->add(streamer);
-			streamer->setLod( m_options.detail );
-			m_heightMap = new StreamingHeightmapEditor(streamer);
-			m_objects["terrain"] = streamer;
-			m_terrainOffset = streamer->getOffset().xz();
-			m_streaming = true;
-			size = streamer->width();
-			if(size != streamer->height()) messageBox("Warning", "Terrian map is not square");
-			m_terrainScale = scale;
-			m_terrainSize.x = m_terrainSize.y = size-1;
-			m_streams.push_back(streamer);
-			m_heightFormat = streamer->pixelSize()==1? HEIGHT_UINT8: HEIGHT_UINT16;
-		} else {
-			messageBox("Load error", "Failed to open stream %s", m_terrainFile.str());
-			return;
-		}
-	}
-	else {
-		if(format == "float") {
-			simple = new SimpleHeightmap();
-			File data = File::load( m_terrainFile );
-			simple->create(size, size, res, (const float*) data.contents());
-			m_scene->add(simple);
-			m_heightFormat = HEIGHT_FLOAT;
-			m_heightMap = new SimpleHeightmapEditor(simple);
-			m_terrainOffset = vec2();
-			m_objects["terrain"] = simple;
-			m_streaming = false;
-		}
-		else if(format="png") {
-			PNG png = PNG::load( m_terrainFile );
-			simple = new SimpleHeightmap();
-			simple->create(size, size, res, reinterpret_cast<ubyte*>(png.data), 4, scale, 0);
-		}
-		else {
-			// ToDo: Load texture formats
-			messageBox("Load error", "Invalid terrain format %s", format.str());
-			return;
-		}
-	}
-
-	// Load materials
-	int activeMaterial = 0;
-	m_materials = new MaterialEditor(m_gui, m_fileSystem, m_streaming);
-	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
-	m_materials->eventChangeTextureList.bind(this, &WorldEditor::textureListChanged);
-	for(XML::iterator i=terrain.begin(); i!=terrain.end(); ++i) {
-		if(*i == "material") {
-			if(i->attribute("active")) activeMaterial = m_materials->getMaterialCount();
-			m_materials->loadMaterial(*i);
-		}
-		else if(*i == "texture") m_materials->loadTexture(*i, m_materials->getTextureCount());
-	}
-	m_materials->buildTextures();	// Build texture arrays
-	
-
-
-	// Set up terrain editor
-	m_editor = new TerrainEditor(0);
-	m_editor->setHeightmap( m_heightMap );
-	setupHeightTools(res, m_terrainOffset);
-	
-
-	// Load editable texture maps
-	const char* textureUsage[] = { "colour", "weight", "index", "indexweight" };
-	for(XML::iterator m=terrain.begin(); m!=terrain.end(); ++m) {
-		if(*m == "map") {
-			const char* usage    = m->attribute("usage");
-			const char* name     = m->attribute("name");
-			const char* fileName = m->attribute("file");
-			const char* second   = m->attribute("file2");
-			bool stream = m->attribute("stream", 0);
-			MapUsage use = (MapUsage)enumerate(usage, textureUsage, 4);
-			
-			// Already exists ?
-			if(m_materials->getMap(name)) {
-				messageBox("Warning", "Texture Map %s already exists", name);
-				continue;
-			}
-
-			// resolve map files
-			String file = m_fileSystem->getFile(fileName);
-			String file2 = m_fileSystem->getFile(second);
-			if(!m_fileSystem->exists(file)) {
-				messageBox("Error", "Could not find file %s", file.str());
-				continue;
-			}
-			if(!file2.empty() && !m_fileSystem->exists(file2)) {
-				messageBox("Error", "Could not find file %s", file2.str());
-				continue;
-			}
-
-
-			// Create texture
-			EditableTexture* tex = 0;
-			if(stream) {
-				TextureStream* ts = new TextureStream();
-				if(ts->openStream(file)) {
-					tex = new EditableTexture(ts);
-					ts->initialise(2048, true);
-					m_streams.push_back(ts);
-				} else messageBox("Error", "Failed to open stream %s", file.str());
-			} else {
-				tex = new EditableTexture(file, true);
-			}
-	
-			// Second texture
-			EditableTexture* tex2 = 0;
-			if(!file2.empty()) {
-				if(stream) {
-					TextureStream* ts = new TextureStream();
-					if(ts->openStream(file2)) {
-						tex2 = new EditableTexture(ts);
-						ts->initialise(2048, true);
-						m_streams.push_back(ts);
-					} else messageBox("Error", "Failed to open stream %s", file2.str());
-				} else {
-					tex2 = new EditableTexture(file2, true);
-				}
-			}
-
-			// Add texture to world
-			if(!tex) continue;
-			m_materials->addMap(name, tex);
-			ImageMapData* img = createMapData(tex, name, file, use);
-			if(tex2) {
-				img->map2 = tex2;
-				img->file2 = file2;
-				sprintf(buffer, "%sW", name);
-				m_materials->addMap(buffer, tex2);
-			}
-
-			// Create tool
-			ToolGroup* g = 0;
-			switch(use) {
-			case USAGE_COLOUR:	// Colour
-				g = new ColourToolGroup(name, tex);
-				break;
-
-			case USAGE_WEIGHT: // Map
-				g = new WeightToolGroup(name, tex);
-				break;
-
-			case USAGE_INDEX:
-				switch(m->attribute("layers", 1)) {
-				case 1: g = new IndexToolGroup(name, tex); break;
-				case 4: g = new IndexWeightToolGroup(name, tex, tex2); break;
-				default: messageBox("Error", "Invalud number of layers in index map %s", name);
-				}
-			}
-
-			// Add tool to list
-			if(g) {
-				g->setup(m_gui);
-				g->setResolution(m_terrainOffset, vec2(size,size), res);
-				addGroup(g, "texture");
-			}
-		}
-	}
-
-	// Set initial material
-	m_materials->selectMaterial(0,activeMaterial);
-
-	// Camera
-	const XMLElement& cam = xml.getRoot().find("camera");
-	if(cam.name()) {
-		vec3 cp, cd;
-		cp.x = cam.attribute("x", 0.0);
-		cp.y = cam.attribute("y", 50.0);
-		cp.z = cam.attribute("z", 0.0);
-		cd.x = cam.attribute("dx", 1.0);
-		cd.y = cam.attribute("dy", -0.5);
-		cd.z = cam.attribute("dz", 1.0);
-		m_camera->lookat( cp, cp+cd*100 );
-	}
-
-
-	// Minimap
-	m_minimap->setWorld(m_heightMap, m_terrainSize, m_terrainOffset);
-	m_minimap->setRange(100);
-	m_minimap->build();
-
-	#define ENABLE_BUTTON(name) { Button* b = m_gui->getWidget<Button>(name); if(b) b->setEnabled(true), b->setIconColour(0xffffff); }
-	ENABLE_BUTTON( "savemap" );
-	ENABLE_BUTTON( "minimap" );
-	ENABLE_BUTTON( "materialbutton" )
-	ENABLE_BUTTON( "texturebutton" )
-}*/
-
-
 bool saveHeightMapData(int size, float* data, SaveFormat format, const Rangef& range, const char* file) {
 	uint count = size*size;
 	if(format == SaveFormat::RAW) {
@@ -1264,6 +1030,7 @@ bool loadHeightMapData(int size, float* data, const Rangef& range, const char* f
 }
 
 // ----------------------------------------------------------------------------------- //
+
 void WorldEditor::saveWorld(const char* file) {
 	if(!file && !m_file) return;
 	if(m_file != file) m_file = file;
@@ -1354,6 +1121,8 @@ void WorldEditor::saveWorld(const char* file) {
 	for(int i=0; i<m_materials->getTextureCount(); ++i) {
 		m.add( m_materials->serialiseTexture(i) );
 	}
+	// Foliage
+	if(m_foliage) xml.getRoot().add( m_foliage->save() );
 
 
 	// Save editor camera position (temp)
@@ -1469,6 +1238,11 @@ void WorldEditor::loadWorld(const char* file) {
 			else printf("Load error: Map %s not found\n", name);
 		}
 	}
+	
+	// load foliage
+	if(m_foliage) m_foliage->load( xml.getRoot().find("foliage") );
+
+
 	m_minimap->build();
 }
 

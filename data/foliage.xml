@@ -44,7 +44,6 @@
 		<widget anchor="tlrb" class="Icon" iconlist="icons" rect="0 0 32 32" name="_icon"/>
 	</template>
 	<template class="Combobox" rect="0 0 100 20" name="dropbutton">
-		<widget anchor="trlb" class="Label" rect="0 0 100 20" name="text" caption="Add" align="3"/>
 		<widget anchor="blr" class="Listbox" rect="0 20 100 100" name="_list">
 			<widget rect="2 0 80 20" name="_text" skin="clear"/>
 		</widget>
@@ -61,6 +60,7 @@
 			<item>Instanced</item>
 			<item>Grass</item>
 		</widget>
+		<widget anchor="rb" template="button" name="clonefoliage" caption="Duplicate" rect="20 312 75 20"/>
 	</widget>
 	<widget visible="0" layout="VerticalLayout" template="dialog" name="foliagelayer" caption="Foliage Layer" rect="576 359 332 381">
 		<widget class="Widget" template="frame" rect="0 0 322 32" skin="none">
@@ -77,9 +77,9 @@
 		</widget>
 		<widget anchor="lr" class="Widget" template="frame" name="grass" skin="none" rect="0 88 322 52">
 			<widget autosize="1" template="label" caption="Size" rect="4 24 30 19"/>
-			<widget class="Label" rect="4 0 38 19" caption="Mesh" skin="panel"/>
+			<widget class="Label" rect="4 0 38 19" caption="Sprite" skin="panel"/>
 			<widget anchor="lr" template="droplist" name="sprite" skin="default" rect="96 0 199 20"/>
-			<widget anchor="r" template="button" name="browsemesh" caption="..." rect="295 0 22 20"/>
+			<widget anchor="r" template="button" name="browsesprite" caption="..." rect="295 0 22 20"/>
 		</widget>
 		<widget anchor="lr" class="Widget" template="frame" name="common" skin="none" rect="0 140 322 216">
 			<widget autosize="1" template="label" caption="Range" rect="4 24 45 19"/>

@@ -64,7 +64,9 @@ void FoliageLayer::setSlopeRange(float min, float max)  { m_slopeRange.set(min, 
 void FoliageLayer::setScaleRange(float min, float max)  { m_scaleRange.set(min, max); }
 void FoliageLayer::setMaterial(Material* m) {
 	m_material = m;
-	for(auto& c: m_chunks) c.second->mesh->setMaterial(m);
+	for(auto& c: m_chunks) {
+		if(c.second->mesh) c.second->mesh->setMaterial(m);
+	}
 }
 void FoliageLayer::setMapBounds(const BoundingBox2D& b) { m_mapBounds = b; }
 void FoliageLayer::setDensityMap(FoliageMap* map) {

@@ -5,8 +5,9 @@
 #include "gui/lists.h"
 #include "foliage/foliage.h"
 
-namespace base { class XMLElement; class Texture; }
+namespace base { class XMLElement; class Texture; namespace bmodel { class Mesh; } }
 class FileSystem;
+class FileDialog;
 class MapGrid;
 
 enum class FoliageType { Instanced, Grass };
@@ -23,6 +24,17 @@ class Foliage : public FoliageSystem {
 	MapGrid* m_terrain;
 };
 
+struct FoliageSprite {
+	gui::String file;
+	scene::Material* material;
+};
+struct FoliageMesh {
+	gui::String file;
+	gui::String diffuseMap;
+	gui::String normalMap;
+	base::bmodel::Mesh* mesh;
+	scene::Material* material;
+};
 
 
 class FoliageEditor {
@@ -32,34 +44,45 @@ class FoliageEditor {
 	void setupGui(gui::Root*);
 
 	void load(const base::XMLElement&);
-	base::XMLElement serialise() const;
+	base::XMLElement save() const;
 
 	void showFoliage(bool);
 	void updateFoliage(const vec3& cam);
-	scene::Material* getMaterial();
+	scene::Material* createMaterial(FoliageType type, const char* diffuse);
+
+	class FoliageLayerEditor* addLayer(FoliageType type);
+	
 	
 	protected:
 	void layerSelected(gui::Listbox*, int);
 	void layerRenamed(class FoliageLayerEditor*);
 	void addLayer(gui::Combobox*, int);
 	void removeLayer(gui::Button*);
+	void duplicateLayer(gui::Button*);
 
 
 	protected:
+	friend class FoliageLayerEditor;
 	Foliage*      m_foliage;
 	FileSystem*   m_fileSystem;
 	MapGrid*      m_terrain;
 	scene::Scene* m_scene;
+	FileDialog*   m_fileDialog;
 
 	gui::Window*  m_window;
 	gui::Listbox* m_layerList;
 	gui::Button*  m_removeButton;
+	gui::Button*  m_cloneButton;
+
+	gui::ItemList* m_spriteList;
+	gui::ItemList* m_meshList;
 };
 
 class FoliageLayerEditor {
 	public:
-	FoliageLayerEditor(gui::Widget*, FoliageLayer*, FoliageType type, FileSystem*);
+	FoliageLayerEditor(FoliageEditor*, gui::Widget*, FoliageLayer*, FoliageType type);
 	const char* getName() const { return m_name; }
+	FoliageType getType() const { return m_type; }
 	FoliageLayer* getData() { return m_layer; }
 	gui::Widget* getPanel() { return m_panel; }
 
@@ -84,11 +107,12 @@ class FoliageLayerEditor {
 	void setMaxScale(gui::Scrollbar*, int);
 
 	void loadMesh(gui::Button*);
+	void loadMeshFile(const char*);
 	void setMesh(gui::Combobox*, int);
 	void setAlignment(gui::Combobox*, int);
 
 	void loadSprite(gui::Button*);
-	void setSpriteSize(gui::Scrollbar*, int);
+	void loadSpriteFile(const char*);
 	void setSprite(gui::Combobox*, int);
 	void setScaleMap(gui::Combobox*, int);
 
@@ -101,14 +125,14 @@ class FoliageLayerEditor {
 	Range m_height;
 	Range m_slope;
 	Range m_scale;
+	float m_spriteSize;
 	gui::String m_file;
 
 	protected:
-	FoliageType m_type;
+	FoliageEditor* m_editor;
 	FoliageLayer* m_layer;
-	FileSystem* m_fileSystem;
+	FoliageType m_type;
 	gui::String m_name;
-	float m_spriteSize;
 	gui::Widget* m_panel;
 };
 

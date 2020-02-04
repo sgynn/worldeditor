@@ -1,8 +1,13 @@
 #include "foliageeditor.h"
+#include "filesystem.h"
 #include "heightmap.h"
 #include "scene/material.h"
 #include "scene/shader.h"
 #include "scene/autovariables.h"
+#include "widgets/filedialog.h"
+#include <base/xml.h>
+#include <base/png.h>
+#include <base/texture.h>
 
 using namespace gui;
 
@@ -63,7 +68,7 @@ static const char* shaderSourceInstVS =
 "	vec3 y = vec3( 2*(q.x*q.y - q.w*q.z), 1-2*(q.x*q.x + q.z*q.z), 2*(q.y*q.z + q.w*q.x) );\n"
 "	vec3 z = cross(x, y);\n"
 "	return mat3(x, y, z);\n}"
-"void main() { vec3 pos=quatToMat(rot)*vectex.xyz+loc.xyz; gl_Position=transform*vec4(pos,1); texcoord=texCoord; worldNormal=mat3(modelMatrix)*normal; worldPos=(modelMatrix * vec4(pos,1)).xyz; }\n";
+"void main() { vec3 pos=quatToMat(rot)*vertex.xyz+loc.xyz; gl_Position=transform*vec4(pos,1); texcoord=texCoord; worldNormal=mat3(modelMatrix)*normal; worldPos=(modelMatrix * vec4(pos,1)).xyz; }\n";
 static const char* shaderSourceFS =
 "#version 150\n"
 "in vec2 texcoord;\nin vec3 worldNormal;\nin vec3 worldPos;\nout vec4 fragment;\n"
@@ -75,29 +80,46 @@ static const char* shaderSourceFS =
 "fragment = vec4(diff.rgb * max(s,l), 1.0); }";
 
 
-scene::Material* FoliageEditor::getMaterial() {
-	static scene::Material* material = 0;
-	if(material) return material;
+scene::Material* FoliageEditor::createMaterial(FoliageType type, const char* diffuse) {
+	static scene::Shader* shaders[2] = {0,0};
+	if(!shaders[0]) {
+		scene::ShaderPart* instancedVS = new scene::ShaderPart(scene::VERTEX_SHADER, shaderSourceInstVS);
+		scene::ShaderPart* grassVS     = new scene::ShaderPart(scene::VERTEX_SHADER, shaderSourceVS);
+		scene::ShaderPart* sharedFS    = new scene::ShaderPart(scene::FRAGMENT_SHADER, shaderSourceFS);
 
-	scene::Shader* shader = new scene::Shader();
-	shader->attach( new scene::ShaderPart(scene::VERTEX_SHADER, shaderSourceVS) );
-	shader->attach( new scene::ShaderPart(scene::FRAGMENT_SHADER, shaderSourceFS) );
-	shader->bindAttributeLocation("vertex",  0);
-	shader->bindAttributeLocation("normal",  1);
-	shader->bindAttributeLocation("texCoord",2);
+		shaders[0] = new scene::Shader();
+		shaders[1] = new scene::Shader();
+		shaders[0]->attach( instancedVS );
+		shaders[1]->attach( grassVS );
+		for(scene::Shader* shader: shaders) {
+			shader->attach( sharedFS );
+			shader->bindAttributeLocation("vertex",  0);
+			shader->bindAttributeLocation("normal",  1);
+			shader->bindAttributeLocation("texCoord",3);
+		}
+	}
 
-
-	material = new scene::Material;
+	scene::Material* material = new scene::Material;
 	scene::Pass* pass = material->addPass("default");
-	pass->setShader(shader);
+	pass->state.cullMode = scene::CULL_NONE;
+	pass->setShader( shaders[(int)type] );
 	pass->getParameters().set("lightDirection", vec3(1,1,1));
 	pass->getParameters().setAuto("transform", scene::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
 	pass->getParameters().setAuto("modelMatrix", scene::AUTO_MODEL_MATRIX);
+	
+	if(diffuse) {
+		base::PNG png = base::PNG::load(diffuse);
+		if(png.data) {
+			base::Texture tex = base::Texture::create(png.width, png.height, png.bpp/8, png.data);
+			pass->setTexture("diffuse", new base::Texture(tex));
+		}
+	}
+
 	pass->compile();
 	char buffer[2048]; buffer[0] = 0;
-	shader->getLog(buffer, sizeof(buffer));
+	pass->getShader()->getLog(buffer, sizeof(buffer));
 	printf(buffer);
-	if(!shader->isCompiled()) printf("Failed\n");
+	if(!pass->getShader()->isCompiled()) printf("Failed\n");
 	return material;
 }
 
@@ -108,17 +130,25 @@ FoliageEditor:: FoliageEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, 
 }
 FoliageEditor::~FoliageEditor() {
 	delete m_foliage;
+	delete m_meshList;
+	delete m_spriteList;
 }
 
 void FoliageEditor::setupGui(gui::Root* gui) {
 	m_window = gui->getWidget<gui::Window>("foliage");
 	m_layerList = gui->getWidget<Listbox>("foliagelist");
+	m_fileDialog = gui->getWidget<FileDialog>("filedialog");
 
 	m_layerList->eventSelected.bind(this, &FoliageEditor::layerSelected);
 
 	gui->getWidget<Combobox>("addfoliage")->eventSelected.bind(this, &FoliageEditor::addLayer);
 	m_removeButton = gui->getWidget<Button>("removefoliage");
 	m_removeButton->eventPressed.bind(this, &FoliageEditor::removeLayer);
+	m_cloneButton = gui->getWidget<Button>("clonefoliage");
+	m_cloneButton->eventPressed.bind(this, &FoliageEditor::duplicateLayer);
+
+	m_meshList = new ItemList;
+	m_spriteList = new ItemList;
 }
 
 void FoliageEditor::updateFoliage(const vec3& cam) {
@@ -126,30 +156,31 @@ void FoliageEditor::updateFoliage(const vec3& cam) {
 }
 
 void FoliageEditor::addLayer(gui::Combobox* c, int i) {
+	FoliageLayerEditor* editor = addLayer((FoliageType)i);
+	editor->getPanel()->setVisible(true);
+}
+
+FoliageLayerEditor* FoliageEditor::addLayer(FoliageType type) {
 	if(!m_foliage) {
 		m_foliage = new Foliage(m_terrain, 3);
 		m_scene->add(m_foliage);
 	}
 
 	FoliageLayer* layer;
-	FoliageType type = (FoliageType)i;
 	switch(type) {
 	case FoliageType::Instanced: layer = new FoliageInstanceLayer(20, 50); break;
 	case FoliageType::Grass:     layer = new GrassLayer(5, 20); break;
 	}
 	
-	// Material
-	layer->setMaterial( getMaterial() );
-	
 	Widget* widget = m_window->getRoot()->getWidget<Widget>("foliagelayer");
 	widget = widget->clone();
 	m_window->getParent()->add(widget);
-	widget->setVisible(true);
 
-	FoliageLayerEditor* editor = new FoliageLayerEditor(widget, layer, type, m_fileSystem);
+	FoliageLayerEditor* editor = new FoliageLayerEditor(this, widget, layer, type);
 	m_layerList->addItem(editor->getName(), editor, 16);
 	m_foliage->addLayer(layer);
 	editor->eventRenamed.bind(this, &FoliageEditor::layerRenamed);
+	return editor;
 }
 
 void FoliageEditor::removeLayer(Button*) {
@@ -163,9 +194,19 @@ void FoliageEditor::removeLayer(Button*) {
 		delete editor;
 	}
 }
+void FoliageEditor::duplicateLayer(Button*) {
+	int index = m_layerList->getSelectedIndex();
+	if(index>=0) {
+		FoliageLayerEditor* from = m_layerList->getItemData(index).getValue<FoliageLayerEditor*>(0);
+		FoliageLayerEditor* to =  addLayer(from->getType());
+		to->load(from->save()); // meh ?
+		to->getPanel()->setVisible(true);
+	}
+}
 
 void FoliageEditor::layerSelected(Listbox* list, int i) {
 	m_removeButton->setEnabled(i>=0);
+	m_cloneButton->setEnabled(i>=0);
 	if(i>=0) {
 		FoliageLayerEditor* editor = 0;
 		list->getItemData(i).read(editor);
@@ -188,7 +229,7 @@ void FoliageEditor::layerRenamed(FoliageLayerEditor* e) {
 // ======================================================================== //
 
 #define CONNECT(Type, name, event, callback) { Widget* t=w->getNamedWidget(name); if(t&&t->cast<Type>()) t->cast<Type>()->event.bind(this, &FoliageLayerEditor::callback); else printf("Missing widget: %s\n", name); }
-FoliageLayerEditor::FoliageLayerEditor(Widget* w, FoliageLayer* layer, FoliageType type, FileSystem* fs) : m_layer(layer), m_fileSystem(fs), m_panel(w) {
+FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, FoliageLayer* layer, FoliageType type) : m_editor(editor), m_layer(layer), m_type(type), m_panel(w) {
 	CONNECT(Textbox, "name", eventSubmit, renameLayer);
 
 	CONNECT(Combobox, "densitymap", eventSelected, setDensityMap);
@@ -206,28 +247,30 @@ FoliageLayerEditor::FoliageLayerEditor(Widget* w, FoliageLayer* layer, FoliageTy
 		CONNECT(Button,    "browsemesh", eventPressed, loadMesh);
 		CONNECT(Combobox,  "alignment",  eventSelected, setAlignment);
 		w->getNamedWidget("grass")->setVisible(false);
+		w->getNamedWidget("mesh")->cast<Combobox>()->shareList(editor->m_meshList);
 		m_name = "New Instanced Layer";
 	}
 
 	if(type==FoliageType::Grass) {
-		CONNECT(Scrollbar, "spritesize", eventChanged, setSpriteSize);
 		CONNECT(Combobox,  "sprite",     eventSelected, setSprite);
 		CONNECT(Button,    "browsesprite", eventPressed, loadSprite);
 		w->getNamedWidget("instanced")->setVisible(false);
+		w->getNamedWidget("sprite")->cast<Combobox>()->shareList(editor->m_spriteList);
 		m_name = "New Grass Layer";
 	}
 
+	// Deafaults
 	m_range = 100;
 	m_density = 1;
 	m_scale.set(1,1);
 	m_slope.set(0,1);
 	m_height.set(0,1000);
-	w->getNamedWidget("name")->cast<Textbox>()->setText(m_name);
 	updateSliders();
 }
 
 #define SET_SLIDER(name, value, max) { Scrollbar* t=m_panel->getNamedWidget(name)->cast<Scrollbar>(); if(t) t->setValue(value*1000/max); }
 void FoliageLayerEditor::updateSliders() {
+	m_panel->getNamedWidget("name")->cast<Textbox>()->setText(m_name);
 	SET_SLIDER("range", m_range, 1000);
 	SET_SLIDER("density", m_density, 10);
 	SET_SLIDER("minheight", m_height.min, 500);
@@ -236,6 +279,13 @@ void FoliageLayerEditor::updateSliders() {
 	SET_SLIDER("maxslope", m_slope.max, 1);
 	SET_SLIDER("minscale", m_scale.min, 10);
 	SET_SLIDER("maxscale", m_scale.max, 10);
+}
+
+inline int getListIndex(ItemList* list, const char* name) {
+	for(uint i=0; i<list->getItemCount(); ++i) {
+		if(strcmp(list->getItem(i), name)==0) return i;
+	}
+	return -1;
 }
 
 void FoliageLayerEditor::renameLayer(gui::Textbox* t) {
@@ -259,9 +309,31 @@ void FoliageLayerEditor::loadMesh(gui::Button*) {}
 void FoliageLayerEditor::setMesh(gui::Combobox*, int) {}
 void FoliageLayerEditor::setAlignment(gui::Combobox*, int i) {}
 
-void FoliageLayerEditor::loadSprite(gui::Button*) {}
-void FoliageLayerEditor::setSpriteSize(gui::Scrollbar*, int) {}
-void FoliageLayerEditor::setSprite(gui::Combobox*, int) {}
+void FoliageLayerEditor::loadSprite(gui::Button*) {
+	m_editor->m_fileDialog->eventConfirm.bind(this, &FoliageLayerEditor::loadSpriteFile);
+	m_editor->m_fileDialog->setFilter("*.png");
+	m_editor->m_fileDialog->setFileName("");
+	m_editor->m_fileDialog->showOpen();
+}
+void FoliageLayerEditor::loadSpriteFile(const char* file) {
+	m_file = file;
+	const char* name = strrchr(file, '/') + 1;
+	Combobox* list = m_panel->getNamedWidget("sprite")->cast<Combobox>();
+	int index = getListIndex(m_editor->m_spriteList, name);
+	if(index<0) {
+		FoliageSprite sprite { file, m_editor->createMaterial(m_type, file) };
+		list->addItem(name, sprite);
+		list->setText(name);
+		index = list->getItemCount()-1;
+	}
+	list->selectItem(index);
+	setSprite(list, index);
+}
+void FoliageLayerEditor::setSprite(gui::Combobox* list, int index) {
+	FoliageSprite* sprite = list->getItemData(index).cast<FoliageSprite>();
+	m_layer->setMaterial(sprite->material);
+	refresh();
+}
 void FoliageLayerEditor::setScaleMap(gui::Combobox*, int) {}
 
 
@@ -278,6 +350,78 @@ void FoliageLayerEditor::refresh() {
 	}
 	m_layer->regenerate();
 }
+
+// =============================================== //
+
+using base::XMLElement;
+inline void saveRange(XMLElement& e, const char* key, const ::Range& range) {
+	if(range.max<= range.min) return;
+	XMLElement& r = e.add(key);
+	r.setAttribute("min", range.min);
+	r.setAttribute("max", range.max);
+}
+inline void loadRange(const XMLElement& e, ::Range& range) {
+	range.min = e.attribute("min", range.min);
+	range.max = e.attribute("max", range.max);
+}
+
+XMLElement FoliageEditor::save() const {
+	XMLElement e("foliage");
+	for(uint i=0; i<m_layerList->getItemCount(); ++i) {
+		const FoliageLayerEditor* layer = m_layerList->getItemData(i).getValue<FoliageLayerEditor*>(0);
+		e.add(layer->save());
+	}
+	return e;
+}
+XMLElement FoliageLayerEditor::save() const {
+	XMLElement e("layer");
+	e.setAttribute("type", (int)m_type);
+	e.setAttribute("name", m_name);
+	e.setAttribute("range", m_range);
+	e.setAttribute("density", m_density);
+	saveRange(e, "height", m_height);
+	saveRange(e, "slope", m_slope);
+	saveRange(e, "scale", m_scale);
+
+	if(m_type==FoliageType::Grass) {
+		Combobox* list = m_panel->getNamedWidget("sprite")->cast<Combobox>();
+		FoliageSprite* sprite = list->getSelectedData().cast<FoliageSprite>();
+		if(sprite) {
+			XMLElement& f = e.add("sprite");
+			f.setAttribute("file", m_editor->m_fileSystem->getRelative(sprite->file));
+		}
+	}
+	return e;
+}
+
+void FoliageEditor::load(const XMLElement& e) {
+	for(const XMLElement& layerData: e) {
+		int type = layerData.attribute("type", 0);
+		FoliageLayerEditor* editor = addLayer((FoliageType)type);
+		editor->load(layerData);
+	}
+}
+
+void FoliageLayerEditor::load(const XMLElement& e) {
+	m_name = e.attribute("name", m_name);
+	m_range = e.attribute("range", m_range);
+	m_density = e.attribute("density", m_density);
+	loadRange(e.find("height"), m_height);
+	loadRange(e.find("slope"), m_slope);
+	loadRange(e.find("scale"), m_scale);
+
+	updateSliders();
+	
+	if(m_type==FoliageType::Grass) {
+		const XMLElement& f = e.find("sprite");
+		const char* file = f.attribute("file");
+		if(file[0]) loadSpriteFile( m_editor->m_fileSystem->getFile(file) );
+	}
+
+	refresh();
+}
+
+
 
 /*
  * How to handle multiple tiles?
