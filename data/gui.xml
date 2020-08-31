@@ -380,7 +380,7 @@
 	</widget>
 
 	<!-- Context menu -->
-	<widget rect="200 200 100 140" visible="0" skin="default" layout="VerticalLayout" name="contextmenu">
+	<widget class="Popup" rect="200 200 100 140" visible="0" skin="default" layout="VerticalLayout" name="contextmenu">
 		<widget name="newtile"  caption="New Tile" class="Button" skin="button" rect="0 0 20 20"/>
 		<widget name="loadtile" caption="Load Tile" class="Button" skin="button" rect="0 0 20 20"/>
 		<widget name="settile"  caption="Assign Tile" class="Button" skin="button" rect="0 0 20 20"/>

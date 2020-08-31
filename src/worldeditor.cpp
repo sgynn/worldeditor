@@ -170,7 +170,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_foliage(0), m_e
 	DISABLE_BUTTON( "foliagebutton" );
 
 	// context menu
-	m_contextMenu = m_gui->getWidget<Widget>("contextmenu");
+	m_contextMenu = m_gui->getWidget<Popup>("contextmenu");
 	BIND(Button, "newtile", eventPressed, createNewTile);
 	BIND(Button, "settile", eventPressed, showTileList);
 	BIND(Button, "loadtile", eventPressed, loadTile);
@@ -319,7 +319,6 @@ void WorldEditor::update() {
 
 	// Update editor
 	if(m_editor) {
-		int cmb = mb;
 		if(guiHasMouse) mb = mw = 0;
 		vec3 cp = m_camera->getPosition();
 		vec3 cd = m_camera->unproject( vec3(mouse.x, Game::height()-mouse.y, 1), Game::getSize() ) - cp;
@@ -327,29 +326,22 @@ void WorldEditor::update() {
 		if(mw) updateBrushSliders();
 
 		// Right click menu
-		static ubyte menuState = 0;
-		static Point lastMouse = mouse;
-		static vec3 lastCam = m_camera->getPosition();
-		if(mb&4) menuState |= 1;
-		if(menuState && (mouse!=lastMouse || lastCam!=m_camera->getPosition())) menuState |= 2;
-		if(menuState==1 && (~mb&4)) {
+		static int trigger = 0;
+		static Point lp = mouse;
+		if(mb==0 && trigger==4) {
 			float t;
 			if(!m_terrain->castRay(cp, cd, t)) t = -cp.y / cd.y;
 			vec3 p = cp + cd * t;
 			m_currentTile = m_terrain->getTile(p);
-			m_contextMenu->setPosition(mouse);
-			m_contextMenu->setVisible(true);
 			TerrainMap* map = m_terrain->getMap(m_currentTile);
 			for(int i=3; i<m_contextMenu->getWidgetCount(); ++i) m_contextMenu->getWidget(i)->setEnabled(map);
 			m_editor->setTool(0);
-			menuState = 4;
+			m_contextMenu->popup(m_gui, mouse);
 		}
-		if(!cmb) menuState &= 4;
-		if(!cmb && (menuState&4) && !m_contextMenu->isVisible()) m_editor->setTool(m_activeGroup->getTool()), menuState=0;
-		if(cmb && m_contextMenu->isVisible()) m_contextMenu->setVisible(false);
-		lastMouse = mouse;
-		lastCam = m_camera->getPosition();
-
+		if(mb==0) trigger = mb;
+		else if(mouse!=lp) trigger |= 0x80;
+		trigger = (trigger&0x80) | mb;
+		lp = mouse;
 	}
 
 	// update foliage
@@ -550,6 +542,7 @@ void WorldEditor::createNewTile(Button*) {
 	}
 	TerrainMap* map = createTile(name);
 	m_terrain->assign(m_currentTile, map);
+	m_contextMenu->hide();
 }
 void WorldEditor::showTileList(Button*) {
 	// open dialogue
@@ -561,6 +554,7 @@ void WorldEditor::showTileList(Button*) {
 	Listbox* list = w->getWidget(0)->cast<Listbox>();
 	list->clearItems();
 	for(TerrainMap* m: m_maps) list->addItem(m->name);
+	m_contextMenu->hide();
 }
 void WorldEditor::duplicateTile(::Button*) {
 	TerrainMap* src = m_terrain->getMap(m_currentTile);
@@ -574,15 +568,20 @@ void WorldEditor::duplicateTile(::Button*) {
 	delete [] data;
 	// ToDo: copy texture maps too
 	m_terrain->assign(m_currentTile, map);
+	m_contextMenu->hide();
 }
 void WorldEditor::lockTile(Button*) {
 	TerrainMap* map = m_terrain->getMap(m_currentTile);
 	if(map) map->locked = !map->locked;
+	m_contextMenu->hide();
 }
 void WorldEditor::loadTile(::Button*) {
+	printf("Load tile not implemented\n");
+	m_contextMenu->hide();
 }
 void WorldEditor::unloadTile(::Button*) {
 	m_terrain->assign(m_currentTile, 0);
+	m_contextMenu->hide();
 }
 
 void WorldEditor::assignTile(Listbox* list, int index) {
@@ -597,6 +596,7 @@ void WorldEditor::showRenameTile(Button*) {
 		w->getWidget(0)->cast<Textbox>()->setText(map->name);
 		w->setVisible(true);
 	}
+	m_contextMenu->hide();
 }
 void WorldEditor::renameTile(Button*) {
 	TerrainMap* map = m_terrain->getMap(m_currentTile);

@@ -19,7 +19,7 @@ class MaterialEditor;
 class FoliageEditor;
 class MiniMap;
 
-namespace gui { class Button; class Combobox; class Scrollbar; class Window; class Listbox; }
+namespace gui { class Button; class Combobox; class Scrollbar; class Window; class Listbox; class Popup; }
 namespace base { class INIFile; class XMLElement; }
 
 enum class SaveFormat { RAW, TIF16, PNG16 };
@@ -123,11 +123,11 @@ class WorldEditor : public base::SceneState {
 	gui::String    m_file;
 	std::vector<ToolGroup*> m_groups;		// Terrain tool groups
 	MaterialEditor* m_materials;			// Terrain material editor
-	FoliageEditor* m_foliage;				// Foliage editor
-	MiniMap* m_minimap;						// Minimap data
-	TerrainEditor* m_editor;				// Terrain editor
-	gui::Widget* m_contextMenu;				// Terrain tile context menu
-	ToolGroup* m_activeGroup;				// Active tool
+	FoliageEditor*  m_foliage;				// Foliage editor
+	MiniMap*        m_minimap;				// Minimap data
+	TerrainEditor*  m_editor;				// Terrain editor
+	gui::Popup*     m_contextMenu;			// Terrain tile context menu
+	ToolGroup*      m_activeGroup;			// Active tool
 	Point m_currentTile;					// Tile for context menu
 
 	// List of streams that need flushing on save ?
