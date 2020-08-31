@@ -8,7 +8,7 @@
 #include <base/input.h>
 #include <base/collision.h>
 
-#define assert(x) if(!(x)) asm("int $3"); // Raise SIGTRAP rather than SIGABRT
+#define assert(x) if(!(x)) asm("int $3\nnop"); // Raise SIGTRAP rather than SIGABRT
 
 using base::Camera;
 
@@ -26,7 +26,9 @@ Landscape::Landscape(float size, const vec3& pos): m_position(pos), m_size(size)
 	m_root        = 0; //new Patch(this);
 
 	m_createCallback = 0;
+	m_updateCallback = 0;
 	m_destroyCallback = 0;
+
 
 	m_selected = 0; // Debug
 }
@@ -45,9 +47,10 @@ void Landscape::setHeightFunction( HeightFunc func) {
 	}
 }
 
-void Landscape::setPatchCallbacks(PatchFunc create, PatchFunc destroy) {
+void Landscape::setPatchCallbacks(PatchFunc create, PatchFunc destroy, PatchFunc updated) {
 	m_createCallback = create;
 	m_destroyCallback = destroy;
+	m_updateCallback = updated;
 }
 
 void Landscape::setLimits(int min, int max, int count) {
@@ -61,8 +64,8 @@ void Landscape::setThreshold(float v) {
 }
 
 void Landscape::connect(Landscape* land, int side) {
-	m_root->setAdjacent( land->m_root, side );
-	// ToDo: Connect patches recursively
+	if(land) m_root->setAdjacent(land->m_root, side);
+	else m_root->clearAdjacent(side);
 }
 
 /** Functor for sorting split queue */
@@ -296,8 +299,26 @@ inline int Patch::getOppositeEdge(int side) const {
 void Patch::setAdjacent(Patch* p, int side) {
 	m_adjacent[side] = p;
 	int opp = getOppositeEdge(side);
+	assert(p && !p->m_adjacent[opp]); // Error - probably connecting wrong side
 	p->m_adjacent[opp] = this;
 	if(p->m_parent!=m_parent) p->flagChanged();
+	// Recurse to child patches on this side
+	if(m_split && p && p->m_split) {
+		getChild(side, 0)->setAdjacent(p->getChild(opp, 0), side);
+		getChild(side, 1)->setAdjacent(p->getChild(opp, 1), side);
+	}
+}
+
+void Patch::clearAdjacent(int side) {
+	if(m_adjacent[side]) {
+		Patch* p = m_adjacent[side];
+		m_adjacent[side] = 0;
+		p->m_adjacent[ getOppositeEdge(side) ] = 0;
+		if(m_split) {
+			getChild(side, 0)->clearAdjacent(side);
+			getChild(side, 1)->clearAdjacent(side);
+		}
+	}
 }
 
 
@@ -571,6 +592,7 @@ void Patch::updateEdges() {
 	if(m_changed&2) updateEdge(1);
 	if(m_changed&4) updateEdge(2);
 	if(m_changed&8) updateEdge(3);
+	if(m_changed && m_landscape->m_updateCallback) m_landscape->m_updateCallback(&m_geometry);
 	m_changed = 0;
 }
 

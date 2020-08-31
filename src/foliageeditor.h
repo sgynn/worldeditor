@@ -27,6 +27,7 @@ class Foliage : public FoliageSystem {
 struct FoliageSprite {
 	gui::String file;
 	scene::Material* material;
+	bool operator==(const FoliageSprite& other) const { return file==other.file; } // For gui::Any
 };
 struct FoliageMesh {
 	gui::String file;

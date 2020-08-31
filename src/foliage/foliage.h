@@ -47,6 +47,7 @@ class FoliageLayer : protected scene::SceneNode {
 	void setDensityMap(FoliageMap*);
 	void clear();
 	void regenerate();
+	void shift(const vec3& offset);
 
 	protected:
 	friend class FoliageSystem;
@@ -146,6 +147,8 @@ protected:
 	virtual void resolveNormal(const vec3& point, vec3& normal) const = 0;
 	/// Get a value from a texture map
 	virtual float getMapValue(const FoliageMap* map, const BoundingBox2D& bounds, const vec3& position) const;
+	/// Random seed for chunk
+	virtual unsigned getSeed(const Index&, float size) const;
 
 private:
 	void queueChunk(FoliageLayer*, const FoliageLayer::Index&, FoliageLayer::Chunk*);

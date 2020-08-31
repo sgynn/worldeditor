@@ -12,6 +12,19 @@
 namespace base { class Material; class Camera; }
 class Patch;
 
+/** Patch Indexing
+ *
+ *          Edge 2
+ *        _________
+ *        | 0 | 1 |
+ * Edge 0 |___|___| Edge 1
+ *        | 2 | 3 |
+ *        |___|___|
+ *          Edge 3
+ *
+ * */
+
+
 /** Geometry data of patch */
 struct PatchGeometry {
 	size_t       vertexCount;	// Number of vertices
@@ -40,10 +53,10 @@ class Landscape {
 	Landscape(float size, const vec3& position=vec3());
 	~Landscape();
 
-	/** Set lod limits */
+	/** Set lod limits. Deafult: 0-32 */
 	void setLimits(int minLod=0, int maxLod=0, int patchLimit=0x100000);
 
-	/** Set the detail error threshold */
+	/** Set the detail error threshold. Default: 8 */
 	void setThreshold(float value);
 
 	/** Allow multiple landscapes to be stiched together */
@@ -65,7 +78,7 @@ class Landscape {
 	void setHeightFunction(HeightFunc);
 
 	/** Set the material callbacks */
-	void setPatchCallbacks(PatchFunc created, PatchFunc destroyed);
+	void setPatchCallbacks(PatchFunc created, PatchFunc destroyed, PatchFunc updated);
 
 	/** Get all visible geometry for rendering */
 	const GList& getGeometry() const { return m_geometryList; }
@@ -95,6 +108,7 @@ class Landscape {
 
 	PatchFunc  m_createCallback;	// Callback when a patch is created
 	PatchFunc  m_destroyCallback;	// Callback when a patch is destroyed
+	PatchFunc  m_updateCallback;	// Callback when index array was updated
 
 
 	uint  m_min, m_max;	// Patch lod limits
@@ -136,6 +150,9 @@ class Patch {
 
 	/** Set adjacent patch for LOD blending */
 	void setAdjacent(Patch*, int side);
+
+	/** Clear adjacent patches. Used for disconnecting terrain tiles */
+	void clearAdjacent(int side);
 	
 	/** get the current lod height at a point */
 	float getHeight(float x, float z, vec3* normal) const;

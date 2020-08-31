@@ -33,7 +33,7 @@ void Streamer::streamOpened() {
 	s_streamer = this;
 	m_land = new Landscape(size, m_offset);
 	m_land->setLimits(0, p-3);
-	m_land->setPatchCallbacks( bind(Streamer::patchCreated), bind(Streamer::patchDestroyed));
+	m_land->setPatchCallbacks( bind(Streamer::patchCreated), bind(Streamer::patchDestroyed), 0);
 	m_land->setHeightFunction( bind(Streamer::heightFunc) );
 	m_drawable = new StreamerDrawable(m_land);
 	attach(m_drawable);

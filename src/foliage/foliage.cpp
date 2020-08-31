@@ -111,7 +111,8 @@ int FoliageLayer::generatePoints(const Index& index, int count, vec3* corners, c
 	bool testHeight = m_heightRange.isValid();
 	bool testSlope = m_slopeRange.isValid();
 
-	RNG rng(index.x * 54321 + index.y + 7126);
+	const vec3 offset(&getDerivedTransform()[12]); // Threading issue if we move the node when generating
+	RNG rng( m_parent->getSeed(index, m_chunkSize) );
 	vec3 t0, t1, pos;
 	GenPoint point;
 	float height;
@@ -123,11 +124,13 @@ int FoliageLayer::generatePoints(const Index& index, int count, vec3* corners, c
 		t0 = lerp(corners[0], corners[1], rx);
 		t1 = lerp(corners[2], corners[3], rx);
 		pos = lerp(t0, t1, ry);
+		pos += offset;
 
 		m_parent->resolvePosition(pos, point.position, height);
 		if(testHeight && !m_heightRange.contains(height)) continue;
 		m_parent->resolveNormal(pos, point.normal);
 		if(testSlope && !m_slopeRange.contains(1 - point.normal.dot(up))) continue;
+		point.position -= offset;
 
 		if(m_densityMap) {
 			float d = getMapValue(m_densityMap, point.position);
@@ -151,7 +154,8 @@ int FoliageLayer::generatePoints(const Index& index, PointList& points, vec3& up
 void FoliageLayer::update(const vec3& context) {
 	IndexList active;
 	for(auto& ci: m_chunks) ci.second->active = false;
-	m_parent->getActive(context, m_chunkSize, m_range, active);
+	vec3 localContext = getDerivedTransform().untransform(context);
+	m_parent->getActive(localContext, m_chunkSize, m_range, active);
 	// Activate any new chunks
 	for(Index& index: active) {
 		auto c = m_chunks.find(index);
@@ -194,6 +198,12 @@ bool FoliageLayer::deleteChunk(Chunk* chunk) {
 		return true;
 	}
 	return false;
+}
+
+void FoliageLayer::shift(const vec3& offset) {
+	setPosition(getPosition() + offset);
+	getDerivedTransformUpdated();
+	// ToDo: cancel generating chunks
 }
 
 // ===================================================================================================== //
@@ -442,5 +452,9 @@ void FoliageSystem::getCorners(const Index& ix, float cs, vec3* out, vec3& up) c
 float FoliageSystem::getMapValue(const FoliageMap* map, const BoundingBox2D& bounds, const vec3& pos) const {
 	vec2 p = (pos.xz() - bounds.min) / bounds.size();
 	return map->getValue(p.x, p.y);
+}
+
+unsigned FoliageSystem::getSeed(const Point& index, float size) const {
+	return index.x * 54321 + index.y + 7126;
 }
 
