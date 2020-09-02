@@ -57,6 +57,7 @@ FoliageLayer::~FoliageLayer() {
 	clear();
 }
 
+void FoliageLayer::setName(const char* name) { SceneNode::setName(name); }
 void FoliageLayer::setViewRange(float r) { m_range = r; }
 void FoliageLayer::setDensity(float d) { m_density = d; }
 void FoliageLayer::setHeightRange(float min, float max) { m_heightRange.set(min, max); }
@@ -239,13 +240,14 @@ DrawableMesh* FoliageInstanceLayer::generateGeometry(const Index& index) const {
 		memcpy(vx+0, point.position, sizeof(vec3));
 		memcpy(vx+4, a * q, sizeof(Quaternion));
 		vx[3] = rng.randf(m_scaleRange);
+		vx += 8;
 	}
 
 	// Create instance buffer
 	HardwareVertexBuffer* buffer = new HardwareVertexBuffer();
 	buffer->setData(data, points.size(), 32, true);
 	buffer->setAttribute(base::VA_CUSTOM, base::VA_FLOAT4, 0, "loc", 1);
-	buffer->setAttribute(base::VA_CUSTOM, base::VA_FLOAT4, 0, "rot", 1);
+	buffer->setAttribute(base::VA_CUSTOM, base::VA_FLOAT4, 16, "rot", 1);
 
 	DrawableMesh* d = new DrawableMesh(m_mesh, m_material);
 	d->setInstanceBuffer(buffer);

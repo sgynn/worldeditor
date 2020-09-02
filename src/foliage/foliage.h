@@ -48,6 +48,7 @@ class FoliageLayer : protected scene::SceneNode {
 	void clear();
 	void regenerate();
 	void shift(const vec3& offset);
+	void setName(const char* name);
 
 	protected:
 	friend class FoliageSystem;

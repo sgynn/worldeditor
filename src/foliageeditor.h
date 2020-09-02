@@ -35,6 +35,7 @@ struct FoliageMesh {
 	gui::String normalMap;
 	base::bmodel::Mesh* mesh;
 	scene::Material* material;
+	bool operator==(const FoliageMesh& other) const { return file==other.file; } // For gui::Any
 };
 
 
@@ -46,6 +47,7 @@ class FoliageEditor {
 
 	void load(const base::XMLElement&);
 	base::XMLElement save() const;
+	void clear();
 
 	void showFoliage(bool);
 	void updateFoliage(const vec3& cam);
@@ -60,6 +62,7 @@ class FoliageEditor {
 	void addLayer(gui::Combobox*, int);
 	void removeLayer(gui::Button*);
 	void duplicateLayer(gui::Button*);
+	void destroy(FoliageLayerEditor*);
 
 
 	protected:
@@ -123,6 +126,7 @@ class FoliageLayerEditor {
 	protected:
 	float m_range;
 	float m_density;
+	float m_densityMax;
 	Range m_height;
 	Range m_slope;
 	Range m_scale;

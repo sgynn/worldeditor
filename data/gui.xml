@@ -78,6 +78,7 @@
 		<icon name="texture"   rect="32 32 32 32"/>
 		<icon name="Foliage"   rect="64 32 32 32"/>
 		<icon name="Objects"   rect="96 32 32 32"/>
+		<icon name="Grass"     rect="224 32 32 32"/>
 		<icon name="material"  rect="128 64 32 32"/> 
 		<icon name="neweditor" rect="192 64 32 32"/> 
 		<icon name="map"       rect="160 64 32 32"/> 
