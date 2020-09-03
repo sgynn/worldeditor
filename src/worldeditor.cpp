@@ -35,6 +35,7 @@
 #include "scene/scene.h"
 #include "scene/shader.h"
 #include "scene/renderer.h"
+#include "scene/debuggeometry.h"
 #include "dynamicmaterial.h"
 #include "materialeditor.h"
 #include "minimap.h"
@@ -86,6 +87,9 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_foliage(0), m_e
 	m_scene = new scene::Scene;
 	m_renderer = new scene::Renderer;
 	m_fileSystem = new FileSystem;
+
+	scene::DebugGeometryManager::initialise();
+	m_scene->add(scene::DebugGeometryManager::getInstance()->getSceneNode());
 
 	// Load editor options
 	INIFile::Section options = ini["settings"];
@@ -368,6 +372,7 @@ void WorldEditor::update() {
 }
 
 void WorldEditor::drawScene() {
+	scene::DebugGeometryManager::getInstance()->update();
 	// Render scene
 	m_renderer->clear();
 	m_renderer->getState().setCamera(m_camera);

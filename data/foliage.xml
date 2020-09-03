@@ -75,6 +75,12 @@
 			<widget anchor="r" template="button" name="browsemesh" caption="..." rect="295 0 22 20"/>
 			<widget anchor="lr" template="droplist" name="mesh" skin="default" rect="96 0 199 20"/>
 		</widget>
+		<widget anchor="lr" class="Widget" template="frame" name="alignrange" skin="none" rect="0 32 322 56">
+			<widget class="Label" rect="4 0 77 19" caption="Min Angle" skin="panel"/>
+			<widget rect="96 0 221 16" anchor="lr" value="0" name="minalign" min="0" template="slider"/>
+			<widget class="Label" rect="4 24 80 19" caption="Max Angle" skin="panel"/>
+			<widget anchor="lr" value="1000" name="maxalign" template="slider" rect="96 24 221 16"/>
+		</widget>
 		<widget anchor="lr" class="Widget" template="frame" name="grass" skin="none" rect="0 88 322 52">
 			<widget autosize="1" template="label" caption="Size" rect="4 24 30 19"/>
 			<widget class="Label" rect="4 0 38 19" caption="Sprite" skin="panel"/>

@@ -209,7 +209,6 @@ void FoliageLayer::shift(const vec3& offset) {
 
 // ===================================================================================================== //
 
-
 FoliageInstanceLayer::FoliageInstanceLayer(float cs, float r) : FoliageLayer(cs,r), m_mesh(0), m_alignMode(VERTICAL) {}
 void FoliageInstanceLayer::setMesh(Mesh* mesh) { m_mesh = mesh; }
 void FoliageInstanceLayer::setAlignment(OrientaionMode m, const Rangef& r) { m_alignMode = m; m_alignRange = r; }
@@ -238,7 +237,7 @@ DrawableMesh* FoliageInstanceLayer::generateGeometry(const Index& index) const {
 		}
 
 		memcpy(vx+0, point.position, sizeof(vec3));
-		memcpy(vx+4, a * q, sizeof(Quaternion));
+		memcpy(vx+4, q*a, sizeof(Quaternion));
 		vx[3] = rng.randf(m_scaleRange);
 		vx += 8;
 	}

@@ -71,8 +71,8 @@ static const char* shaderSourceInstVS =
 "	vec3 z = cross(x, y);\n"
 "	return mat3(x, y, z);\n}\n"
 "void main() {"
-"	mat3 m = quatToMat(rot);\n"
-"	vec3 pos = m * vertex.xyz + loc.xyz;\n"
+"	mat3 m = quatToMat(rot.yzwx);\n"
+"	vec3 pos = m * vertex.xyz * loc.w + loc.xyz;\n"
 "	gl_Position = transform * vec4(pos,1);\n"
 "	texcoord = texCoord;\n"
 "	worldNormal = mat3(modelMatrix) * m * normal;\n"
@@ -253,7 +253,7 @@ void FoliageEditor::destroy(FoliageLayerEditor* editor) {
 
 // ======================================================================== //
 
-#define CONNECT(Type, name, event, callback) { Widget* t=w->getNamedWidget(name); if(t&&t->cast<Type>()) t->cast<Type>()->event.bind(this, &FoliageLayerEditor::callback); else printf("Missing widget: %s\n", name); }
+#define CONNECT(Type, name, event, callback) { Type* t=w->getWidget<Type>(name); if(t) t->event.bind(this, &FoliageLayerEditor::callback); else printf("Missing widget: %s\n", name); }
 FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, FoliageLayer* layer, FoliageType type) : m_editor(editor), m_layer(layer), m_type(type), m_panel(w) {
 	CONNECT(Textbox, "name", eventSubmit, renameLayer);
 
@@ -267,22 +267,34 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 	CONNECT(Scrollbar, "minscale",  eventChanged, setMinScale);
 	CONNECT(Scrollbar, "maxscale",  eventChanged, setMaxScale);
 
+	Combobox* align = 0;
+	w->getWidget<Widget>("alignrange")->setVisible(false);
+
 	switch(type) {
 	case FoliageType::Instanced:
 		CONNECT(Combobox,  "mesh",      eventSelected, setMesh);
 		CONNECT(Button,    "browsemesh", eventPressed, loadMesh);
 		CONNECT(Combobox,  "alignment",  eventSelected, setAlignment);
-		w->getNamedWidget("grass")->setVisible(false);
-		w->getNamedWidget("mesh")->cast<Combobox>()->shareList(editor->m_meshList);
+		CONNECT(Scrollbar, "minalign",  eventChanged, setMinAngle);
+		CONNECT(Scrollbar, "maxalign",  eventChanged, setMaxAngle);
+		w->getWidget<Widget>("grass")->setVisible(false);
+		w->getWidget<Combobox>("mesh")->shareList(editor->m_meshList);
 		m_name = "New Instanced Layer";
 		m_densityMax = 0.5;
+
+		align = w->getWidget<Combobox>("alignment");
+		align->addItem("Vertical");
+		align->addItem("Normal");
+		align->addItem("Absolute");
+		align->addItem("Relative");
+		align->selectItem(0);
 		break;
 
 	case FoliageType::Grass:
 		CONNECT(Combobox,  "sprite",     eventSelected, setSprite);
 		CONNECT(Button,    "browsesprite", eventPressed, loadSprite);
-		w->getNamedWidget("instanced")->setVisible(false);
-		w->getNamedWidget("sprite")->cast<Combobox>()->shareList(editor->m_spriteList);
+		w->getWidget<Widget>("instanced")->setVisible(false);
+		w->getWidget<Combobox>("sprite")->shareList(editor->m_spriteList);
 		m_name = "New Grass Layer";
 		m_densityMax = 8;
 		break;
@@ -293,7 +305,9 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 	m_density = m_densityMax * 0.5;
 	m_scale.set(1,1);
 	m_slope.set(0,1);
+	m_angle.set(0,0);
 	m_height.set(0,1000);
+	m_align = 0;
 	updateSliders();
 
 	// Icon
@@ -301,9 +315,9 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 	icon->setIcon(type==FoliageType::Instanced? "Foliage": "Grass");
 }
 
-#define SET_SLIDER(name, value, max) { Scrollbar* t=m_panel->getNamedWidget(name)->cast<Scrollbar>(); if(t) t->setValue(value*1000/(max)); }
+#define SET_SLIDER(name, value, max) { Scrollbar* t=m_panel->getWidget<Scrollbar>(name); if(t) t->setValue(value*1000/(max)); }
 void FoliageLayerEditor::updateSliders() {
-	m_panel->getNamedWidget("name")->cast<Textbox>()->setText(m_name);
+	m_panel->getWidget<Textbox>("name")->setText(m_name);
 	SET_SLIDER("range", m_range, 1000);
 	SET_SLIDER("density", m_density, m_densityMax);
 	SET_SLIDER("minheight", m_height.min, 500);
@@ -312,6 +326,8 @@ void FoliageLayerEditor::updateSliders() {
 	SET_SLIDER("maxslope", m_slope.max, 1);
 	SET_SLIDER("minscale", m_scale.min, 10);
 	SET_SLIDER("maxscale", m_scale.max, 10);
+	SET_SLIDER("minalign", m_angle.min, 1);
+	SET_SLIDER("maxalign", m_angle.max, 1);
 }
 
 inline int getListIndex(ItemList* list, const char* name) {
@@ -338,6 +354,9 @@ void FoliageLayerEditor::setMaxSlope(gui::Scrollbar*, int v)  { m_slope.max = v*
 void FoliageLayerEditor::setMinScale(gui::Scrollbar*, int v)  { m_scale.min = v*0.01; refresh(); }
 void FoliageLayerEditor::setMaxScale(gui::Scrollbar*, int v)  { m_scale.max = v*0.01; refresh(); }
 
+void FoliageLayerEditor::setMinAngle(gui::Scrollbar*, int v)  { m_angle.min = v*0.01; refresh(); }
+void FoliageLayerEditor::setMaxAngle(gui::Scrollbar*, int v)  { m_angle.max = v*0.01; refresh(); }
+
 // -------------------------------------------------------------------------------------- //
 void FoliageLayerEditor::loadMesh(gui::Button*) {
 	m_editor->m_fileDialog->eventConfirm.bind(this, &FoliageLayerEditor::loadMeshFile);
@@ -348,7 +367,7 @@ void FoliageLayerEditor::loadMesh(gui::Button*) {
 void FoliageLayerEditor::loadMeshFile(const char* file) {
 	m_file = file;
 	const char* name = strrchr(file, '/') + 1;
-	Combobox* list = m_panel->getNamedWidget("mesh")->cast<Combobox>();
+	Combobox* list = m_panel->getWidget<Combobox>("mesh");
 	int index = getListIndex(m_editor->m_meshList, name);
 	if(index<0) {
 		FoliageMesh mesh { file, 0,0,0,0 };
@@ -373,6 +392,9 @@ void FoliageLayerEditor::setMesh(gui::Combobox* list, int index) {
 	refresh();
 }
 void FoliageLayerEditor::setAlignment(gui::Combobox*, int i) {
+	m_align = i;
+	m_panel->getWidget<Widget>("alignrange")->setVisible(m_align>1);
+	refresh();
 }
 
 // -------------------------------------------------------------------------------------- //
@@ -385,7 +407,7 @@ void FoliageLayerEditor::loadSprite(gui::Button*) {
 void FoliageLayerEditor::loadSpriteFile(const char* file) {
 	m_file = file;
 	const char* name = strrchr(file, '/') + 1;
-	Combobox* list = m_panel->getNamedWidget("sprite")->cast<Combobox>();
+	Combobox* list = m_panel->getWidget<Combobox>("sprite");
 	int index = getListIndex(m_editor->m_spriteList, name);
 	if(index<0) {
 		FoliageSprite sprite { file, m_editor->createMaterial(m_type, file) };
@@ -414,6 +436,8 @@ void FoliageLayerEditor::refresh() {
 	}
 	else if(m_type == FoliageType::Instanced) {
 		// set mesh
+		FoliageInstanceLayer* inst = static_cast<FoliageInstanceLayer*>(m_layer);
+		inst->setAlignment((FoliageInstanceLayer::OrientaionMode)m_align, m_angle);
 	}
 	m_layer->regenerate();
 }
@@ -451,12 +475,21 @@ XMLElement FoliageLayerEditor::save() const {
 	saveRange(e, "scale", m_scale);
 
 	if(m_type==FoliageType::Grass) {
-		Combobox* list = m_panel->getNamedWidget("sprite")->cast<Combobox>();
+		Combobox* list = m_panel->getWidget<Combobox>("sprite");
 		FoliageSprite* sprite = list->getSelectedData().cast<FoliageSprite>();
 		if(sprite) {
 			XMLElement& f = e.add("sprite");
 			f.setAttribute("file", m_editor->m_fileSystem->getRelative(sprite->file));
 		}
+	}
+	if(m_type==FoliageType::Instanced) {
+		Combobox* list = m_panel->getWidget<Combobox>("mesh");
+		FoliageMesh* mesh = list->getSelectedData().cast<FoliageMesh>();
+		if(mesh) {
+			XMLElement& f = e.add("mesh");
+			f.setAttribute("file", m_editor->m_fileSystem->getRelative(mesh->file));
+		}
+		e.add("align").setAttribute("mode", m_align);
 	}
 	return e;
 }
@@ -484,6 +517,17 @@ void FoliageLayerEditor::load(const XMLElement& e) {
 		const XMLElement& f = e.find("sprite");
 		const char* file = f.attribute("file");
 		if(file[0]) loadSpriteFile( m_editor->m_fileSystem->getFile(file) );
+	}
+	if(m_type==FoliageType::Instanced) {
+		const XMLElement& m = e.find("mesh");
+		const char* file = m.attribute("file");
+		if(file[0]) loadMeshFile( m_editor->m_fileSystem->getFile(file) );
+
+		const XMLElement& align = e.find("align");
+		const char* mode = align.attribute("mode");
+		if(mode) m_align = atoi(mode);
+		m_panel->getWidget<Combobox>("alignment")->selectItem(m_align);
+		m_panel->getWidget<Widget>("alignrange")->setVisible(m_align>1);
 	}
 
 	refresh();

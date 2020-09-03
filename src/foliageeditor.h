@@ -110,6 +110,9 @@ class FoliageLayerEditor {
 	void setMinScale(gui::Scrollbar*, int);
 	void setMaxScale(gui::Scrollbar*, int);
 
+	void setMinAngle(gui::Scrollbar*, int);
+	void setMaxAngle(gui::Scrollbar*, int);
+
 	void loadMesh(gui::Button*);
 	void loadMeshFile(const char*);
 	void setMesh(gui::Combobox*, int);
@@ -130,7 +133,9 @@ class FoliageLayerEditor {
 	Range m_height;
 	Range m_slope;
 	Range m_scale;
+	Range m_angle;
 	float m_spriteSize;
+	int   m_align;
 	gui::String m_file;
 
 	protected:
