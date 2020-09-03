@@ -73,7 +73,9 @@ int main(int argc, char* argv[]) {
 
 	base::Game* game = base::Game::create(w,h,32,fs,aa);
 	scene::Shader::getSupportedVersion();
-	game->setInitialState( new WorldEditor(cfg) );
+	WorldEditor* editor = new WorldEditor(cfg);
+	if(argc>1) editor->loadWorld(argv[1]);
+	game->setInitialState(editor);
 	game->run();
 
 	delete game;
