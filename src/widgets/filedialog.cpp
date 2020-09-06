@@ -78,8 +78,8 @@ void FileDialog::setDirectory(const char* dir) {
 	}
 
 	// Button states
-	getNamedWidget("back")->setEnabled(true);
-	getNamedWidget("fwd")->setEnabled(false);
+	getWidget("back")->setEnabled(true);
+	getWidget("fwd")->setEnabled(false);
 
 	// Add directory to history
 	char buffer[1024];
@@ -231,7 +231,7 @@ void FileDialog::pressBack(Button* b) {
 		refreshFileList();
 		m_dir->setText( getDirectory() );
 		b->setEnabled( m_historyIndex>0 );
-		getNamedWidget("fwd")->setEnabled(true);
+		getWidget("fwd")->setEnabled(true);
 	}
 }
 void FileDialog::pressForward(Button* b) {
@@ -240,7 +240,7 @@ void FileDialog::pressForward(Button* b) {
 		refreshFileList();
 		m_dir->setText( getDirectory() );
 		b->setEnabled( m_historyIndex < m_history.size()-1 );
-		getNamedWidget("back")->setEnabled(true);
+		getWidget("back")->setEnabled(true);
 	}
 }
 void FileDialog::pressConfirm(Button*) {

@@ -166,6 +166,7 @@ class WorldEditor : public base::SceneState {
 		bool  collide;		// Camera collides with terrain
 		bool  tabletMode;	// Mouse is not grabbed
 		float fov;			// Camera field of view
+		bool  escapeQuits;	// Escape quits program when no windows open
 	} m_options;
 	
 };

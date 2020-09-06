@@ -19,8 +19,8 @@ void ColourPicker::initialise(const Root* root, const PropertyMap& p) {
 	m_v = getWidget<Spinbox>("v");
 
 	m_hex = getWidget<Textbox>("hex");
-	m_current = getNamedWidget("colour");
-	m_previous = getNamedWidget("previous");
+	m_current = getWidget("colour");
+	m_previous = getWidget("previous");
 
 	if(m_r) m_r->eventChanged.bind(this, &ColourPicker::changeRGB);
 	if(m_g) m_g->eventChanged.bind(this, &ColourPicker::changeRGB);

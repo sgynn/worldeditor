@@ -756,12 +756,12 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 
 	// Setup
 	const char* icons[] = { "layer_a", "layer_w", "layer_c", "layer_i", "layer_g" };
-	w->getWidget<gui::Icon>("typeicon")->setIcon( icons[layer->type] );
-	w->getWidget<gui::Textbox>("layername")->setText( layer->name );
-	w->getWidget<gui::Textbox>("layername")->eventSubmit.bind(this, &MaterialEditor::renameLayer);
-	w->getWidget<gui::Button>("visibility")->eventPressed.bind(this, &MaterialEditor::toggleLayer);
-	w->getWidget<gui::Button>("visibility")->setIcon(layer->visible? "eye_open": "eye_closed");
-	w->getWidget<gui::Button>("expand")->eventPressed.bind(this, &MaterialEditor::expandLayer);
+	w->getTemplateWidget<gui::Icon>("typeicon")->setIcon( icons[layer->type] );
+	w->getTemplateWidget<gui::Textbox>("layername")->setText( layer->name );
+	w->getTemplateWidget<gui::Textbox>("layername")->eventSubmit.bind(this, &MaterialEditor::renameLayer);
+	w->getTemplateWidget<gui::Button>("visibility")->eventPressed.bind(this, &MaterialEditor::toggleLayer);
+	w->getTemplateWidget<gui::Button>("visibility")->setIcon(layer->visible? "eye_open": "eye_closed");
+	w->getTemplateWidget<gui::Button>("expand")->eventPressed.bind(this, &MaterialEditor::expandLayer);
 	w->cast<OrderableItem>()->eventReordered.bind(this, &MaterialEditor::moveLayer);
 
 	// Blend mode
@@ -885,7 +885,7 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 	}
 
 	// Autosize box
-	expandLayer(w->getWidget<gui::Button>("expand"));
+	expandLayer(w->getTemplateWidget<gui::Button>("expand"));
 }
 
 // ------------------------------------------------------------------------ //

@@ -101,6 +101,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_foliage(0), m_e
 	m_options.tabletMode = options.get("tablet", true);
 	m_options.distance   = options.get("distance", 10000);
 	m_options.fov        = options.get("fov", 90.0f);
+	m_options.escapeQuits= options.get("escquit", false);
 
 	// Run an fps camera for now
 	if(m_options.fov<=0) m_options.fov = 90; // causes nothing to appear but no errors
@@ -285,7 +286,7 @@ void WorldEditor::update() {
 				break;
 			}
 		}
-		if(!closedSomething) changeState(0);	// exit
+		if(!closedSomething && m_options.escapeQuits) changeState(0);	// exit
 	}
 	
 
@@ -732,6 +733,7 @@ void WorldEditor::saveSettings(gui::Window*) {
 	settings.set("tablet",   m_options.tabletMode);
 	settings.set("collision",m_options.collide);
 	settings.set("fov",      m_options.fov);
+	settings.set("escquit",  m_options.escapeQuits);
 	ini.save(INIFILE);
 }
 
