@@ -220,7 +220,8 @@ void WorldEditor::clear() {
 	m_streams.clear();
 
 	// Clear additional editors
-	for(EditorPlugin* e: m_editors) e->clear();
+	for(EditorPlugin* e: m_editors) delete e;
+	m_editors.clear();
 
 	// Delete scene data
 	delete m_terrain;
@@ -1165,6 +1166,12 @@ void WorldEditor::saveWorld(const char* file) {
 	// Foliage
 	if(m_foliage) xml.getRoot().add( m_foliage->save() );
 
+	// Other editors
+	for(EditorPlugin* e: m_editors) {
+		XMLElement saved = e->save(0);
+		if(saved.name()) xml.getRoot().add(saved);
+	}
+
 
 	// Save editor camera position (temp)
 	XMLElement& cam = xml.getRoot().add("camera");
@@ -1282,6 +1289,9 @@ void WorldEditor::loadWorld(const char* file) {
 	
 	// load foliage
 	if(m_foliage) m_foliage->load( xml.getRoot().find("foliage") );
+
+	// Other editors
+	for(EditorPlugin* e: m_editors) e->load(xml.getRoot(), 0);
 
 
 	m_minimap->build();

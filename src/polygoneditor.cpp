@@ -37,6 +37,13 @@ PolygonEditor::PolygonEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scen
 	CONNECT(Spinbox, "flags", eventChanged, changeFlags);
 }
 
+PolygonEditor::~PolygonEditor() {
+	polygonSelected(m_list, -1);
+	m_properties->add(m_propertyTemplate);
+	m_toolButton->removeFromParent();
+	delete m_toolButton;
+}
+
 void PolygonEditor::setup(gui::Widget* toolPanel) {
 	toolPanel->add(m_toolButton, 3);
 }
@@ -145,25 +152,52 @@ void PolygonEditor::changeFlags(gui::Spinbox*, int value) {
 // ------------------------------------------------------------------------------ //
 
 void PolygonEditor::load(const XMLElement& e, const TerrainMap* context) {
+	const XMLElement& list = e.find("polygons");
+	for(const XMLElement& i: list) {
+		Polygon* p = new Polygon();
+		int size = i.attribute("size", 0);
+		for(auto a=i.attributesBegin(); a!=i.attributesEnd(); ++a) {
+			if(strcmp(a->value,"size")==0) continue;
+			p->properties.push_back( ItemProperty{a->key, (const char*)a->value});
+		}
+		// Parse values - assume well formed TODO
+		const char* s = i.child(0).text();
+		float x=0, y=0; int flags=0;
+		for(int j=0; j<size; ++j) {
+			char* e;
+			x = strtod(s, &e); s=e;
+			y = strtod(s, &e); s=e;
+			flags = strtol(s, &e, 10); s=e;
+
+
+			p->points.push_back(vec3(x, 0, y));
+			p->edges.push_back(flags);
+		}
+		for(vec3& v: p->points) p->edges.push_back(0), v.y = m_terrain->getHeight(v);
+		m_list->addItem(i.attribute("name"), p);
+		updateDrawable(p);
+	}
 }
 
 XMLElement PolygonEditor::save(const TerrainMap* context) const {
+	if(m_list->getItemCount()==0) return XMLElement();
 	XMLElement xml("polygons");
 	char buffer[2048];
 	for(uint i=0; i<m_list->getItemCount(); ++i) {
-		XMLElement e("polygon");
+		XMLElement& e = xml.add("polygon");
 		Polygon* poly = *m_list->getItemData(i).cast<Polygon*>();
 		for(const ItemProperty& p: poly->properties) e.setAttribute(p.key, p.value);
 		char* c = buffer;
-		e.setAttribute("size", (int)poly->points.size());
-		for(vec3& p: poly->points) c += sprintf(c, "%g %g ", p.x, p.z);
+		int size = poly->points.size();
+		e.setAttribute("size", size);
+		for(int j=0; j<size; ++j) c += sprintf(c, "%g %g %d ", poly->points[j].x, poly->points[j].z, poly->edges[j]);
 		if(c>buffer) {
 			c[-1]=0;
 			XMLElement& pts = e.add("points");
 			pts.setText(buffer);
 		}
 	}
-	return XMLElement();
+	return xml;
 }
 
 void PolygonEditor::clear() {
@@ -214,9 +248,14 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, int keyMask) {
 		// Selection changed
 		if(target && target !=m_selected) {
 			for(uint i=0; i<m_list->getItemCount(); ++i) {
-				if(m_list->getItemData(i) == target) polygonSelected(m_list, i);
+				if(m_list->getItemData(i) == target) {
+					m_list->selectItem(i);
+					polygonSelected(m_list, i);
+				}
 			}
 		}
+		// Flags
+		if(target) m_panel->getWidget<Spinbox>("flags")->setValue(m_selected->edges[m_vertex]);
 	}
 	// Move selected vertex
 	else if(m_dragging!=NONE && m_selected && mouse.button==1) {
@@ -234,6 +273,8 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, int keyMask) {
 			vec3 other = poly[next] - poly[m_vertex];
 			poly[m_vertex] = p;
 			poly[next] = p + other;
+			poly[m_vertex].y = m_terrain->getHeight(poly[m_vertex]);
+			poly[next].y = m_terrain->getHeight(poly[next]);
 		}
 		else if(m_dragging==ALL) {
 			vec3 start = poly[m_vertex];

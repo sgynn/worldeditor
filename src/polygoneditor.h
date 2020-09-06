@@ -31,6 +31,7 @@ struct Polygon {
 class PolygonEditor : public EditorPlugin {
 	public:
 	PolygonEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scene::SceneNode* scene);
+	~PolygonEditor();
 	void setup(gui::Widget* toolPanel) override;
 	void load(const base::XMLElement&, const TerrainMap* context) override;
 	base::XMLElement save(const TerrainMap* context) const override;
