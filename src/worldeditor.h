@@ -9,6 +9,7 @@
 #include "resource/library.h"
 #include "scene/scene.h"
 #include "terraineditor/editor.h"
+#include "editorplugin.h"
 #include "toolgroup.h"
 #include "filesystem.h"
 #include <list>
@@ -155,6 +156,9 @@ class WorldEditor : public base::SceneState {
 	struct ImageMapData* createMapData(EditableTexture* tex, const char* name, const char* file, MapUsage usage); 
 	int createUniqueMapName(const char* pattern, char* out) const;
 
+	// Additional editors
+	std::vector<EditorPlugin*> m_editors;
+	int m_activeEditor;
 
 	// Object list
 	base::HashMap<Object*> m_objects;

@@ -2,6 +2,7 @@
 #define _WORLD_EDITOR_MODULE_
 
 #include <base/math.h>
+#include "editorplugin.h"
 #include "tool.h"
 #include <vector>
 
@@ -40,7 +41,7 @@ class TerrainEditor {
 	void setBrush(const Brush&);
 	const Brush& getBrush() const;
 
-	void update(const vec3& rayStart, const vec3& rayDir, int btn, int wheel, int shift);
+	void update(const Mouse&, const Ray&, int);
 	void draw();
 
 	private:

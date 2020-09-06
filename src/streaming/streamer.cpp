@@ -6,6 +6,7 @@
 #include "base/camera.h"
 #include "texturestream.h"
 #include "dynamicmaterial.h"
+#include "model/hardwarebuffer.h"
 
 #include "scene/shader.h"
 #include <base/opengl.h>
@@ -140,6 +141,11 @@ void StreamerDrawable::draw( scene::RenderState& r) {
 	// View frustum culling
 	m_land->cull( r.getCamera() );
 
+	// ToDo: use PatchGeometry tag property to store vertex buffer objects
+	static base::HardwareIndexBuffer ti;
+	static base::HardwareVertexBuffer tv;
+	ti.bind();
+	tv.bind();
 
 	const int stride = 10 * sizeof(float);
 	r.setAttributeArrays(3); // VERTEX|NORMAL

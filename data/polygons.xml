@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<gui height="1024" width="1024">
+	<external file="data/gui.xml"/>
+	<!--Layout-->
+	<widget rect="228 288 298 512" template="dialogfixed" name="polygoneditor" caption="Polygon Editor" skin="default">
+		<widget template="frame" rect="7 2 272 304">
+			<widget anchor="lrtb" template="listbox" name="polygonlist" skin="default" rect="0 0 272 272"/>
+			<widget anchor="lb" icon="14" template="button" rect="12 276 59 24" skin="" iconlist="icons" name="add" caption="Add"/>
+			<widget anchor="lb" icon="14" template="button" rect="84 276 59 24" skin="" iconlist="icons" name="remove" caption="Remove"/>
+			<widget anchor="rb" template="spinbox" name="flags" skin="default" rect="214 276 60 20"/>
+			<widget anchor="rb" template="label" caption="Flags" rect="162 276 42 20"/>
+		</widget>
+		<widget fullsize="1" showscrollbars="1" layout="VerticalLayout" template="scrollpane" rect="0 312 284 164" skin="default" name="properties" autosize="0">
+			<widget layout="HorizontalLayout" template="frame" name="property" rect="0 0 268 24" spacing="4">
+				<widget rect="0 0 115 24" anchor="lr" text="name" name="key" template="editbox" skin="default"/>
+				<widget rect="119 0 115 24" anchor="lr" text="Polygon" name="value" template="editbox" skin="default"/>
+				<widget rect="238 0 30 24" template="button" name="remove" caption="X" skin=""/>
+			</widget>
+			<widget anchor="r" class="Button" rect="0 24 268 20" name="addproperty" caption="+" skin="button"/>
+		</widget>
+	</widget>
+</gui>

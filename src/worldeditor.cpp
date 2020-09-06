@@ -32,6 +32,8 @@
 #include "terraineditor/heighttools.h"
 #include "terraineditor/texturetools.h"
 
+#include "polygoneditor.h"
+
 #include "scene/scene.h"
 #include "scene/shader.h"
 #include "scene/renderer.h"
@@ -217,6 +219,9 @@ void WorldEditor::clear() {
 	m_file = 0;
 	m_streams.clear();
 
+	// Clear additional editors
+	for(EditorPlugin* e: m_editors) e->clear();
+
 	// Delete scene data
 	delete m_terrain;
 
@@ -255,24 +260,39 @@ void WorldEditor::resized() {
 }
 
 void WorldEditor::update() {
+	// Input structures
+	static Point lmouse;
+	static int lbutton = 0;
+	Mouse mouse;
+	mouse.wheel = Game::MouseWheel();
+	mouse.button = Game::Mouse(mouse.position.x, mouse.position.y);
+	mouse.pressed = mouse.button & ~lbutton;
+	mouse.released = lbutton & ~mouse.button;
+	mouse.moved = mouse.position - lmouse;
+	lmouse = mouse.position;
+	lbutton = mouse.button;
+
+	Ray mouseRay = m_camera->getMouseRay(mouse.position, Game::getSize());
+	
+
+	int shift = 0;
+	if(Game::Key(KEY_LSHIFT) || Game::Key(KEY_RSHIFT)) shift |= SHIFT_MASK;
+	if(Game::Key(KEY_LCTRL) || Game::Key(KEY_RCTRL)) shift |= CTRL_MASK;
+	if(Game::Key(KEY_ALT)) shift |= ALT_MASK;
+
+
 	// Update GUI
-	Point mouse;
-	int mb = Game::Mouse(mouse.x, mouse.y);
-	int mw = Game::MouseWheel();
-	mouse.y = Game::height() - mouse.y;
-	m_gui->mouseEvent(mouse, mb, mw);
+	Point guiMouse(mouse.position.x, Game::height() - mouse.position.y);
+	m_gui->mouseEvent(guiMouse, mouse.button, mouse.wheel);
 	if(Game::LastKey()) m_gui->keyEvent(Game::LastKey(), Game::LastChar());
 	m_gui->update();
 
+
 	// Resized window
 	if(Game::getSize() != m_gui->getRootWidget()->getSize()) resized();
-
-	bool guiHasMouse = m_gui->getRootWidget()->getWidget(mouse) != m_gui->getRootWidget();
+	bool guiHasMouse = m_gui->getWidgetUnderMouse() != m_gui->getRootWidget();
 	bool editingText = m_gui->getFocusedWidget()->cast<Textbox>();
 
-	int shift = 0;
-	if(Game::Key(KEY_LSHIFT) || Game::Key(KEY_RSHIFT)) shift |= 1;
-	if(Game::Key(KEY_LCTRL) || Game::Key(KEY_RCTRL)) shift |= 2;
 
 	// Escape button - close stuff
 	if(Game::Pressed(KEY_ESCAPE)) {
@@ -292,16 +312,16 @@ void WorldEditor::update() {
 
 	// Update camera
 	FPSCamera* cam = static_cast<base::FPSCamera*>(m_camera);
-	cam->setSpeed( editingText? 0: m_options.speed, 0.004 );
-	cam->setEnabled( mb&4 );
-	cam->grabMouse( (mb&4) && !m_options.tabletMode );
+	cam->setSpeed( editingText? 0: m_options.speed, 0.004 );	// FIXME: use flags in update()
+	cam->setEnabled( mouse.button&4 );
+	cam->grabMouse( (mouse.button&4) && !m_options.tabletMode );
 	cam->update();
 	cam->updateFrustum();
 
 	// Change speed with mouse wheel
-	if(mw && mb==4) {
-		m_options.speed *= 1 + mw * 0.1;
-		mw = 0;
+	if(mouse.wheel && mouse.button==4) {
+		m_options.speed *= 1 + mouse.wheel * 0.1;
+		mouse.wheel = 0;
 	}
 
 	// Map marker
@@ -324,34 +344,40 @@ void WorldEditor::update() {
 		}
 	}
 
+	// Pretend mouse buttons resleased when over gui
+	if(guiHasMouse) {
+		mouse.released |= mouse.button;
+		mouse.button = 0;
+		mouse.pressed = 0;
+		mouse.wheel = 0;
+		lbutton = 0;
+	}
+
 	// Update editor
 	if(m_editor) {
-		if(guiHasMouse) mb = mw = 0;
-		vec3 cp = m_camera->getPosition();
-		vec3 cd = m_camera->unproject( vec3(mouse.x, Game::height()-mouse.y, 1), Game::getSize() ) - cp;
-		m_editor->update(cp, cd, mb, mw, shift);
-		if(mw) updateBrushSliders();
+		m_editor->update(mouse, mouseRay, shift);
+		if(mouse.wheel) updateBrushSliders();
+
+		// update other editors
+		for(EditorPlugin* e: m_editors) e->update(mouse, mouseRay, shift);
 
 		// Right click menu
-		static int trigger = 0;
-		static Point lp = mouse;
-		if(mb==0 && trigger==4) {
+		static bool moved = false;
+		if(mouse.pressed == 4) moved = false;
+		else if(mouse.moved.x || mouse.moved.y) moved = true;
+		else if(mouse.released==4 && !moved) {
 			float t;
-			if(!m_terrain->castRay(cp, cd, t)) t = -cp.y / cd.y;
-			vec3 p = cp + cd * t;
+			if(!m_terrain->castRay(mouseRay.start, mouseRay.direction, t)) t = -mouseRay.start.y / mouseRay.direction.y;
+			vec3 p = mouseRay.point(t);
 			m_currentTile = m_terrain->getTile(p);
 			TerrainMap* map = m_terrain->getMap(m_currentTile);
 			for(int i=3; i<m_contextMenu->getWidgetCount(); ++i) m_contextMenu->getWidget(i)->setEnabled(map);
 			m_editor->setTool(0);
-			m_contextMenu->popup(m_gui, mouse);
+			m_contextMenu->popup(m_gui, guiMouse);
 		}
-		if(mb==0) trigger = mb;
-		else if(mouse!=lp) trigger |= 0x80;
-		trigger = (trigger&0x80) | mb;
-		lp = mouse;
 	}
 
-	// update foliage
+	// FIXME: move to m_editors
 	if(m_foliage) m_foliage->updateFoliage(m_camera->getPosition());
 
 
@@ -519,6 +545,12 @@ void WorldEditor::createNewTerrain(int size) {
 
 	// Setup foliage editor
 	m_foliage = new FoliageEditor(m_gui, m_fileSystem, m_terrain, m_scene);
+
+	// Editors?
+	gui::Widget* tools = m_gui->getWidget("toolshelf");
+	EditorPlugin* poly = new PolygonEditor(m_gui, m_fileSystem, m_terrain, m_scene->getRootNode() );
+	poly->setup(tools);
+	m_editors.push_back(poly);
 
 	// Minimap
 	m_minimap->setWorld(m_terrain);

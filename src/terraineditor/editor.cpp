@@ -65,18 +65,18 @@ void TerrainEditor::setBrush(const Brush& b) {
 	m_brush.falloff = b.falloff;
 }
 
-void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, int wheel, int shift) {
+void TerrainEditor::update(const Mouse& mouse, const Ray& ray, int shift) {
 	if(!m_tool || !m_target) return;
 
 	// update current brush
 	float hitDistance = 0;
-	int r = m_target->castRay(rayStart, rayDir, hitDistance);
-	vec3 position = rayStart + rayDir * hitDistance;
+	int r = m_target->castRay(ray.start, ray.direction, hitDistance);
+	vec3 position = ray.point(hitDistance);
 	if(r) m_brush.position = position.xz();
 	else {
 		// y=0 plane outside
-		float t = -rayStart.y / rayDir.y;
-		position = rayStart + rayDir * t;
+		float t = -ray.start.y / ray.direction.y;
+		position = ray.point(t);
 		if(t<0) m_ring0.clear(), m_ring1.clear();
 		else r = true; // Perhaps limit to heightmap bounds + brush radius ?
 	}
@@ -84,10 +84,10 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 
 
 	// Change brush size
-	if(wheel) {
-		if(shift==0)      m_brush.radius   = clamp( m_brush.radius * (1.0 + wheel * 0.1), 1, 100);
-		else if(shift==1) m_brush.strength = clamp( m_brush.strength + wheel * 0.01 );
-		else if(shift==2) m_brush.falloff  = clamp( m_brush.falloff + wheel * 0.01 );
+	if(mouse.wheel && mouse.button!=4) {
+		if(shift==0)               m_brush.radius   = clamp( m_brush.radius * (1.0 + mouse.wheel * 0.1), 1, 100);
+		else if(shift==SHIFT_MASK) m_brush.strength = clamp( m_brush.strength + mouse.wheel * 0.01 );
+		else if(shift==CTRL_MASK)  m_brush.falloff  = clamp( m_brush.falloff + mouse.wheel * 0.01 );
 		printf("radius: %g strength: %g falloff: %g\n", m_brush.radius, m_brush.strength, m_brush.falloff);
 	}
 
@@ -104,11 +104,10 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 	}
 
 	// Paint
-	static int lb = 0;
 	static vec2 lp;
-	if(btn&1) {
+	if(mouse.button&1) {
 		// Start
-		if(~lb&1) {
+		if(mouse.pressed&1) {
 			m_tool->tool->begin(m_brush);
 			lp = position.xz();
 		}
@@ -116,10 +115,9 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 		float distance = m_brush.position.distance(lp);
 		if(distance > 40) {
 			printf("Warning: long brush stroke : (%g, %g) - (%g, %g)\n", lp.x, lp.y, m_brush.position.x, m_brush.position.y);
-			lb = btn;
 			return;
 		}
-		int toolFlags = shift&1? m_tool->shift: m_tool->flags;
+		int toolFlags = shift&SHIFT_MASK? m_tool->shift: m_tool->flags;
 		Tool* tool = m_tool->tool;
 		float spacing = fmin(m_brush.getRadius(0.8), m_brush.radius * 0.4) * 0.5;
 		int samples = (int) floor(distance / spacing) + 1;
@@ -177,11 +175,10 @@ void TerrainEditor::update(const vec3& rayStart, const vec3& rayDir, int btn, in
 			}
 		}
 		lp = position.xz();
-	} else if(lb&1) {
+	} else if(mouse.released&1) {
 		// End
 		m_tool->tool->end();
 	}
-	lb = btn;
 }
 
 void TerrainEditor::updateRing(std::vector<vec3>& v, const vec3& c, float r) const {

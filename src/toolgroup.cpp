@@ -49,7 +49,7 @@ Button* ToolGroup::addButton(const char* icon) {
 	// Create gui button
 	int index = m_panel->getWidgetCount();
 	Button* button = m_root->createWidget<Button>("menuoption");
-	button->setPosition( index * 34 + 2, 2);
+	button->setPosition( index * 34, 0);
 	if(icon) button->setIcon(icon);
 	button->eventPressed.bind(this, &ToolGroup::selectTool);
 	m_panel->add(button);

@@ -50,6 +50,12 @@
 		<image file="data/gui.png"/>
 		<state coord="13 13 2 2"/>
 	</skin>
+	<skin name="listitem">
+		<font name="helvetica" size="16"/>
+		<image file="data/gui.png"/>
+		<state name="normal"/>
+		<state name="selected normal" colour="#ffa040"/>
+	</skin>
 
 	<!--============= ICONS ====================-->
 
@@ -79,6 +85,7 @@
 		<icon name="Foliage"   rect="64 32 32 32"/>
 		<icon name="Objects"   rect="96 32 32 32"/>
 		<icon name="Grass"     rect="224 32 32 32"/>
+		<icon name="Polygon"   rect="224 64 32 32"/>
 		<icon name="material"  rect="128 64 32 32"/> 
 		<icon name="neweditor" rect="192 64 32 32"/> 
 		<icon name="map"       rect="160 64 32 32"/> 
@@ -150,7 +157,7 @@
 	<template name="listbox" class="Listbox" rect="0 0 100 100">
 		<widget name="_client" rect="0 0 84 100" anchor="tlrb"/>
 		<widget name="_scroll" template="vscroll" rect="84 0 16 100" anchor="trb"/>
-		<widget name="_text" rect="2 0 80 20" skin="clear"/>
+		<widget name="_text" rect="2 0 80 20" anchor="lr" skin="listitem"/>
 	</template>
 
 	<template name="iconlistbox" class="Listbox" rect="0 0 100 100">
@@ -254,7 +261,7 @@
 		<widget name="minimap" template="iconbuttondark" rect="138 2 32 32" icon="map"/>
 	</widget>
 	
-	<widget name="toolshelf" rect="174 0 800 36" anchor="tlr">
+	<widget name="toolshelf" rect="174 0 800 36" anchor="tlr" layout="HorizontalLayout" margin="2" spacing="1">
 		<widget name="foliagebutton" template="iconbuttondark" rect="2 2 32 32" icon="Foliage"/>
 		<widget name="materialbutton" template="iconbuttondark" rect="36 2 32 32" icon="material"/>
 		<widget name="texturebutton" template="iconbuttondark" rect="70 2 32 32" icon="texture"/>

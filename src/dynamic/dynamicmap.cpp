@@ -1,6 +1,7 @@
 #include "dynamicmap.h"
 #include "dynamicmaterial.h"
 #include "streaming/landscape.h"
+#include "model/hardwarebuffer.h"
 #include "scene/renderer.h"
 #include "scene/scene.h"
 #include "scene/shader.h"
@@ -19,6 +20,12 @@ class DynamicHeightmapDrawable : public scene::Drawable {
 		cam.updateFrustum();
 		m_land->update( &cam );
 		m_land->cull( &cam );
+
+		// ToDo: use PatchGeometry tag property to store vertex buffer objects
+		static base::HardwareIndexBuffer ti;
+		static base::HardwareVertexBuffer tv;
+		ti.bind();
+		tv.bind();
 
 		const int stride = 10 * sizeof(float);
 		r.setMaterial( m_material );
