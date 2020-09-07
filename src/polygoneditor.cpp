@@ -45,7 +45,7 @@ PolygonEditor::~PolygonEditor() {
 }
 
 void PolygonEditor::setup(gui::Widget* toolPanel) {
-	toolPanel->add(m_toolButton, 3);
+	toolPanel->add(m_toolButton, 1);
 }
 
 void PolygonEditor::close() {
@@ -72,6 +72,7 @@ void PolygonEditor::addPolygon(Button*) {
 	m_list->selectItem(index);
 	polygonSelected(m_list, index);
 	updateDrawable(p);
+	m_dragging = ALL;
 }
 
 void PolygonEditor::removePolygon(Button*) {

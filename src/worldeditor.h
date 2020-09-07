@@ -20,7 +20,7 @@ class MaterialEditor;
 class FoliageEditor;
 class MiniMap;
 
-namespace gui { class Button; class Combobox; class Scrollbar; class Window; class Listbox; class Popup; }
+namespace gui { class Button; class Combobox; class Scrollbar; class Window; class Listbox; class Popup; class Textbox; }
 namespace base { class INIFile; class XMLElement; }
 
 enum class SaveFormat { RAW, TIF16, PNG16 };
@@ -80,6 +80,7 @@ class WorldEditor : public base::SceneState {
 	void assignTile(gui::Listbox*, int);
 	void showRenameTile(gui::Button*);
 	void renameTile(gui::Button*);
+	void renameTile(gui::Textbox*);
 
 	void changeViewDistance(gui::Scrollbar*, int);
 	void changeDetail(gui::Scrollbar*, int);

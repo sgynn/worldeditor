@@ -189,6 +189,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_foliage(0), m_e
 	BIND(Button, "nametile", eventPressed, showRenameTile);
 	BIND(Listbox, "tilelist", eventSelected, assignTile);
 	BIND(Button, "applyname", eventPressed, renameTile);
+	BIND(Textbox, "tilename", eventSubmit, renameTile);
 
 	// Initial alignment - would be good to do this in the xml somehow
 	Widget* brush = m_gui->getWidget<Widget>("brushinfo");
@@ -610,6 +611,7 @@ void WorldEditor::duplicateTile(::Button*) {
 	// ToDo: copy texture maps too
 	m_terrain->assign(m_currentTile, map);
 	m_contextMenu->hide();
+	showRenameTile(0);
 }
 void WorldEditor::lockTile(Button*) {
 	TerrainMap* map = m_terrain->getMap(m_currentTile);
@@ -634,8 +636,11 @@ void WorldEditor::showRenameTile(Button*) {
 	TerrainMap* map = m_terrain->getMap(m_currentTile);
 	Widget* w = m_gui->getWidget<Widget>("renametile");
 	if(map && w) {
-		w->getWidget(0)->cast<Textbox>()->setText(map->name);
 		w->setVisible(true);
+		Textbox* txt = w->getWidget(0)->cast<Textbox>();
+		txt->setText(map->name);
+		txt->setFocus();
+		txt->select(0,99);
 	}
 	m_contextMenu->hide();
 }
@@ -645,6 +650,11 @@ void WorldEditor::renameTile(Button*) {
 	map->name = w->getWidget(0)->cast<Textbox>()->getText();
 	w->setVisible(false);
 }
+void WorldEditor::renameTile(gui::Textbox*) {
+	renameTile((Button*)0);
+}
+
+
 
 // ----------------------------------------------------------- //
 

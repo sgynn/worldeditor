@@ -389,19 +389,19 @@
 
 	<!-- Context menu -->
 	<widget class="Popup" rect="200 200 100 140" visible="0" skin="default" layout="VerticalLayout" name="contextmenu">
-		<widget name="newtile"  caption="New Tile" class="Button" skin="button" rect="0 0 20 20"/>
-		<widget name="loadtile" caption="Load Tile" class="Button" skin="button" rect="0 0 20 20"/>
 		<widget name="settile"  caption="Assign Tile" class="Button" skin="button" rect="0 0 20 20"/>
+		<widget name="newtile"  caption="New Tile" class="Button" skin="button" rect="0 0 20 20"/>
+		<widget name="copytile" caption="Clone Tile" class="Button" skin="button" rect="0 0 20 20"/>
+		<widget name="loadtile" caption="Load Tile" class="Button" skin="button" rect="0 0 20 20"/>
 		<widget name="hidetile" caption="Unload Tile" class="Button" skin="button" rect="0 0 20 20"/>
 		<widget name="nametile" caption="Rename Tile" class="Button" skin="button" rect="0 0 20 20"/>
-		<widget name="copytile" caption="Clone Tile" class="Button" skin="button" rect="0 0 20 20"/>
 		<widget name="locktile" caption="Lock Tile" class="Button" skin="button" rect="0 0 20 20"/>
 	</widget>
 	<widget template="dialogfixed" rect="400 200 200 300" caption="Assign Tile" name="assigntile" visible="0" layout="vertical">
 		<widget template="listbox" rect="0 0 194 260" name="tilelist"/>
 	</widget>
 	<widget template="dialogfixed" caption="Rename Tile" name="renametile" rect="400 400 250 80" visible="0">
-		<widget class="Textbox" rect="4 4 230 20"/>
+		<widget class="Textbox" rect="4 4 230 20" name="tilename"/>
 		<widget class="Button"  rect="80 28 80 20" caption="Apply" skin="button" name="applyname"/>
 	</widget>
 </gui>
