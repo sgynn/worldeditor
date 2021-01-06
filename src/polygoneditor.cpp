@@ -9,13 +9,15 @@
 using base::XMLElement;
 using namespace gui;
 
+extern gui::String appPath;
+
 #define CONNECT(Type, name, event, callback) { Type* t=m_panel->getWidget<Type>(name); if(t) t->event.bind(this, &PolygonEditor::callback); else printf("Missing widget: %s\n", name); }
 
 PolygonEditor::PolygonEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scene::SceneNode* scene)
 	: m_terrain(terrain), m_selected(0), m_dragging(DragMode::NONE), m_vertex(0)
 {
 	m_panel = gui->getWidget("polygoneditor");
-	if(!m_panel) gui->load("data/polygons.xml");
+	if(!m_panel) gui->load(appPath + "data/polygons.xml");
 	m_panel = gui->getWidget("polygoneditor");
 	m_panel->setVisible(false);
 
@@ -318,8 +320,8 @@ void PolygonEditor::updateDrawable(Polygon* poly) {
 		scene::DrawableMesh* mesh = new scene::DrawableMesh( new base::bmodel::Mesh() );
 		mesh->getMesh()->setPolygonMode(base::bmodel::TRIANGLE_STRIP);
 		base::HardwareVertexBuffer* buffer = new base::HardwareVertexBuffer();
-		buffer->setAttribute(base::VA_VERTEX, base::VA_FLOAT3);
-		buffer->setAttribute(base::VA_COLOUR, base::VA_ARGB, 12);
+		buffer->attributes.add(base::VA_VERTEX, base::VA_FLOAT3);
+		buffer->attributes.add(base::VA_COLOUR, base::VA_ARGB);
 		mesh->getMesh()->setVertexBuffer(buffer);
 		poly->drawable = mesh;
 		m_node->attach(poly->drawable);

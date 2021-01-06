@@ -9,6 +9,7 @@
 #include <base/xml.h>
 #include <base/dds.h>
 #include <base/png.h>
+#include "gui/renderer.h"
 #include "gui/skin.h"
 
 using namespace base;
@@ -399,14 +400,14 @@ void MaterialEditor::addTextureGUI(TerrainTexture* tex) {
 	w->setSize(m_textureList->getClientRect().width, w->getSize().y);
 	m_textureList->setPaneSize( m_textureList->getClientRect().width, top + w->getSize().y);
 	// Initial values
-	w->getWidget<gui::Textbox>("texturename")->setText(tex->name);
-	w->getWidget<gui::Textbox>("texturename")->eventSubmit.bind(this, &MaterialEditor::renameTexture);
-	w->getWidget<gui::Textbox>("texturename")->eventLostFocus.bind(this, &MaterialEditor::renameTexture);
-	w->getWidget<gui::Button>("browse_diffuse")->eventPressed.bind(this, &MaterialEditor::browseTexture);
-	w->getWidget<gui::Button>("browse_normal")->eventPressed.bind(this, &MaterialEditor::browseTexture);
-	w->getWidget<gui::Textbox>("diffuse")->setText( tex->diffuse );
-	w->getWidget<gui::Textbox>("normal")->setText( tex->normal );
-	gui::Scrollbar* tiling = w->getWidget<gui::Scrollbar>("tiling");
+	w->getTemplateWidget<gui::Textbox>("texturename")->setText(tex->name);
+	w->getTemplateWidget<gui::Textbox>("texturename")->eventSubmit.bind(this, &MaterialEditor::renameTexture);
+	w->getTemplateWidget<gui::Textbox>("texturename")->eventLostFocus.bind(this, &MaterialEditor::renameTexture);
+	w->getTemplateWidget<gui::Button>("browse_diffuse")->eventPressed.bind(this, &MaterialEditor::browseTexture);
+	w->getTemplateWidget<gui::Button>("browse_normal")->eventPressed.bind(this, &MaterialEditor::browseTexture);
+	w->getTemplateWidget<gui::Textbox>("diffuse")->setText( tex->diffuse );
+	w->getTemplateWidget<gui::Textbox>("normal")->setText( tex->normal );
+	gui::Scrollbar* tiling = w->getTemplateWidget<gui::Scrollbar>("tiling");
 	tiling->eventChanged.bind(this, &MaterialEditor::changeTiling);
 	tiling->setValue(tex->tiling * 100);
 	w->eventGainedFocus.bind(this, &MaterialEditor::selectTexture);
@@ -415,7 +416,7 @@ void MaterialEditor::addTextureGUI(TerrainTexture* tex) {
 	}
 	// Icon
 	int layer = m_textureList->getWidgetCount() - 1;
-	if(layer < m_textureIcons->size()) w->getWidget<gui::Icon>("textureicon")->setIcon(m_textureIcons, layer);
+	if(layer < m_textureIcons->size()) w->getTemplateWidget<gui::Icon>("textureicon")->setIcon(m_textureIcons, layer);
 	
 }
 
@@ -548,16 +549,15 @@ bool MaterialEditor::loadTexture(ArrayTexture* array, int layer, const char* fil
 void MaterialEditor::setTexture(const char* file) {
 	if(m_browseTarget<0) return;
 	// Local file?
-	char buffer[1024];
-	base::Directory::getRelativePath(file, buffer, 1024);
-	if(strncmp(buffer, "..", 2)!=0) file = buffer;
+	String relative = m_fileSystem->getRelative(file);
 	int type = m_browseTarget >> 8;
 	enum Types { DIFFUSE=0, NORMAL=1, HEIGHT=2 };
+	file = relative;
 
 	// Update relevant textbox
 	gui::Widget* w = m_textureList->getWidget(m_browseTarget & 0xff );
 	const char* name = m_browseTarget&0x100? "normal": "diffuse";
-	w->getWidget<gui::Textbox>(name)->setText(file);
+	w->getTemplateWidget<gui::Textbox>(name)->setText(file);
 
 	// Update texture object
 	TerrainTexture* tex = m_textures[m_browseTarget & 0xff];
@@ -568,7 +568,7 @@ void MaterialEditor::setTexture(const char* file) {
 	int layer = m_browseTarget & 0xff;
 	ArrayTexture* array = type==NORMAL? &m_normalMaps: &m_diffuseMaps;
 	if(loadTexture(array, layer, file, type==DIFFUSE)) {
-		w->getWidget<gui::Icon>("textureicon")->setIcon(m_textureIcons, layer);
+		w->getTemplateWidget<gui::Icon>("textureicon")->setIcon(m_textureIcons, layer);
 	}
 
 	if(eventChangeTextureList) eventChangeTextureList();
@@ -579,16 +579,16 @@ void MaterialEditor::reloadTexture(gui::Button*) {
 	// reload selected texture
 	const char* file = 0;
 	ArrayTexture* array = 0;
-	if(strcmp( m_gui->getFocusedWidget()->getName(), "diffuse") == 0) {
+//	if(strcmp( m_gui->getFocusedWidget()->getName(), "diffuse") == 0) {
 		array = &m_diffuseMaps;
 		file = m_textures[m_selectedTexture]->diffuse;
 		loadTexture(array, m_selectedTexture, file);
-	}
-	else if(strcmp( m_gui->getFocusedWidget()->getName(), "normal") == 0) {
+//	}
+//	else if(strcmp( m_gui->getFocusedWidget()->getName(), "normal") == 0) {
 		array = &m_normalMaps;
 		file = m_textures[m_selectedTexture]->normal;
 		loadTexture(array, m_selectedTexture, file);
-	}
+//	}
 }
 
 void MaterialEditor::changeTiling(gui::Scrollbar* s, int val) {

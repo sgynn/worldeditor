@@ -1,5 +1,6 @@
 #include "colourpicker.h"
 #include "gui/skin.h"
+#include "gui/renderer.h"
 
 using namespace gui;
 

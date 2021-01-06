@@ -23,6 +23,7 @@ String FileSystem::getFile(const char* file) {
 	if(!file || !file[0]) return String();
 	if(Directory::isRelative(file)) {
 		char buffer[2048];
+		if(strncmp(file, "./", 2)==0) file += 2;
 		snprintf(buffer, 2048, "%s/%s", m_rootPath.str(), file);
 		return String(buffer);
 	}

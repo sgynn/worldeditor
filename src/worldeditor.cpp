@@ -21,6 +21,7 @@
 #include "gui/skin.h"
 #include "gui/font.h"
 #include "gui/widgets.h"
+#include "gui/renderer.h"
 #include "gui/lists.h"
 #include "widgets/filedialog.h"
 #include "widgets/toolbutton.h"
@@ -45,6 +46,8 @@
 using namespace gui;
 using namespace base;
 
+gui::String appPath;
+
 #define INIFILE "settings.cfg"
 
 // GUI Macros
@@ -63,16 +66,21 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 // Application entry point
 int main(int argc, char* argv[]) {
-	base::INIFile cfg = base::INIFile::load(INIFILE);
-	base::INIFile::Section wnd = cfg["window"];
+	// Get application path
+	const char* p = strrchr(argv[0], '/');
+	if(p) argv[0][p-argv[0]+1] = 0;
+	appPath = argv[0];
+	printf("App path: %s\n", appPath.str());
 
 	// System options
+	base::INIFile cfg = base::INIFile::load(appPath + INIFILE);
+	base::INIFile::Section wnd = cfg["window"];
 	int w = wnd.get("width", 1280);
 	int h = wnd.get("height", 1024);
 	int aa = wnd.get("antialiasing", 0);
 	bool fs = wnd.get("fullscreen", false);
 
-
+	// Initialise
 	base::Game* game = base::Game::create(w,h,32,fs,aa);
 	scene::Shader::getSupportedVersion();
 	WorldEditor* editor = new WorldEditor(cfg);
@@ -92,8 +100,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_foliage(0), m_e
 	m_renderer = new scene::Renderer;
 	m_fileSystem = new FileSystem;
 
-	scene::DebugGeometryManager::initialise();
-	m_scene->add(scene::DebugGeometryManager::getInstance()->getSceneNode());
+	scene::DebugGeometryManager::initialise(m_scene);
 
 	// Load editor options
 	INIFile::Section options = ini["settings"];
@@ -119,9 +126,9 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_foliage(0), m_e
 	Root::registerClass<OrderableItem>();
 	Root::registerClass<ColourPicker>();
 	m_gui = new Root(Game::width(), Game::height());
-	m_gui->setRenderer( new gui::Renderer() );
-	m_gui->load("data/gui.xml");
-	m_gui->load("data/foliage.xml");
+	m_gui->getRenderer()->setImagePath(appPath);
+	m_gui->load(appPath + "data/gui.xml");
+	m_gui->load(appPath + "data/foliage.xml");
 	m_mapMarker = 0;
 
 	// Setup event callbacks
@@ -390,8 +397,8 @@ void WorldEditor::update() {
 		if(Game::Pressed(KEY_P)) showOptionsDialog(0);
 		if(Game::Pressed(KEY_M)) showWorldMap(0);
 	}
-	if(Game::Pressed(KEY_O) && shift==2) showOpenDialog(0);
-	if(Game::Pressed(KEY_S) && shift==2) showSaveDialog(0);
+	if(Game::Pressed(KEY_O) && shift==1) showOpenDialog(0);
+	if(Game::Pressed(KEY_S) && shift==1) showSaveDialog(0);
 
 	// Update any objects
 	for(base::HashMap<Object*>::iterator i=m_objects.begin(); i!=m_objects.end(); ++i) {
@@ -768,7 +775,7 @@ void WorldEditor::changeCollision(Button* b) {
 }
 
 void WorldEditor::saveSettings(gui::Window*) {
-	INIFile ini = INIFile::load(INIFILE);
+	INIFile ini = INIFile::load(appPath + INIFILE);
 	INIFile::Section& settings = ini["settings"];
 	settings.set("distance", m_options.distance);
 	settings.set("speed",    m_options.speed);
@@ -777,7 +784,7 @@ void WorldEditor::saveSettings(gui::Window*) {
 	settings.set("collision",m_options.collide);
 	settings.set("fov",      m_options.fov);
 	settings.set("escquit",  m_options.escapeQuits);
-	ini.save(INIFILE);
+	ini.save(appPath + INIFILE);
 }
 
 // ----------------------------------------------------------- //

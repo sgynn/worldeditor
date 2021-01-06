@@ -1,5 +1,7 @@
 <?xml version="1.0"?>
 <gui>
+	<external file="data/gui.xml"/>
+
 	<!--Skins-->
 	<skin name="panel">
 		<font name="helvetica" size="16"/>
@@ -31,6 +33,7 @@
 		<state name="normal"/>
 		<state name="selected normal" colour="#ffa040"/>
 	</skin>
+
 	<!--Templates-->
 	<template rect="0 0 100 100" name="frame" skin="panel" category="Containers"/>
 	<template class="Icon" iconlist="icons" rect="0 0 32 32" name="icon" skin="panel" category="Display"/>

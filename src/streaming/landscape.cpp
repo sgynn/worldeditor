@@ -487,7 +487,7 @@ void Patch::create() {
 			float h = vx[k];
 
 			// Get connected vertices
-			n[0].y = (y>0?      vx[k-ss]:    func( vec3(vx+k-1) + base[0]*step )) - h;
+			n[0].y = (y>0?      vx[k-ss]:        func( vec3(vx+k-1) + base[0]*step )) - h;
 			n[1].y = (y>0&&x<s? vx[k+stride-ss]: func( vec3(vx+k-1) + base[1]*step )) - h;
 			n[2].y = (x<s?      vx[k+stride]:    func( vec3(vx+k-1) + base[2]*step )) - h;
 			n[3].y = (y<s?      vx[k+ss]:        func( vec3(vx+k-1) + base[3]*step )) - h;

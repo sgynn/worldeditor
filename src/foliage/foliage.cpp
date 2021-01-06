@@ -245,8 +245,8 @@ DrawableMesh* FoliageInstanceLayer::generateGeometry(const Index& index) const {
 	// Create instance buffer
 	HardwareVertexBuffer* buffer = new HardwareVertexBuffer();
 	buffer->setData(data, points.size(), 32, true);
-	buffer->setAttribute(base::VA_CUSTOM, base::VA_FLOAT4, 0, "loc", 1);
-	buffer->setAttribute(base::VA_CUSTOM, base::VA_FLOAT4, 16, "rot", 1);
+	buffer->attributes.add(base::VA_CUSTOM, base::VA_FLOAT4, 0, "loc", 1);
+	buffer->attributes.add(base::VA_CUSTOM, base::VA_FLOAT4, 16, "rot", 1);
 
 	DrawableMesh* d = new DrawableMesh(m_mesh, m_material);
 	d->setInstanceBuffer(buffer);
@@ -325,9 +325,9 @@ DrawableMesh* GrassLayer::generateGeometry(const Index& index) const {
 	// Build buffer objects
 	HardwareVertexBuffer* vbuffer = new HardwareVertexBuffer();
 	vbuffer->setData(vdata, points.size()*4, 32, true);
-	vbuffer->setAttribute(VA_VERTEX, VA_FLOAT3, 0);
-	vbuffer->setAttribute(VA_NORMAL, VA_FLOAT3, 12);
-	vbuffer->setAttribute(VA_TEXCOORD, VA_FLOAT2, 24);
+	vbuffer->attributes.add(VA_VERTEX, VA_FLOAT3);
+	vbuffer->attributes.add(VA_NORMAL, VA_FLOAT3);
+	vbuffer->attributes.add(VA_TEXCOORD, VA_FLOAT2);
 
 	HardwareIndexBuffer* ibuffer = new HardwareIndexBuffer();
 	ibuffer->setData(idata, points.size()*6, true);

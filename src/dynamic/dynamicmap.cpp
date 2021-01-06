@@ -10,6 +10,8 @@
 #include <base/opengl.h>
 #include <base/camera.h>
 
+#include "scene/debuggeometry.h"
+
 class DynamicHeightmapDrawable : public scene::Drawable {
 	Landscape* m_land;
 	public:
@@ -34,6 +36,9 @@ class DynamicHeightmapDrawable : public scene::Drawable {
 			scene::Shader::current().setAttributePointer(0, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices);
 			scene::Shader::current().setAttributePointer(1, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices+3);
 			glDrawElements(GL_TRIANGLE_STRIP, g->indexCount, GL_UNSIGNED_SHORT, g->indices);
+
+			//static scene::DebugGeometry dd(scene::SDG_FRAME);
+			//for(uint i=0; i<g->vertexCount; ++i) dd.vector(vec3(g->vertices+i*10)+vec3(&getTransform()[12]), vec3(g->vertices+i*10+3), 0x0000ff);
 		}
 	}
 };

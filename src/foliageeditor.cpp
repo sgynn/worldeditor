@@ -406,11 +406,14 @@ void FoliageLayerEditor::loadSprite(gui::Button*) {
 }
 void FoliageLayerEditor::loadSpriteFile(const char* file) {
 	m_file = file;
-	const char* name = strrchr(file, '/') + 1;
+	const char* name = strrchr(file, '/');
+	if(name) ++name; else name=file;
 	Combobox* list = m_panel->getWidget<Combobox>("sprite");
 	int index = getListIndex(m_editor->m_spriteList, name);
 	if(index<0) {
-		FoliageSprite sprite { file, m_editor->createMaterial(m_type, file) };
+		FoliageSprite sprite;
+		sprite.file = m_editor->m_fileSystem->getRelative(file);
+		sprite.material = m_editor->createMaterial(m_type, m_editor->m_fileSystem->getFile(file));
 		list->addItem(name, sprite);
 		list->setText(name);
 		index = list->getItemCount()-1;
@@ -479,7 +482,7 @@ XMLElement FoliageLayerEditor::save() const {
 		FoliageSprite* sprite = list->getSelectedData().cast<FoliageSprite>();
 		if(sprite) {
 			XMLElement& f = e.add("sprite");
-			f.setAttribute("file", m_editor->m_fileSystem->getRelative(sprite->file));
+			f.setAttribute("file", sprite->file);
 		}
 	}
 	if(m_type==FoliageType::Instanced) {
@@ -516,7 +519,7 @@ void FoliageLayerEditor::load(const XMLElement& e) {
 	if(m_type==FoliageType::Grass) {
 		const XMLElement& f = e.find("sprite");
 		const char* file = f.attribute("file");
-		if(file[0]) loadSpriteFile( m_editor->m_fileSystem->getFile(file) );
+		if(file[0]) loadSpriteFile(file);
 	}
 	if(m_type==FoliageType::Instanced) {
 		const XMLElement& m = e.find("mesh");
