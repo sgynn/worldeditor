@@ -15,6 +15,7 @@ class FileSystem {
 	String createTemporaryFile();		/// Create a temporary file for streaming
 	void copyTemporaryFiles();
 	String getUniqueFile(const char*);	/// Get a filename that does not exist yet
+	const String& getRootPath() const { return m_rootPath; }
 
 	private:
 	static bool copyFile(const char* from, const char* to);

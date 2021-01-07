@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<gui height="1024" width="1024">
+	<external file="data/gui.xml"/>
+	<!--Templates-->
+	<template class="Scrollbar" rect="0 0 16 100" name="vscroll">
+		<widget anchor="tlr" template="iconbutton" name="_scrollUp" rect="0 0 16 16" icon="scroll_up"/>
+		<widget anchor="blr" template="iconbutton" name="_scrollDown" rect="0 84 16 16" icon="scroll_down"/>
+		<widget anchor="tlrb" rect="0 16 16 68" name="_track">
+			<widget anchor="lr" class="Button" rect="0 0 16 24" name="_scrollBlock" skin="button"/>
+		</widget>
+	</template>
+	<template class="TreeView" rect="0 0 100 100" name="tree" skin="panel" category="Lists">
+		<widget anchor="tlrb" rect="1 1 86 98" name="_client"/>
+		<widget anchor="trb" template="vscroll" name="_scroll" rect="87 0 13 100"/>
+		<widget rect="0 6 8 8" name="_expand" skin="panel"/>
+		<widget class="Label" rect="0 0 100 20" name="_item" skin="listitem"/>
+	</template>
+	<template category="Containers" class="SplitPane" rect="0 0 100 100" name="vsplit" skin="none" orientation="vertical">
+		<widget anchor="lr" rect="0 46 100 2" name="_sash" skin="button"/>
+	</template>
+	<!--Layout-->
+	<widget rect="168 192 276 600" template="dialogfixed" name="objecteditor" caption="Object Editor" skin="default">
+		<widget anchor="lrtb" template="vsplit" rect="0 0 266 573">
+			<widget template="frame" rect="0 0 266 298">
+				<widget anchor="lrtb" hideroot="1" template="tree" name="tree" rect="0 0 266 298"/>
+			</widget>
+			<widget template="frame" rect="0 300 266 273">
+				<widget anchor="lrtb" hideroot="1" template="tree" name="resources" rect="0 0 266 250"/>
+				<widget anchor="lrb" template="editbox" name="path" rect="0 251 264 20"/>
+			</widget>
+		</widget>
+	</widget>
+</gui>

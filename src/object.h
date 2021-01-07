@@ -5,7 +5,7 @@
 
 /** Object base class
  * This is for all game objects
- * An obect may have one or more drawables
+ * An object may have one or more drawables
  * */
 class Object : public scene::SceneNode {
 	public:

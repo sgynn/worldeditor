@@ -211,7 +211,7 @@ void PolygonEditor::clear() {
 #include <base/game.h>
 #include <base/input.h>
 
-void PolygonEditor::update(const Mouse& mouse, const Ray& ray, int keyMask) {
+void PolygonEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base::Camera*) {
 	m_cameraPosition = ray.start;
 
 	// Detect mouse over

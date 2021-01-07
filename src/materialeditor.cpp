@@ -1,7 +1,6 @@
 #include "materialeditor.h"
 #include "filesystem.h"
 #include "terraineditor/editabletexture.h"
-#include "resource/library.h"
 #include "widgets/filedialog.h"
 #include "widgets/orderableitem.h"
 #include "widgets/colourpicker.h"
@@ -673,9 +672,12 @@ void MaterialEditor::removeLayer(gui::Button*) {
 	rebuildMaterial(true);
 	delete w;
 }
-void MaterialEditor::renameLayer(gui::Textbox* t) {
-	if(m_selectedMaterial<0 || m_selectedLayer<0) return;
-	MaterialLayer* layer = m_materials[m_selectedMaterial]->getLayer( m_selectedLayer );
+void MaterialEditor::renameLayer(gui::Widget* w) {
+	if(m_selectedMaterial<0) return;
+	gui::Textbox* t = w->cast<gui::Textbox>();
+	int layerIndex = t->getParent()->getIndex();
+	MaterialLayer* layer = m_materials[m_selectedMaterial]->getLayer( layerIndex );
+	printf("Rename layer %d: %s -> %s\n", layerIndex, layer->name.str(), t->getText());
 	layer->name = t->getText();
 	m_layerList->setFocus();
 }
@@ -758,7 +760,7 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 	const char* icons[] = { "layer_a", "layer_w", "layer_c", "layer_i", "layer_g" };
 	w->getTemplateWidget<gui::Icon>("typeicon")->setIcon( icons[layer->type] );
 	w->getTemplateWidget<gui::Textbox>("layername")->setText( layer->name );
-	w->getTemplateWidget<gui::Textbox>("layername")->eventSubmit.bind(this, &MaterialEditor::renameLayer);
+	w->getTemplateWidget<gui::Textbox>("layername")->eventLostFocus.bind(this, &MaterialEditor::renameLayer);
 	w->getTemplateWidget<gui::Button>("visibility")->eventPressed.bind(this, &MaterialEditor::toggleLayer);
 	w->getTemplateWidget<gui::Button>("visibility")->setIcon(layer->visible? "eye_open": "eye_closed");
 	w->getTemplateWidget<gui::Button>("expand")->eventPressed.bind(this, &MaterialEditor::expandLayer);

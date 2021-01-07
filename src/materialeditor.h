@@ -80,7 +80,7 @@ class MaterialEditor {
 	void addLayer(gui::Combobox*, int);
 	void removeLayer(gui::Button*);
 	void toggleLayer(gui::Button*);
-	void renameLayer(gui::Textbox*);
+	void renameLayer(gui::Widget*);
 	void moveLayer(int, int);
 	void expandLayer(gui::Button*);
 	void addLayerGUI(MaterialLayer*);

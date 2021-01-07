@@ -3,7 +3,9 @@
 #include <base/vec.h>
 #include <base/point.h>
 
+class MapGrid;
 class TerrainMap;
+class FileSystem;
 namespace gui { class Widget; }
 namespace base { class XMLElement; class Camera; }
 
@@ -23,7 +25,7 @@ class EditorPlugin {
 	public:
 	virtual ~EditorPlugin() {}
 	virtual void setup(gui::Widget* toolPanel) {}
-	virtual void update(const Mouse&, const Ray&, int keyMask) {}
+	virtual void update(const Mouse&, const Ray&, int keyMask, base::Camera*) {}
 	virtual void setContext(const TerrainMap*) {}
 	virtual base::XMLElement save(const TerrainMap* context) const = 0;
 	virtual void load(const base::XMLElement&, const TerrainMap* context) = 0;

@@ -9,8 +9,6 @@ namespace gui { class Button; class Listbox; class Textbox; class Spinbox; }
 namespace base { class XMLElement; }
 namespace scene { class SceneNode; class DrawableMesh; }
 
-class MapGrid;
-class FileSystem;
 class PolygonDrawable;
 
 /// Custom properties
@@ -35,7 +33,7 @@ class PolygonEditor : public EditorPlugin {
 	void setup(gui::Widget* toolPanel) override;
 	void load(const base::XMLElement&, const TerrainMap* context) override;
 	base::XMLElement save(const TerrainMap* context) const override;
-	void update(const Mouse&, const Ray&, int) override;
+	void update(const Mouse&, const Ray&, int, base::Camera*) override;
 	void clear() override;
 	void close() override;
 

@@ -1,6 +1,7 @@
 #ifndef _FOLIAGE_EDITOR_
 #define _FOLIAGE_EDITOR_
 
+#include "editorplugin.h"
 #include "gui/widgets.h"
 #include "gui/lists.h"
 #include "foliage/foliage.h"
@@ -39,22 +40,23 @@ struct FoliageMesh {
 };
 
 
-class FoliageEditor {
+class FoliageEditor : public EditorPlugin {
 	public:
-	FoliageEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, scene::Scene*);
+	FoliageEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, scene::SceneNode*);
 	~FoliageEditor();
 	void setupGui(gui::Root*);
 
-	void load(const base::XMLElement&);
-	base::XMLElement save() const;
-	void clear();
+	void setup(gui::Widget* toolPanel) override;
+	void load(const base::XMLElement&, const TerrainMap* context) override;
+	base::XMLElement save(const TerrainMap* context) const override;
+	void setContext(const TerrainMap*) override;
+	void update(const Mouse&, const Ray&, int keyMask, base::Camera*) override;
+	void clear() override;
+	void close() override;
 
 	void showFoliage(bool);
-	void updateFoliage(const vec3& cam);
 	scene::Material* createMaterial(FoliageType type, const char* diffuse);
-
 	class FoliageLayerEditor* addLayer(FoliageType type);
-	
 	
 	protected:
 	void layerSelected(gui::Listbox*, int);
@@ -70,7 +72,7 @@ class FoliageEditor {
 	Foliage*      m_foliage;
 	FileSystem*   m_fileSystem;
 	MapGrid*      m_terrain;
-	scene::Scene* m_scene;
+	scene::SceneNode* m_node;
 	FileDialog*   m_fileDialog;
 
 	gui::Window*  m_window;

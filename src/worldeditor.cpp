@@ -6,17 +6,16 @@
 #include <base/directory.h>
 #include <base/opengl.h>
 #include <base/window.h>
+#include <base/xml.h>
 
 #include <base/inifile.h>
 
-#include "resource/file.h"
 #include "simple/heightmap.h"
 #include "dynamic/dynamicmap.h"
 #include "streaming/streamer.h"
 #include "streaming/texturestream.h"
 #include "streaming/tiff.h"
 
-#include "foliageeditor.h"
 
 #include "gui/skin.h"
 #include "gui/font.h"
@@ -33,7 +32,9 @@
 #include "terraineditor/heighttools.h"
 #include "terraineditor/texturetools.h"
 
+#include "foliageeditor.h"
 #include "polygoneditor.h"
+#include "objecteditor.h"
 
 #include "scene/scene.h"
 #include "scene/shader.h"
@@ -95,7 +96,7 @@ int main(int argc, char* argv[]) {
 
 //// Make a world - this file will be a complete mess while I test stuff ////
 
-WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_foliage(0), m_editor(0), m_activeGroup(0), m_terrain(0) {
+WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_activeGroup(0), m_terrain(0) {
 	m_scene = new scene::Scene;
 	m_renderer = new scene::Renderer;
 	m_fileSystem = new FileSystem;
@@ -244,9 +245,7 @@ void WorldEditor::clear() {
 
 	// delete materials
 	if(m_materials) delete m_materials;
-	if(m_foliage) delete m_foliage;
 	m_materials = 0;
-	m_foliage = 0;
 	showMaterialList(0);
 	showTextureList(0);
 
@@ -368,7 +367,7 @@ void WorldEditor::update() {
 		if(mouse.wheel) updateBrushSliders();
 
 		// update other editors
-		for(EditorPlugin* e: m_editors) e->update(mouse, mouseRay, shift);
+		for(EditorPlugin* e: m_editors) e->update(mouse, mouseRay, shift, m_camera);
 
 		// Right click menu
 		static bool moved = false;
@@ -385,10 +384,6 @@ void WorldEditor::update() {
 			m_contextMenu->popup(m_gui, guiMouse);
 		}
 	}
-
-	// FIXME: move to m_editors
-	if(m_foliage) m_foliage->updateFoliage(m_camera->getPosition());
-
 
 	// Other shortcuts
 	if(!editingText) {
@@ -536,6 +531,13 @@ void WorldEditor::setTerrainSource(const char* file) {
 
 // ----------------------------------------------------------- //
 
+template<class Editor> void WorldEditor::createEditor() {
+	EditorPlugin* e = new Editor(m_gui, m_fileSystem, m_terrain, m_scene->getRootNode());
+	e->setup(m_gui->getWidget("toolshelf"));
+	m_editors.push_back(e);
+}
+
+
 void WorldEditor::createNewTerrain(int size) {
 	clear();
 	m_mapSize = size;
@@ -552,14 +554,10 @@ void WorldEditor::createNewTerrain(int size) {
 	m_materials->eventChangeTextureList.bind(this, &WorldEditor::textureListChanged);
 	m_materials->setTerrainSize( vec2(size,size) );
 
-	// Setup foliage editor
-	m_foliage = new FoliageEditor(m_gui, m_fileSystem, m_terrain, m_scene);
-
-	// Editors?
-	gui::Widget* tools = m_gui->getWidget("toolshelf");
-	EditorPlugin* poly = new PolygonEditor(m_gui, m_fileSystem, m_terrain, m_scene->getRootNode() );
-	poly->setup(tools);
-	m_editors.push_back(poly);
+	// Additional Editors
+	createEditor<FoliageEditor>();
+	createEditor<PolygonEditor>();
+	createEditor<ObjectEditor>();
 
 	// Minimap
 	m_minimap->setWorld(m_terrain);
@@ -1180,9 +1178,6 @@ void WorldEditor::saveWorld(const char* file) {
 	for(int i=0; i<m_materials->getTextureCount(); ++i) {
 		m.add( m_materials->serialiseTexture(i) );
 	}
-	// Foliage
-	if(m_foliage) xml.getRoot().add( m_foliage->save() );
-
 	// Other editors
 	for(EditorPlugin* e: m_editors) {
 		XMLElement saved = e->save(0);
@@ -1304,9 +1299,6 @@ void WorldEditor::loadWorld(const char* file) {
 		}
 	}
 	
-	// load foliage
-	if(m_foliage) m_foliage->load( xml.getRoot().find("foliage") );
-
 	// Other editors
 	for(EditorPlugin* e: m_editors) e->load(xml.getRoot(), 0);
 

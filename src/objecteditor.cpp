@@ -1,0 +1,374 @@
+#include "objecteditor.h"
+#include "heightmap.h"
+#include "filesystem.h"
+#include "gizmo.h"
+#include "gui/widgets.h"
+#include "gui/lists.h"
+#include "gui/tree.h"
+#include "scene/scene.h"
+#include "scene/mesh.h"
+#include <base/xml.h>
+#include <base/collision.h>
+#include <base/directory.h>
+
+#include "model/model.h"
+#include "model/bmloader.h"
+#include "scene/shader.h"
+#include "scene/material.h"
+#include "scene/autovariables.h"
+#include <base/texture.h>
+#include <base/game.h>
+#include <base/input.h>
+
+
+using base::XMLElement;
+using namespace gui;
+using base::bmodel::Model;
+using base::bmodel::Mesh;
+using scene::SceneNode;
+using scene::Drawable;
+using scene::DrawableMesh;
+
+extern gui::String appPath;
+
+#define CONNECT(Type, name, event, callback) { Type* t=m_panel->getWidget<Type>(name); if(t) t->event.bind(this, &ObjectEditor::callback); else printf("Missing widget: %s\n", name); }
+
+ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, SceneNode* scene)
+	: m_terrain(terrain), m_selected(0), m_placement(0), m_gizmo(0), m_resource(0)
+{
+	m_panel = gui->getWidget("objecteditor");
+	if(!m_panel) {
+		gui->load(appPath + "data/objects.xml");
+		m_panel = gui->getWidget("objecteditor");
+	}
+	m_panel->setVisible(false);
+
+	m_node = scene->createChild("Objects");
+	m_sceneTree = m_panel->getWidget<TreeView>("tree");
+	m_resourceList = m_panel->getWidget<TreeView>("resources");
+	
+	m_toolButton = gui->createWidget<Button>("iconbuttondark");
+	m_toolButton->eventPressed.bind(this, &ObjectEditor::toggleEditor);
+	m_toolButton->setIcon("Objects");
+
+	CONNECT(Textbox,  "path", eventSubmit, changePath);
+	CONNECT(TreeView, "tree", eventSelected, selectObject);
+	CONNECT(TreeView, "resources", eventSelected, selectResource);
+
+	m_gizmo = new editor::Gizmo();
+	m_gizmo->setRenderQueue(5);
+	scene->attach(m_gizmo);
+	m_gizmo->setVisible(false);
+
+	setResourcePath(fs->getRootPath());
+}
+
+ObjectEditor::~ObjectEditor() {
+	m_toolButton->removeFromParent();
+	delete m_toolButton;
+}
+
+void ObjectEditor::setup(gui::Widget* toolPanel) {
+	toolPanel->add(m_toolButton, 1);
+}
+
+void ObjectEditor::close() {
+	m_toolButton->setSelected(false);
+	m_panel->setVisible(false);
+	cancelPlacement();
+	selectObject(0);
+}
+
+void ObjectEditor::toggleEditor(gui::Button*) {
+	m_panel->setVisible(!m_panel->isVisible());
+	m_toolButton->setSelected(m_panel->isVisible());
+}
+
+// ------------------------------------------------------------------------------ //
+
+void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
+	const XMLElement& list = e.find("objects");
+	for(const XMLElement& i: list) {
+		// Load object
+		printf("Load object %s\n", i.attribute("model"));
+	}
+
+	if(m_gizmo->isVisible()) {
+		
+	}
+}
+
+XMLElement ObjectEditor::save(const TerrainMap* context) const {
+	XMLElement xml("objects");
+	// Add all
+	return xml;
+}
+
+void ObjectEditor::clear() {
+	m_node->deleteChildren(true);
+	m_sceneTree->getRootNode()->clear();
+}
+
+// ------------------------------------------------------------------------------ //
+
+template<class T> TreeNode* findTreeNode(TreeNode* node, const T& predicate) {
+	if(predicate(node)) return node;
+	else for(TreeNode* n: *node) {
+		TreeNode* found = findTreeNode(n, predicate);
+		if(found) return found;
+	}
+	return 0;
+}
+
+void ObjectEditor::changePath(Textbox* t) {
+	setResourcePath(t->getText());
+}
+
+void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base::Camera* camera) {
+	if(!m_panel->isVisible()) return;
+	
+	// Placement update
+	if(m_placement) { 
+		float t;
+ 		if(m_terrain->castRay(ray.start, ray.direction, t)) {
+			m_placement->setPosition(ray.point(t));
+			m_placement->setVisible(true);
+		}
+		else m_placement->setVisible(false);
+
+		if(mouse.pressed&4) cancelPlacement();
+		if(mouse.pressed&1) {
+			m_sceneTree->getRootNode()->add(m_placement->getName(), m_placement);
+			updateObjectBounds(m_placement);
+			selectObject(m_placement);
+			m_placement = 0;
+			if(keyMask&SHIFT_MASK) selectResource(0, m_resource);
+			else cancelPlacement();
+		}
+		return;
+	}
+
+	// Delete selected object
+	if(m_selected && base::Game::Pressed(base::KEY_DEL)) {
+		Object* obj = m_selected;
+		TreeNode* node = findTreeNode(m_sceneTree->getRootNode(), [obj](TreeNode* n){return n->getData(1)==obj;});
+		node->getParent()->remove(node);
+		delete m_selected;
+		delete node;
+		selectObject(0);
+		return;
+	}
+
+	// Gizmo update
+	if(m_gizmo->isVisible() && m_selected) {
+		editor::MouseRay mouseRay(camera, mouse.position.x, mouse.position.y, base::Game::width(), base::Game::height());
+		if(mouse.released&1) m_gizmo->onMouseUp();
+		if(mouse.pressed&1) m_gizmo->onMouseDown(mouseRay);
+		if(mouse.moved.x || mouse.moved.y) {
+			m_gizmo->onMouseMove(mouseRay);
+			if(m_gizmo->isHeld()) {
+				m_selected->setTransform(m_gizmo->getPosition(), m_gizmo->getOrientation(), m_gizmo->getScale());
+				updateObjectBounds(m_selected);
+			}
+		}
+
+		if(!m_gizmo->isHeld()) {
+			if(base::Game::Pressed(base::KEY_1)) m_gizmo->setMode(editor::Gizmo::POSITION);
+			if(base::Game::Pressed(base::KEY_2)) m_gizmo->setMode(editor::Gizmo::ORIENTATION);
+			if(base::Game::Pressed(base::KEY_3)) m_gizmo->setMode(editor::Gizmo::SCALE);
+			if(base::Game::Pressed(base::KEY_4)) m_gizmo->setLocalMode();
+			if(base::Game::Pressed(base::KEY_5)) m_gizmo->setRelative(Matrix());
+			if(base::Game::Pressed(base::KEY_G)) {
+				vec3 pos = m_selected->getPosition();
+				pos.y = m_terrain->getHeight(pos);
+				m_selected->setPosition(pos);
+				m_gizmo->setPosition(pos);
+				updateObjectBounds(m_selected);
+			}
+		}
+	}
+
+	// Picking
+	if((mouse.pressed&1) && !m_gizmo->isHeld()) {
+		float t = 1e8f;
+		Object* sel = pick(m_node, ray, t);
+		selectObject(sel);
+	}
+}
+
+void ObjectEditor::cancelPlacement() {
+	delete m_placement;
+	m_placement = 0;
+	m_resourceList->clearSelection();
+}
+
+
+void ObjectEditor::selectObject(TreeView*, TreeNode* node) {
+	selectObject(node? node->getData(1).getValue<Object*>(0): 0);
+}
+
+void ObjectEditor::updateObjectBounds(Object* obj) {
+	obj->getDerivedTransformUpdated();
+	for(Drawable* d: obj->attachments()) d->updateBounds();
+}
+
+void ObjectEditor::selectObject(Object* obj) {
+	if(obj == m_selected) return;
+	m_selected = obj;
+	m_gizmo->setVisible(obj);
+	if(obj) {
+		m_gizmo->setPosition(obj->getPosition());
+		m_gizmo->setOrientation(obj->getOrientation());
+		m_gizmo->setScale(obj->getScale());
+
+		// select tree node
+		TreeNode* node = findTreeNode(m_sceneTree->getRootNode(), [obj](TreeNode* n){return n->getData(1)==obj;});
+		if(node) node->select();
+	}
+	printf("Select object %s\n", obj? obj->getName(): "none");
+}
+
+Object* ObjectEditor::pick(SceneNode* node, const Ray& ray, float& t) const {
+	Object* result = 0;
+	for(Drawable* d: node->attachments()) {
+		// Test drawables
+		float dist = 0;
+		const BoundingBox& box = d->getBounds();
+		if(base::intersectRayAABB(ray.start, ray.direction, box.centre(), box.size()/2, dist) && dist<t) {
+			// ToDo: trace individual polygons
+			result = dynamic_cast<Object*>(node);
+			t = dist;
+		}
+	}
+	for(SceneNode* n: node->children()) {
+		Object* r = pick(n, ray, t);
+		if(r) result = r;
+	}
+	return result;
+}
+
+// ------------------------------------------------------------------------------ //
+
+static const char* shaderSourceVS =
+"#version 150\n"
+"in vec4 vertex;\nin vec3 normal;\nin vec2 texCoord;\n"
+"uniform mat4 transform;\nuniform mat4 modelMatrix;\n"
+"out vec2 texcoord;\nout vec3 worldNormal;\nout vec3 worldPos;\n"
+"void main() { gl_Position=transform*vertex; texcoord=texCoord; worldNormal=mat3(modelMatrix)*normal; worldPos=(modelMatrix * vertex).xyz; }\n";
+static const char* shaderSourceFS =
+"#version 150\n"
+"in vec2 texcoord;\nin vec3 worldNormal;\nin vec3 worldPos;\nout vec4 fragment;\n"
+"uniform sampler2D diffuse;\nuniform vec3 lightDirection;\n"
+"void main() { vec4 diff=texture2D(diffuse, texcoord.st);\n"
+"if(diff.a < 0.5) discard;\n"
+"float l = dot(normalize(worldNormal), normalize(lightDirection));\n"
+"float s = (l+1)/1.3*0.2+0.1;\n"
+"fragment = vec4(diff.rgb * max(s,l), 1.0); }";
+
+scene::Material* createMaterial(const char* name) {
+	static scene::Shader* shader = 0;
+	if(!shader) {
+		scene::ShaderPart* vs = new scene::ShaderPart(scene::VERTEX_SHADER, shaderSourceVS);
+		scene::ShaderPart* fs = new scene::ShaderPart(scene::FRAGMENT_SHADER, shaderSourceFS);
+		shader = new scene::Shader();
+		shader->attach(vs);
+		shader->attach(fs);
+		shader->bindAttributeLocation("vertex",  0);
+		shader->bindAttributeLocation("normal",  1);
+		shader->bindAttributeLocation("texCoord",3);
+	}
+
+	scene::Material* material = new scene::Material;
+	scene::Pass* pass = material->addPass("default");
+	pass->setShader(shader);
+	pass->getParameters().set("lightDirection", vec3(1,1,1));
+	pass->getParameters().setAuto("transform", scene::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
+	pass->getParameters().setAuto("modelMatrix", scene::AUTO_MODEL_MATRIX);
+	
+	// TODO: Find texture
+	uint data = 0xffffffff;
+	base::Texture tex = base::Texture::create(2, 2, base::Texture::R8, &data);
+	pass->setTexture("diffuse", new base::Texture(tex));
+
+	pass->compile();
+	char buffer[2048]; buffer[0] = 0;
+	pass->getShader()->getLog(buffer, sizeof(buffer));
+	printf(buffer);
+	if(!pass->getShader()->isCompiled()) printf("Failed\n");
+	return material;
+}
+
+
+void ObjectEditor::selectResource(TreeView*, TreeNode* resource) {
+	m_resource = resource;
+	m_selected = 0;
+	m_gizmo->setVisible(false);
+	if(m_placement) cancelPlacement();
+	if(resource) {
+		const char* name = resource->getText();
+		Model* model = resource->getData(1).getValue<Model*>(0);
+		if(model) {
+			printf("Creating object %s\n", name);
+			DrawableMesh* d = new DrawableMesh(model->getMesh(0));
+			d->setMaterial(createMaterial(0));
+			m_placement = new Object();
+			m_placement->setName(name);
+			m_placement->attach(d);
+			m_node->addChild(m_placement);
+		}
+	}
+}
+
+TreeNode* ObjectEditor::addModel(const char* path, const char* name) {
+	Model* model = base::bmodel::BMLoader::load(path);
+	if(!model) return 0;
+	TreeNode* node = new TreeNode(name);
+	node->setData(1, model);
+	for(int i=0; i<model->getMeshCount(); ++i) model->getMesh(i)->calculateBounds();
+	if(model->getMeshCount()>1) {
+		// Allow placing individual meshes
+		for(int i=0; i<model->getMeshCount(); ++i) {
+			TreeNode* mesh = new TreeNode(model->getMeshName(i));
+			mesh->setData(1, model->getMesh(i));
+		}
+	}
+	return node;
+}
+
+TreeNode* ObjectEditor::addFolder(const char* path, const char* name) {
+	char fullPath[1024];
+	int o = sprintf(fullPath, "%s/", path);
+	base::Directory dir(path);
+	TreeNode* folder = 0;
+	for(const auto& file: dir) {
+		if(file.type == base::Directory::FILE && strcmp(file.name+file.ext, "bm")==0) {
+			strcpy(fullPath+o, file.name);
+			TreeNode* node = addModel(fullPath, file.name);
+			if(!folder) folder = new TreeNode(name);
+			folder->add(node);
+		}
+		else if(file.type == base::Directory::DIRECTORY) {
+			if(strcmp(file.name, ".")==0 || strcmp(file.name, "..")==0) continue;
+
+			strcpy(fullPath+o, file.name);
+			TreeNode* node = addFolder(fullPath, file.name);
+			if(node) {
+				if(!folder) folder = new TreeNode(name);
+				folder->add(node);
+			}
+		}
+	}
+	return folder;
+}
+
+void ObjectEditor::setResourcePath(const char* root) {
+	m_panel->getWidget<Textbox>("path")->setText(root);
+	TreeNode* node = addFolder(root, "root");
+	if(node) m_resourceList->setRootNode(node);
+	else m_resourceList->setRootNode(new TreeNode(root));
+	m_resourceList->getRootNode()->expandAll();
+}
+
+
+
+

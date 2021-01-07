@@ -134,7 +134,7 @@ scene::Material* FoliageEditor::createMaterial(FoliageType type, const char* dif
 
 // ======================================================================== //
 
-FoliageEditor:: FoliageEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, scene::Scene* scene) : m_foliage(0), m_fileSystem(fs), m_terrain(terrain), m_scene(scene) {
+FoliageEditor:: FoliageEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, scene::SceneNode* node) : m_foliage(0), m_fileSystem(fs), m_terrain(terrain), m_node(node) {
 	setupGui(gui);
 }
 FoliageEditor::~FoliageEditor() {
@@ -161,8 +161,23 @@ void FoliageEditor::setupGui(gui::Root* gui) {
 	m_spriteList = new ItemList;
 }
 
-void FoliageEditor::updateFoliage(const vec3& cam) {
-	if(m_foliage) m_foliage->update(cam);
+void FoliageEditor::setup(gui::Widget* tools) {
+	// Add the button
+}
+
+void FoliageEditor::setContext(const TerrainMap*) {
+}
+
+void FoliageEditor::close() {
+	m_window->setVisible(false);
+	for(uint i=0; i<m_layerList->getItemCount(); ++i) {
+		FoliageLayerEditor* editor = m_layerList->getItemData(i).getValue<FoliageLayerEditor*>(0);
+		if(editor) editor->getPanel()->setVisible(false);
+	}
+}
+
+void FoliageEditor::update(const Mouse&, const Ray& ray, int keyMask, base::Camera*) {
+	if(m_foliage) m_foliage->update(ray.start);
 }
 
 void FoliageEditor::addLayer(gui::Combobox* c, int i) {
@@ -173,7 +188,7 @@ void FoliageEditor::addLayer(gui::Combobox* c, int i) {
 FoliageLayerEditor* FoliageEditor::addLayer(FoliageType type) {
 	if(!m_foliage) {
 		m_foliage = new Foliage(m_terrain, 3);
-		m_scene->add(m_foliage);
+		m_node->addChild(m_foliage);
 	}
 
 	FoliageLayer* layer;
@@ -459,7 +474,7 @@ inline void loadRange(const XMLElement& e, ::Range& range) {
 	range.max = e.attribute("max", range.max);
 }
 
-XMLElement FoliageEditor::save() const {
+XMLElement FoliageEditor::save(const TerrainMap* context) const {
 	XMLElement e("foliage");
 	for(uint i=0; i<m_layerList->getItemCount(); ++i) {
 		const FoliageLayerEditor* layer = m_layerList->getItemData(i).getValue<FoliageLayerEditor*>(0);
@@ -497,9 +512,10 @@ XMLElement FoliageLayerEditor::save() const {
 	return e;
 }
 
-void FoliageEditor::load(const XMLElement& e) {
+void FoliageEditor::load(const XMLElement& e, const TerrainMap* context) {
 	clear();
-	for(const XMLElement& layerData: e) {
+	const XMLElement& list = e.find("foliage");
+	for(const XMLElement& layerData: list) {
 		int type = layerData.attribute("type", 0);
 		FoliageLayerEditor* editor = addLayer((FoliageType)type);
 		editor->load(layerData);

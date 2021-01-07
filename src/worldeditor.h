@@ -6,7 +6,6 @@
 #include "gui/gui.h"
 #include "object.h"
 #include "heightmap.h"
-#include "resource/library.h"
 #include "scene/scene.h"
 #include "terraineditor/editor.h"
 #include "editorplugin.h"
@@ -17,7 +16,6 @@
 class EditableTexture;
 class DynamicMaterial;
 class MaterialEditor;
-class FoliageEditor;
 class MiniMap;
 
 namespace gui { class Button; class Combobox; class Scrollbar; class Window; class Listbox; class Popup; class Textbox; }
@@ -125,7 +123,6 @@ class WorldEditor : public base::SceneState {
 	gui::String    m_file;
 	std::vector<ToolGroup*> m_groups;		// Terrain tool groups
 	MaterialEditor* m_materials;			// Terrain material editor
-	FoliageEditor*  m_foliage;				// Foliage editor
 	MiniMap*        m_minimap;				// Minimap data
 	TerrainEditor*  m_editor;				// Terrain editor
 	gui::Popup*     m_contextMenu;			// Terrain tile context menu
@@ -158,6 +155,7 @@ class WorldEditor : public base::SceneState {
 	int createUniqueMapName(const char* pattern, char* out) const;
 
 	// Additional editors
+	template<class E> void createEditor();
 	std::vector<EditorPlugin*> m_editors;
 	int m_activeEditor;
 
