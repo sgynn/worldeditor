@@ -100,7 +100,6 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 
 XMLElement ObjectEditor::save(const TerrainMap* context) const {
 	XMLElement xml("objects");
-	// Add all
 	return xml;
 }
 
@@ -130,21 +129,49 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 	// Placement update
 	if(m_placement) { 
 		float t;
- 		if(m_terrain->castRay(ray.start, ray.direction, t)) {
-			m_placement->setPosition(ray.point(t));
-			m_placement->setVisible(true);
+		// Position
+		if(!mouse.button) {
+			if(m_terrain->castRay(ray.start, ray.direction, t)) {
+				m_placement->setPosition(ray.point(t));
+				m_placement->setVisible(true);
+			}
+			else m_placement->setVisible(false);
 		}
-		else m_placement->setVisible(false);
+
+		if(m_panel->getRoot()->getWidgetUnderMouse()!=m_panel->getRoot()->getRootWidget()) return;
+
+		// Rotation
+		if(mouse.pressed&1) m_pressed = mouse.position, m_rotateMode = 0;
+		else if(mouse.button&1) {
+			vec3 pt;
+			const vec3& ps = m_placement->getPosition();
+			if(m_rotateMode==0 && abs(mouse.position.x-m_pressed.x)+abs(mouse.position.y-m_pressed.y)>5) {
+				if(base::intersectRayPlane(ray.start, ray.direction, vec3(0,1,0), ps.y, pt)) {
+					m_rotateMode = atan2(pt.x-ps.x, pt.z-ps.z) - m_placement->getOrientation().getAngle();
+				}
+			}
+			else if(m_rotateMode!=0 && base::intersectRayPlane(ray.start, ray.direction, vec3(0,1,0), ps.y, pt)) {
+				float yaw = atan2(pt.x-ps.x, pt.z-ps.z) - m_rotateMode;
+				m_placement->setOrientation(Quaternion(vec3(0,1,0), yaw));
+			}
+		}
+		// Finalise
+		if(mouse.released&1) {
+			if(m_rotateMode!=0) {
+				m_rotateMode=0;
+				base::Game::input()->warpMouse(m_pressed.x, m_pressed.y);
+			}
+			else {
+				m_sceneTree->getRootNode()->add(m_placement->getName(), m_placement);
+				updateObjectBounds(m_placement);
+				selectObject(m_placement);
+				m_placement = 0;
+				if(keyMask&SHIFT_MASK) selectResource(0, m_resource);
+				else cancelPlacement();
+			}
+		}
 
 		if(mouse.pressed&4) cancelPlacement();
-		if(mouse.pressed&1) {
-			m_sceneTree->getRootNode()->add(m_placement->getName(), m_placement);
-			updateObjectBounds(m_placement);
-			selectObject(m_placement);
-			m_placement = 0;
-			if(keyMask&SHIFT_MASK) selectResource(0, m_resource);
-			else cancelPlacement();
-		}
 		return;
 	}
 
@@ -200,6 +227,7 @@ void ObjectEditor::cancelPlacement() {
 	delete m_placement;
 	m_placement = 0;
 	m_resourceList->clearSelection();
+	m_rotateMode = 0;
 }
 
 
@@ -287,7 +315,7 @@ scene::Material* createMaterial(const char* name) {
 	
 	// TODO: Find texture
 	uint data = 0xffffffff;
-	base::Texture tex = base::Texture::create(2, 2, base::Texture::R8, &data);
+	base::Texture tex = base::Texture::create(1, 1, base::Texture::R8, &data);
 	pass->setTexture("diffuse", new base::Texture(tex));
 
 	pass->compile();
@@ -307,9 +335,12 @@ void ObjectEditor::selectResource(TreeView*, TreeNode* resource) {
 	if(resource) {
 		const char* name = resource->getText();
 		Model* model = resource->getData(1).getValue<Model*>(0);
-		if(model) {
+		Mesh* mesh = resource->getData(1).getValue<Mesh*>(0);
+		if(model) mesh = model->getMesh(0);
+
+		if(mesh) {
 			printf("Creating object %s\n", name);
-			DrawableMesh* d = new DrawableMesh(model->getMesh(0));
+			DrawableMesh* d = new DrawableMesh(mesh);
 			d->setMaterial(createMaterial(0));
 			m_placement = new Object();
 			m_placement->setName(name);
@@ -330,6 +361,7 @@ TreeNode* ObjectEditor::addModel(const char* path, const char* name) {
 		for(int i=0; i<model->getMeshCount(); ++i) {
 			TreeNode* mesh = new TreeNode(model->getMeshName(i));
 			mesh->setData(1, model->getMesh(i));
+			node->add(mesh);
 		}
 	}
 	return node;

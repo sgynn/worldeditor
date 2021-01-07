@@ -39,12 +39,14 @@ class ObjectEditor : public EditorPlugin {
 	
 
 	protected:
-
 	scene::SceneNode* m_node;
 	MapGrid*       m_terrain;
 	Object*        m_selected;
 	Object*        m_placement;
+	Point          m_pressed;
+	float          m_rotateMode;
 	editor::Gizmo* m_gizmo;
+
 
 	gui::Widget*   m_panel;
 	gui::Button*   m_toolButton;
