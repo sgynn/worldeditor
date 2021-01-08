@@ -6,6 +6,7 @@
 #include "object.h"
 #include <vector>
 
+namespace scene { class Material; }
 namespace gui { class Button; class Listbox; class Textbox; class Spinbox; class TreeView; class TreeNode; }
 
 namespace editor { class Gizmo; }
@@ -32,6 +33,7 @@ class ObjectEditor : public EditorPlugin {
 	void selectObject(gui::TreeView*, gui::TreeNode*);
 
 	protected:
+	scene::Material* createMaterial(const char* name);
 	gui::TreeNode* addModel(const char* path, const char* name);
 	gui::TreeNode* addFolder(const char* path, const char* name);
 	void updateObjectBounds(Object*);
@@ -40,6 +42,7 @@ class ObjectEditor : public EditorPlugin {
 
 	protected:
 	scene::SceneNode* m_node;
+	FileSystem*    m_fileSystem;
 	MapGrid*       m_terrain;
 	Object*        m_selected;
 	Object*        m_placement;

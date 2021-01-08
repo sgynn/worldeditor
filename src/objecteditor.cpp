@@ -34,7 +34,7 @@ extern gui::String appPath;
 #define CONNECT(Type, name, event, callback) { Type* t=m_panel->getWidget<Type>(name); if(t) t->event.bind(this, &ObjectEditor::callback); else printf("Missing widget: %s\n", name); }
 
 ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, SceneNode* scene)
-	: m_terrain(terrain), m_selected(0), m_placement(0), m_gizmo(0), m_resource(0)
+	: m_fileSystem(fs), m_terrain(terrain), m_selected(0), m_placement(0), m_gizmo(0), m_resource(0)
 {
 	m_panel = gui->getWidget("objecteditor");
 	if(!m_panel) {
@@ -89,17 +89,69 @@ void ObjectEditor::toggleEditor(gui::Button*) {
 void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 	const XMLElement& list = e.find("objects");
 	for(const XMLElement& i: list) {
-		// Load object
-		printf("Load object %s\n", i.attribute("model"));
-	}
+		if(i == "object") {
+			Quaternion rot;
+			vec3 pos, scale(1,1,1);
+			const char* name = i.attribute("name");
+			const char* file = i.attribute("file");
+			int mesh = i.attribute("mesh", 0);
+			sscanf(i.attribute("scale"), "%g %g %g", &scale.x, &scale.y, &scale.z);
+			sscanf(i.attribute("position"), "%g %g %g", &pos.x, &pos.y, &pos.z);
+			sscanf(i.attribute("orientation"), "%g %g %g %g", &rot.w, &rot.x, &rot.y, &rot.z);
+			
+			String f = m_fileSystem->getFile(file);
+			Model* model = base::bmodel::BMLoader::load(f);
+			if(model && mesh < model->getMeshCount()) {
+				Object* o = new Object();
+				model->getMesh(mesh)->calculateBounds();
+				DrawableMesh* d = new DrawableMesh(model->getMesh(mesh), createMaterial(0));
+				m_node->addChild(o);
+				o->attach(d);
+				o->setTransform(pos, rot, scale);
+				o->getDerivedTransformUpdated();
+				d->updateBounds();
 
-	if(m_gizmo->isVisible()) {
-		
+				TreeNode* node = new TreeNode(name);
+				node->setData(1, o);
+				node->setData(2, f);
+				node->setData(3, mesh);
+				m_sceneTree->getRootNode()->add(node);
+			}
+		}
 	}
 }
 
 XMLElement ObjectEditor::save(const TerrainMap* context) const {
+	char buffer[256];
 	XMLElement xml("objects");
+	for(TreeNode* n: *m_sceneTree->getRootNode()) {
+		Object* object = n->getData(1).getValue<Object*>(0);
+		if(!object) continue;
+		const vec3 scl = object->getScale();
+		const vec3& pos = object->getPosition();
+		const Quaternion& rot = object->getOrientation();
+		int mesh = n->getData(3).getValue(-1);
+		
+
+		XMLElement& e = xml.add("object");
+		e.setAttribute("name", n->getText());
+		e.setAttribute("file", m_fileSystem->getRelative(n->getText(2)));
+		if(mesh>=0) e.setAttribute("mesh", mesh);
+		
+		if(pos!=vec3()) {
+			sprintf(buffer, "%g %g %g", pos.x, pos.y, pos.z);
+			e.setAttribute("position", buffer);
+		}
+		if(rot!=Quaternion(1,0,0,0)) {
+			sprintf(buffer, "%g %g %g %g", rot.w, rot.x, rot.y, rot.z);
+			e.setAttribute("orientation", buffer);
+		}
+		if(scl!=vec3(1,1,1)) {
+			sprintf(buffer, "%g %g %g", scl.z, scl.y, scl.z);
+			e.setAttribute("scale", buffer);
+		}
+	}
+
 	return xml;
 }
 
@@ -162,7 +214,14 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 				base::Game::input()->warpMouse(m_pressed.x, m_pressed.y);
 			}
 			else {
-				m_sceneTree->getRootNode()->add(m_placement->getName(), m_placement);
+				TreeNode* node = new TreeNode(m_placement->getName());
+				node->setData(1, m_placement);
+				if(m_resource->getText(2)) node->setData(2, m_resource->getData(2));
+				else {
+					node->setData(2, m_resource->getParent()->getData(2));
+					node->setData(3, m_resource->getIndex());
+				}
+				m_sceneTree->getRootNode()->add(node);
 				updateObjectBounds(m_placement);
 				selectObject(m_placement);
 				m_placement = 0;
@@ -293,7 +352,7 @@ static const char* shaderSourceFS =
 "float s = (l+1)/1.3*0.2+0.1;\n"
 "fragment = vec4(diff.rgb * max(s,l), 1.0); }";
 
-scene::Material* createMaterial(const char* name) {
+scene::Material* ObjectEditor::createMaterial(const char* name) {
 	static scene::Shader* shader = 0;
 	if(!shader) {
 		scene::ShaderPart* vs = new scene::ShaderPart(scene::VERTEX_SHADER, shaderSourceVS);
@@ -355,6 +414,7 @@ TreeNode* ObjectEditor::addModel(const char* path, const char* name) {
 	if(!model) return 0;
 	TreeNode* node = new TreeNode(name);
 	node->setData(1, model);
+	node->setData(2, String(path));
 	for(int i=0; i<model->getMeshCount(); ++i) model->getMesh(i)->calculateBounds();
 	if(model->getMeshCount()>1) {
 		// Allow placing individual meshes
@@ -394,6 +454,12 @@ TreeNode* ObjectEditor::addFolder(const char* path, const char* name) {
 }
 
 void ObjectEditor::setResourcePath(const char* root) {
+	char temp[1024];
+	if(base::Directory::isRelative(root)) {
+		base::Directory::getFullPath(root, temp, 1024);
+		root = temp;
+	}
+
 	m_panel->getWidget<Textbox>("path")->setText(root);
 	TreeNode* node = addFolder(root, "root");
 	if(node) m_resourceList->setRootNode(node);

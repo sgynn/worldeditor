@@ -4,21 +4,22 @@
 
 using base::Directory;
 
-FileSystem::FileSystem() : m_rootPath(".") {
+FileSystem::FileSystem() {
+	setRootPath(".");
 }
 
 void FileSystem::setRootPath(const char* path, bool isAFile) {
+	char buffer[2048];
+	Directory::getFullPath(path, buffer, 2048);
 	if(isAFile) {
-		char buffer[2048];
-		strcpy(buffer, path);
 		char* c = strrchr(buffer, '/');
 		char* cw = strrchr(buffer, '\\');
 		if(cw > c) c = cw;
 		if(c) *c = 0;
-		m_rootPath = buffer;
 	}
-	else m_rootPath = path;
+	m_rootPath = buffer;
 }
+
 String FileSystem::getFile(const char* file) {
 	if(!file || !file[0]) return String();
 	if(Directory::isRelative(file)) {
