@@ -65,16 +65,20 @@ void PolygonEditor::addPolygon(Button*) {
 	Polygon* p = new Polygon();
 	p->drawable = 0;
 	p->properties.push_back( ItemProperty{"name", "Polygon"} );
-	p->points.push_back( m_cameraPosition + vec3(-5,0,0) );
-	p->points.push_back( m_cameraPosition + vec3(5,0,0) );
-	p->points.push_back( m_cameraPosition + vec3(0,0,5) );
+	p->points.push_back( m_cameraPosition + vec3(-5,0,-5) );
+	p->points.push_back( m_cameraPosition + vec3(5,0,-5) );
+	p->points.push_back( m_cameraPosition + vec3(5,0,5) );
+	p->points.push_back( m_cameraPosition + vec3(-5,0,5) );
 	for(vec3& v: p->points) p->edges.push_back(0), v.y = m_terrain->getHeight(v);
-	int index = m_list->getItemCount() - 1;
+	int index = m_list->getItemCount();
 	m_list->addItem("Polygon", p);
 	m_list->selectItem(index);
 	polygonSelected(m_list, index);
 	updateDrawable(p);
-	m_dragging = ALL;
+	m_dragging = INITIAL;
+	m_selected = p;
+	m_vertex = 0;
+	m_offset = vec3(5,0,5);
 }
 
 void PolygonEditor::removePolygon(Button*) {
@@ -261,7 +265,7 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base
 		if(target) m_panel->getWidget<Spinbox>("flags")->setValue(m_selected->edges[m_vertex]);
 	}
 	// Move selected vertex
-	else if(m_dragging!=NONE && m_selected && mouse.button==1) {
+	else if(m_dragging!=NONE && m_selected && (mouse.button==1 || m_dragging==INITIAL)) {
 		float t;
 		if(!m_terrain->castRay(ray.start, ray.direction, t)) t = -ray.start.y / ray.direction.y; // zero plane
 		vec3 p = ray.point(t) - m_offset;
@@ -279,7 +283,7 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base
 			poly[m_vertex].y = m_terrain->getHeight(poly[m_vertex]);
 			poly[next].y = m_terrain->getHeight(poly[next]);
 		}
-		else if(m_dragging==ALL) {
+		else if(m_dragging==ALL || m_dragging==INITIAL) {
 			vec3 start = poly[m_vertex];
 			for(vec3& pt: poly) {
 				pt = p + pt - start;
@@ -288,7 +292,7 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base
 		}
 		updateDrawable(m_selected);
 	}
-	else if(mouse.released==1 && m_dragging!=NONE) {
+	if(mouse.released==1 && m_dragging!=NONE) {
 		m_dragging = NONE;
 		for(size_t i=1; i<m_selected->points.size(); ++i) {
 			if(m_selected->points[i-1] == m_selected->points[i]) {
@@ -298,6 +302,10 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base
 			}
 		}
 		if(m_selected->points.size()<2) removePolygon(0);
+	}
+	if(mouse.pressed&4 && m_dragging == INITIAL) {
+		removePolygon(0);
+		m_dragging = NONE;
 	}
 }
 

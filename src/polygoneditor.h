@@ -53,7 +53,7 @@ class PolygonEditor : public EditorPlugin {
 	void destroyDrawable(Polygon*);
 
 	protected:
-	enum DragMode { NONE, VERTEX, EDGE, ALL };
+	enum DragMode { NONE, VERTEX, EDGE, ALL, INITIAL };
 	MapGrid* m_terrain;
 	scene::SceneNode* m_node;
 	gui::Button* m_toolButton;
