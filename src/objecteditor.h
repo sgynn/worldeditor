@@ -23,7 +23,7 @@ class ObjectEditor : public EditorPlugin {
 	void close() override;
 
 	void setResourcePath(const char* path);
-	void selectObject(Object*);
+	void selectObject(Object*, bool append=false);
 	Object* pick(scene::SceneNode* node, const Ray& ray, float& t) const;
 
 	protected:
@@ -38,18 +38,28 @@ class ObjectEditor : public EditorPlugin {
 	gui::TreeNode* addFolder(const char* path, const char* name);
 	void updateObjectBounds(Object*);
 	void cancelPlacement();
+	bool isSelected(Object* obj) const;
+	void placeObject(Object* object, gui::TreeNode* data);
 	
 
 	protected:
+	enum PlaceMode { SINGLE, ROTATE, CHAIN };
 	scene::SceneNode* m_node;
 	FileSystem*    m_fileSystem;
 	MapGrid*       m_terrain;
-	Object*        m_selected;
 	Object*        m_placement;
 	Point          m_pressed;
-	float          m_rotateMode;
+	float          m_yawOffset;
+	vec3           m_altitude;
+	vec3           m_chainStep;
+	vec3           m_chainStart;
+	PlaceMode      m_mode;
+	bool           m_started;
 	editor::Gizmo* m_gizmo;
 
+	std::vector<Object*> m_selected;
+
+	base::HashMap<scene::Material*> m_materials;
 
 	gui::Widget*   m_panel;
 	gui::Button*   m_toolButton;
