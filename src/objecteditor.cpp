@@ -19,6 +19,7 @@
 #include <base/texture.h>
 #include <base/game.h>
 #include <base/input.h>
+#include <base/png.h>
 
 
 using base::XMLElement;
@@ -105,7 +106,7 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 			if(model && mesh < model->getMeshCount()) {
 				Object* o = new Object();
 				model->getMesh(mesh)->calculateBounds();
-				DrawableMesh* d = new DrawableMesh(model->getMesh(mesh), createMaterial(0));
+				DrawableMesh* d = new DrawableMesh(model->getMesh(mesh), createMaterial(model->getMaterialName(mesh)));
 				m_node->addChild(o);
 				o->attach(d);
 				o->setTransform(pos, rot, scale);
@@ -474,8 +475,26 @@ static const char* shaderSourceFS =
 "float s = (l+1)/1.3*0.2+0.1;\n"
 "fragment = vec4(diff.rgb * max(s,l), 1.0); }";
 
+bool findFile(char* path, const char* name, int limit=3) {
+	int o = strlen(path);
+	path[o++] = '/';
+	base::Directory dir(path);
+	for(const auto& file: dir) {
+		if(strcmp(file.name, name)==0) {
+			strcpy(path+o, file.name);
+			return true;
+		}
+		else if(file.type == base::Directory::DIRECTORY && limit>0) {
+			if(strcmp(file.name, ".")==0 || strcmp(file.name, "..")==0) continue;
+			strcpy(path+o, file.name);
+			if(findFile(path, name, limit-1)) return true;
+		}
+	}
+	return false;
+}
+
 scene::Material* ObjectEditor::createMaterial(const char* name) {
-	if(!name) name = "default";
+	if(!name || !name[0]) name = "default";
 	scene::Material* material = m_materials.get(name, 0);
 	if(material) return material;
 
@@ -498,10 +517,30 @@ scene::Material* ObjectEditor::createMaterial(const char* name) {
 	pass->getParameters().setAuto("transform", scene::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
 	pass->getParameters().setAuto("modelMatrix", scene::AUTO_MODEL_MATRIX);
 	
-	// TODO: Find texture
-	uint data = 0xffffffff;
-	base::Texture tex = base::Texture::create(1, 1, base::Texture::R8, &data);
-	pass->setTexture("diffuse", new base::Texture(tex));
+	// Find texture
+	bool foundTexture = false;
+	char fullName[128];
+	char path[2048];
+	sprintf(fullName, "%s.png", name);
+	strcpy(path, m_fileSystem->getRootPath());
+	if(findFile(path, fullName)) {
+		base::PNG png = base::PNG::load(path);
+		if(png.data) {
+			base::Texture tex = base::Texture::create(png.width, png.height, png.bpp/8, png.data);
+			pass->setTexture("diffuse", new base::Texture(tex));
+			foundTexture = true;
+		}
+	}
+
+	// Fallback texture
+	if(!foundTexture) {
+		static base::Texture* defaultTexture = 0;
+		if(!defaultTexture) {
+			uint data = 0xffffffff;
+			defaultTexture = new base::Texture(base::Texture::create(1, 1, base::Texture::R8, &data));
+		}
+		pass->setTexture("diffuse", defaultTexture);
+	}
 
 	pass->compile();
 	char buffer[2048]; buffer[0] = 0;
@@ -527,7 +566,7 @@ void ObjectEditor::selectResource(TreeView*, TreeNode* resource) {
 		if(mesh) {
 			printf("Creating object %s\n", name);
 			DrawableMesh* d = new DrawableMesh(mesh);
-			d->setMaterial(createMaterial(0));
+			d->setMaterial(createMaterial(resource->getText(3)));
 			m_placement = new Object();
 			m_placement->setName(name);
 			m_placement->attach(d);
@@ -542,12 +581,14 @@ TreeNode* ObjectEditor::addModel(const char* path, const char* name) {
 	TreeNode* node = new TreeNode(name);
 	node->setData(1, model);
 	node->setData(2, String(path));
+	node->setData(3, model->getMaterialName(0));
 	for(int i=0; i<model->getMeshCount(); ++i) model->getMesh(i)->calculateBounds();
 	if(model->getMeshCount()>1) {
 		// Allow placing individual meshes
 		for(int i=0; i<model->getMeshCount(); ++i) {
 			TreeNode* mesh = new TreeNode(model->getMeshName(i));
 			mesh->setData(1, model->getMesh(i));
+			mesh->setData(3, model->getMaterialName(i));
 			node->add(mesh);
 		}
 	}
