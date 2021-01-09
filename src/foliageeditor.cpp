@@ -311,7 +311,7 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 		w->getWidget<Widget>("instanced")->setVisible(false);
 		w->getWidget<Combobox>("sprite")->shareList(editor->m_spriteList);
 		m_name = "New Grass Layer";
-		m_densityMax = 8;
+		m_densityMax = 16;
 		break;
 	}
 
@@ -550,6 +550,7 @@ void FoliageLayerEditor::load(const XMLElement& e) {
 	}
 
 	refresh();
+	if(eventRenamed) eventRenamed(this);
 }
 
 
