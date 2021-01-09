@@ -184,9 +184,14 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 	if(m_placement) { 
 		float t;
 		
-		// ALtitude
-		m_altitude.y += mouse.wheel * 0.1;
-		if(keyMask&SHIFT_MASK) m_chainStart.y += mouse.wheel * 0.1;
+		// Altitude
+		if(mouse.wheel) {
+			if(keyMask&ALT_MASK && m_mode==CHAIN) m_chainStart += m_placement->getOrientation()*m_chainStep.normalised()*0.1*mouse.wheel;
+			else {
+				m_altitude.y += mouse.wheel * 0.1;
+				if(keyMask&SHIFT_MASK) m_chainStart.y += mouse.wheel * 0.1;
+			}
+		}
 
 
 		// Position
@@ -224,8 +229,8 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 		// Chain mode
 		if(m_mode == CHAIN && m_terrain->castRay(ray.start, ray.direction, t)) {
 			if(!m_started) {
-				vec3 start = ray.point(t) + m_altitude;
-				m_placement->setPosition(start + m_placement->getOrientation() * m_chainStep * 0.5);
+				m_chainStart = ray.point(t) + m_altitude;
+				m_placement->setPosition(m_chainStart - m_placement->getOrientation() * m_chainStep * 0.5);
 				if(!overGUI && mouse.released==1) { m_started = true; return; }
 			}
 			else {
@@ -255,20 +260,25 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 			}
 		}
 		if(m_mode==SINGLE && base::Game::Pressed(base::KEY_C)) {
+			Quaternion tmp = m_placement->getOrientation();
 			m_placement->setOrientation(Quaternion());
 			updateObjectBounds(m_placement);
+			m_placement->setOrientation(tmp);
 			m_chainStep = m_placement->getAttachment(0)->getBounds().size();
 			m_chainStep.y = 0;
 			if(m_chainStep.x>m_chainStep.z) m_chainStep.z=0; else m_chainStep.x=0;
 			if(m_chainStep.length2()>0) {
 				m_selected.clear();
 				m_selected.push_back(m_placement);
-				m_chainStart = m_placement->getPosition();
 				m_mode = CHAIN;
 				m_started = false;
 			}
 		}
 		else if(m_mode == CHAIN && base::Game::Pressed(base::KEY_C)) {
+			Quaternion tmp = m_placement->getOrientation();
+			tmp.x = tmp.z = 0;
+			tmp.normalise();
+			m_placement->setOrientation(tmp);
 			for(size_t i=1; i<m_selected.size(); ++i) delete m_selected[i];
 			m_selected.clear();
 			m_mode = SINGLE;
