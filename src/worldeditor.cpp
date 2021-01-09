@@ -298,7 +298,8 @@ void WorldEditor::update() {
 
 	// Resized window
 	if(Game::getSize() != m_gui->getRootWidget()->getSize()) resized();
-	bool guiHasMouse = m_gui->getWidgetUnderMouse() != m_gui->getRootWidget();
+	const gui::Widget* mw = m_gui->getWidgetUnderMouse();
+	bool guiHasMouse = mw && mw != m_gui->getRootWidget() && mw->isTangible();
 	bool editingText = m_gui->getFocusedWidget()->cast<Textbox>();
 
 

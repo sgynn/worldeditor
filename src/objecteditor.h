@@ -10,6 +10,7 @@ namespace scene { class Material; }
 namespace gui { class Button; class Listbox; class Textbox; class Spinbox; class TreeView; class TreeNode; }
 
 namespace editor { class Gizmo; }
+class BoxSelect;
 
 class ObjectEditor : public EditorPlugin {
 	public:
@@ -39,7 +40,10 @@ class ObjectEditor : public EditorPlugin {
 	void updateObjectBounds(Object*);
 	void cancelPlacement();
 	bool isSelected(Object* obj) const;
+	void clearSelection();
 	void placeObject(Object* object, gui::TreeNode* data);
+	void applySelectTransform();
+	void selectionChanged();
 	
 
 	protected:
@@ -56,8 +60,10 @@ class ObjectEditor : public EditorPlugin {
 	PlaceMode      m_mode;
 	bool           m_started;
 	editor::Gizmo* m_gizmo;
+	BoxSelect*     m_box;
 
 	std::vector<Object*> m_selected;
+	scene::SceneNode* m_selectGroup;
 
 	base::HashMap<scene::Material*> m_materials;
 

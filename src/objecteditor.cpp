@@ -2,6 +2,7 @@
 #include "heightmap.h"
 #include "filesystem.h"
 #include "gizmo.h"
+#include "boxselect.h"
 #include "gui/widgets.h"
 #include "gui/lists.h"
 #include "gui/tree.h"
@@ -20,6 +21,7 @@
 #include <base/game.h>
 #include <base/input.h>
 #include <base/png.h>
+#include <set>
 
 
 using base::XMLElement;
@@ -61,6 +63,10 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 	m_gizmo->setRenderQueue(5);
 	scene->attach(m_gizmo);
 	m_gizmo->setVisible(false);
+	m_selectGroup = m_node->createChild("Selection");
+
+	m_box = new BoxSelect();
+	m_panel->getParent()->add(m_box);
 
 	setResourcePath(fs->getRootPath());
 }
@@ -108,6 +114,7 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 				model->getMesh(mesh)->calculateBounds();
 				DrawableMesh* d = new DrawableMesh(model->getMesh(mesh), createMaterial(model->getMaterialName(mesh)));
 				m_node->addChild(o);
+				o->setName(name);
 				o->attach(d);
 				o->setTransform(pos, rot, scale);
 				o->getDerivedTransformUpdated();
@@ -180,7 +187,7 @@ void ObjectEditor::changePath(Textbox* t) {
 void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base::Camera* camera) {
 	if(!m_panel->isVisible()) return;
 	bool overGUI = m_panel->getRoot()->getWidgetUnderMouse()!=m_panel->getRoot()->getRootWidget();
-	
+
 	// Placement update
 	if(m_placement) { 
 		float t;
@@ -328,7 +335,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 	}
 
 	// Edit selected objects
-	if(m_gizmo->isVisible() && !m_selected.empty()) {
+	if(m_gizmo->isVisible()) {
 
 		// Delete selection
 		if(base::Game::Pressed(base::KEY_DEL)) {
@@ -344,16 +351,19 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 		}
 
 		// Gizmo update
+		bool wasHeld = m_gizmo->isHeld();
 		editor::MouseRay mouseRay(camera, mouse.position.x, mouse.position.y, base::Game::width(), base::Game::height());
 		if(mouse.released&1) m_gizmo->onMouseUp();
 		if(mouse.pressed&1) m_gizmo->onMouseDown(mouseRay);
 		if(mouse.moved.x || mouse.moved.y) {
 			m_gizmo->onMouseMove(mouseRay);
 			if(m_gizmo->isHeld()) {
-				m_selected[0]->setTransform(m_gizmo->getPosition(), m_gizmo->getOrientation(), m_gizmo->getScale());
-				updateObjectBounds(m_selected[0]);
+				SceneNode* target = m_selected.size()==1? m_selected[0]: m_selectGroup;
+				target->setTransform(m_gizmo->getPosition(), m_gizmo->getOrientation(), m_gizmo->getScale());
+				for(Object* obj: m_selected) updateObjectBounds(obj);
 			}
 		}
+		if(wasHeld) return;
 
 		// Additional functions (buttons)
 		if(!m_gizmo->isHeld()) {
@@ -373,10 +383,24 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 	}
 
 	// Picking
-	if(!m_placement && (mouse.pressed&1) && !m_gizmo->isHeld()) {
-		float t = 1e8f;
-		Object* sel = pick(m_node, ray, t);
-		selectObject(sel);
+	if(!m_placement && !m_gizmo->isHeld()) {
+		if(mouse.pressed==1) m_box->start();
+		else if(mouse.released&1) {
+			if(m_box->isValid()) {
+				m_box->updatePlanes(camera);
+				for(SceneNode* node: m_node->children()) {
+					for(Drawable* d: node->attachments()) {
+						if(m_box->inside(d->getBounds())) selectObject(static_cast<Object*>(node), true);
+					}
+				}
+				m_box->clear();
+			}
+			else {
+				float t = 1e8f;
+				Object* sel = pick(m_node, ray, t);
+				selectObject(sel, keyMask&SHIFT_MASK);
+			}
+		}
 	}
 }
 
@@ -411,31 +435,65 @@ void ObjectEditor::updateObjectBounds(Object* obj) {
 }
 
 void ObjectEditor::selectObject(Object* obj, bool append) {
-	if(obj && isSelected(obj)) return;
-	if(obj) {
-		m_gizmo->setVisible(true);
-		m_gizmo->setPosition(obj->getPosition());
-		m_gizmo->setOrientation(obj->getOrientation());
-		m_gizmo->setScale(obj->getScale());
-		if(m_gizmo->isLocal()) m_gizmo->setLocalMode();
+	printf("Select object %s\n", obj? obj->getName(): "none");
+	if(!obj && !append) clearSelection();
+	if(!obj || isSelected(obj)) return;
+	if(!append) clearSelection();
+	m_selected.push_back(obj);
 
-		// select tree node
-		TreeNode* node = findTreeNode(m_sceneTree->getRootNode(), [obj](TreeNode* n){return n->getData(1)==obj;});
-		if(node) node->select();
+	// select tree node
+	TreeNode* node = findTreeNode(m_sceneTree->getRootNode(), [obj](TreeNode* n){return n->getData(1)==obj;});
+	if(node) node->select();
 
-		m_selected.clear();
-		m_selected.push_back(obj);
+	selectionChanged();
+}
+
+void ObjectEditor::selectionChanged() {
+	// Apply group transforms
+	for(SceneNode* n: m_selectGroup->children()) n->setTransform(n->getDerivedTransform());
+	m_selectGroup->setTransform(vec3(), Quaternion());
+
+	SceneNode* gizmoRoot;
+	if(m_selected.size() == 1) {
+		// Single selection uses object directly
+		while(m_selectGroup->getChildCount()) m_node->addChild(m_selectGroup->getChild((size_t)0));
+		gizmoRoot = m_selected[0];
 	}
 	else {
-		m_gizmo->setVisible(false);
-		m_selected.clear();
+		// Multi-selection puts everything in a sub-node
+		vec3 centre;
+		std::set<SceneNode*> removed(m_selectGroup->children().begin(), m_selectGroup->children().end());
+		for(Object* o: m_selected) {
+			centre += vec3(&o->getDerivedTransform()[12]);
+			removed.erase(o);
+			m_selectGroup->addChild(o);
+		}
+		centre /= m_selected.size();
+		for(SceneNode* n: removed) m_node->addChild(n);
+		for(Object* o: m_selected) o->move(-centre);
+		m_selectGroup->setPosition(centre);
+		gizmoRoot = m_selectGroup;
 	}
-	printf("Select object %s\n", obj? obj->getName(): "none");
+
+	// Set up gizmo
+	if(m_selected.empty()) m_gizmo->setVisible(false);
+	else {
+		m_gizmo->setVisible(true);
+		m_gizmo->setPosition(gizmoRoot->getPosition());
+		m_gizmo->setOrientation(gizmoRoot->getOrientation());
+		m_gizmo->setScale(gizmoRoot->getScale());
+		if(m_gizmo->isLocal()) m_gizmo->setLocalMode();
+	}
 }
 
 bool ObjectEditor::isSelected(Object* obj) const {
 	for(Object* o: m_selected) if(o==obj) return true;
 	return false;
+}
+
+void ObjectEditor::clearSelection() {
+	m_selected.clear();
+	selectionChanged();
 }
 
 Object* ObjectEditor::pick(SceneNode* node, const Ray& ray, float& t) const {
