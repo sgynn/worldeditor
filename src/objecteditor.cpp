@@ -37,7 +37,7 @@ extern gui::String appPath;
 #define CONNECT(Type, name, event, callback) { Type* t=m_panel->getWidget<Type>(name); if(t) t->event.bind(this, &ObjectEditor::callback); else printf("Missing widget: %s\n", name); }
 
 ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, SceneNode* scene)
-	: m_fileSystem(fs), m_terrain(terrain), m_placement(0), m_mode(SINGLE), m_gizmo(0)
+	: m_fileSystem(fs), m_terrain(terrain), m_placement(0), m_mode(SINGLE), m_collideObjects(true), m_gizmo(0)
 	, m_resource(0)
 {
 	m_panel = gui->getWidget("objecteditor");
@@ -205,10 +205,11 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 			}
 		}
 
-
 		// Position
 		if(m_mode == SINGLE) {
-			if(m_terrain->castRay(ray.start, ray.direction, t)) {
+			bool hit = m_terrain->castRay(ray.start, ray.direction, t);
+			if(m_collideObjects) hit |= pick(m_node, ray, true, t)!=0;
+			if(hit) {
 				m_placement->setPosition(ray.point(t) + m_altitude);
 				m_placement->setVisible(true);
 			}
@@ -308,11 +309,11 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 			
 			case SINGLE:
 				if(!overGUI) {
-					placeObject(m_placement, m_resource);
-					selectObject(m_placement);
+					Object* object = m_placement;
+					placeObject(object, m_resource);
 					m_placement = 0;
 					if(keyMask&SHIFT_MASK) selectResource(0, m_resource);
-					else cancelPlacement();
+					else { cancelPlacement(); selectObject(object); }
 				}
 				break;
 
@@ -379,8 +380,14 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 			if(base::Game::Pressed(base::KEY_G)) {
 				selectionChanged();
 				for(Object* o: m_selected) {
+					float t = 100;
 					vec3 pos = o->getPosition() + o->getParent()->getPosition();
+					Ray down(pos + vec3(0,0.1,0), vec3(0,-1,0));
 					pos.y = m_terrain->getHeight(pos);
+					if(m_collideObjects && pick(m_node, down, true, t)) {
+						float p = down.point(t).y;
+						if(p>pos.y) pos.y = p;
+					}
 					o->setPosition(pos - o->getParent()->getPosition());
 					updateObjectBounds(o);
 				}
@@ -406,7 +413,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 			else if(!overGUI) {
 				float t = 1e4f;
 				m_terrain->castRay(ray.start, ray.direction, t);
-				Object* sel = pick(m_node, ray, t);
+				Object* sel = pick(m_node, ray, false, t);
 				selectObject(sel, keyMask&SHIFT_MASK);
 			}
 		}
@@ -499,7 +506,7 @@ void ObjectEditor::selectionChanged() {
 	}
 }
 
-bool ObjectEditor::isSelected(Object* obj) const {
+bool ObjectEditor::isSelected(SceneNode* obj) const {
 	for(Object* o: m_selected) if(o==obj) return true;
 	return false;
 }
@@ -509,25 +516,24 @@ void ObjectEditor::clearSelection() {
 	selectionChanged();
 }
 
-Object* ObjectEditor::pick(SceneNode* node, const Ray& ray, float& t) const {
+Object* ObjectEditor::pick(SceneNode* node, const Ray& ray, bool ignoreSelection, float& t) const {
+	if(ignoreSelection && isSelected(node)) return 0;
 	Object* result = 0;
 	for(Drawable* d: node->attachments()) {
 		// Test drawables
 		float dist = 0;
 		const BoundingBox& box = d->getBounds();
 		if(base::intersectRayAABB(ray.start, ray.direction, box.centre(), box.size()/2, dist)) {
-			printf("Hit 0 %s %g\n", node->getName(), dist);
 			dist = t;
 			Object* obj = dynamic_cast<Object*>(node);
 			if(obj && dynamic_cast<DrawableMesh*>(d) && pickMesh(ray, static_cast<DrawableMesh*>(d)->getMesh(), node->getDerivedTransform(), dist)) {
-				printf("Hit 1 %s %g\n", node->getName(), dist);
 				result = obj;
 				t = dist;
 			}
 		}
 	}
 	for(SceneNode* n: node->children()) {
-		Object* r = pick(n, ray, t);
+		Object* r = pick(n, ray, ignoreSelection, t);
 		if(r) result = r;
 	}
 	return result;

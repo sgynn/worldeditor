@@ -26,7 +26,7 @@ class ObjectEditor : public EditorPlugin {
 
 	void setResourcePath(const char* path);
 	void selectObject(Object*, bool append=false);
-	Object* pick(scene::SceneNode* node, const Ray& ray, float& t) const;
+	Object* pick(scene::SceneNode* node, const Ray& ray, bool ignoreSelection, float& t) const;
 	static bool pickMesh(const Ray& ray, const base::bmodel::Mesh* mesh, const Matrix& transform, float& t);
 
 	protected:
@@ -43,7 +43,7 @@ class ObjectEditor : public EditorPlugin {
 	gui::TreeNode* addFolder(const char* path, const char* name);
 	void updateObjectBounds(Object*);
 	void cancelPlacement();
-	bool isSelected(Object* obj) const;
+	bool isSelected(scene::SceneNode* obj) const;
 	void clearSelection();
 	void placeObject(Object* object, gui::TreeNode* data);
 	void applySelectTransform();
@@ -63,6 +63,7 @@ class ObjectEditor : public EditorPlugin {
 	vec3           m_chainStart;
 	PlaceMode      m_mode;
 	bool           m_started;
+	bool           m_collideObjects;
 	editor::Gizmo* m_gizmo;
 	BoxSelect*     m_box;
 
