@@ -404,7 +404,8 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 				m_box->clear();
 			}
 			else if(!overGUI) {
-				float t = 1e8f;
+				float t = 1e4f;
+				m_terrain->castRay(ray.start, ray.direction, t);
 				Object* sel = pick(m_node, ray, t);
 				selectObject(sel, keyMask&SHIFT_MASK);
 			}
@@ -514,10 +515,15 @@ Object* ObjectEditor::pick(SceneNode* node, const Ray& ray, float& t) const {
 		// Test drawables
 		float dist = 0;
 		const BoundingBox& box = d->getBounds();
-		if(base::intersectRayAABB(ray.start, ray.direction, box.centre(), box.size()/2, dist) && dist<t) {
-			// ToDo: trace individual polygons
-			result = dynamic_cast<Object*>(node);
-			t = dist;
+		if(base::intersectRayAABB(ray.start, ray.direction, box.centre(), box.size()/2, dist)) {
+			printf("Hit 0 %s %g\n", node->getName(), dist);
+			dist = t;
+			Object* obj = dynamic_cast<Object*>(node);
+			if(obj && dynamic_cast<DrawableMesh*>(d) && pickMesh(ray, static_cast<DrawableMesh*>(d)->getMesh(), node->getDerivedTransform(), dist)) {
+				printf("Hit 1 %s %g\n", node->getName(), dist);
+				result = obj;
+				t = dist;
+			}
 		}
 	}
 	for(SceneNode* n: node->children()) {
@@ -526,6 +532,23 @@ Object* ObjectEditor::pick(SceneNode* node, const Ray& ray, float& t) const {
 	}
 	return result;
 }
+
+bool ObjectEditor::pickMesh(const Ray& ray, const Mesh* mesh, const Matrix& transform, float& t) {
+	const vec3 start = transform.untransform(ray.start);
+	const vec3 direction = transform.unrotate(ray.direction);
+	const vec3 end = start + direction;
+	size_t count = mesh->getIndexCount();
+	float r;
+	bool result = false;
+	for(uint i=0; i<count; i+=3) {
+		if(base::intersectLineTriangle(start, end, mesh->getIndexedVertex(i), mesh->getIndexedVertex(i+1), mesh->getIndexedVertex(i+2), r) && r<t) {
+			result = true;
+			t = r;
+		}
+	}
+	return result;
+}
+
 
 // ------------------------------------------------------------------------------ //
 

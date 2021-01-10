@@ -7,7 +7,7 @@
 #include <vector>
 
 namespace scene { class Material; }
-namespace base { class Texture; }
+namespace base { class Texture; namespace bmodel { class Mesh; } }
 namespace gui { class Button; class Listbox; class Textbox; class Spinbox; class TreeView; class TreeNode; }
 
 namespace editor { class Gizmo; }
@@ -27,6 +27,7 @@ class ObjectEditor : public EditorPlugin {
 	void setResourcePath(const char* path);
 	void selectObject(Object*, bool append=false);
 	Object* pick(scene::SceneNode* node, const Ray& ray, float& t) const;
+	static bool pickMesh(const Ray& ray, const base::bmodel::Mesh* mesh, const Matrix& transform, float& t);
 
 	protected:
 	void toggleEditor(gui::Button*);
