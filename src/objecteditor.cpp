@@ -391,7 +391,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 
 	// Picking
 	if(!m_placement && !m_gizmo->isHeld()) {
-		if(mouse.pressed==1) m_box->start();
+		if(mouse.pressed==1 && !overGUI) m_box->start();
 		else if(mouse.released&1) {
 			if(m_box->isValid()) {
 				m_box->updatePlanes(camera);
@@ -403,7 +403,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 				}
 				m_box->clear();
 			}
-			else {
+			else if(!overGUI) {
 				float t = 1e8f;
 				Object* sel = pick(m_node, ray, t);
 				selectObject(sel, keyMask&SHIFT_MASK);
