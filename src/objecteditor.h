@@ -7,6 +7,7 @@
 #include <vector>
 
 namespace scene { class Material; }
+namespace base { class Texture; }
 namespace gui { class Button; class Listbox; class Textbox; class Spinbox; class TreeView; class TreeNode; }
 
 namespace editor { class Gizmo; }
@@ -34,7 +35,9 @@ class ObjectEditor : public EditorPlugin {
 	void selectObject(gui::TreeView*, gui::TreeNode*);
 
 	protected:
-	scene::Material* createMaterial(const char* name);
+	void setupMaterials();
+	base::Texture* findTexture(const char* name, const char* suffix, int limit=3);
+	scene::Material* getMaterial(const char* name, bool normalMap, bool coloured);
 	gui::TreeNode* addModel(const char* path, const char* name);
 	gui::TreeNode* addFolder(const char* path, const char* name);
 	void updateObjectBounds(Object*);

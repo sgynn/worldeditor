@@ -60,7 +60,7 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 	CONNECT(TreeView, "resources", eventSelected, selectResource);
 
 	m_gizmo = new editor::Gizmo();
-	m_gizmo->setRenderQueue(5);
+	m_gizmo->setRenderQueue(15);
 	scene->attach(m_gizmo);
 	m_gizmo->setVisible(false);
 	m_selectGroup = m_node->createChild("Selection");
@@ -68,6 +68,7 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 	m_box = new BoxSelect();
 	m_panel->getParent()->add(m_box);
 
+	setupMaterials();
 	setResourcePath(fs->getRootPath());
 }
 
@@ -102,17 +103,20 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 			vec3 pos, scale(1,1,1);
 			const char* name = i.attribute("name");
 			const char* file = i.attribute("file");
-			int mesh = i.attribute("mesh", 0);
+			int meshIndex = i.attribute("mesh", 0);
 			sscanf(i.attribute("scale"), "%g %g %g", &scale.x, &scale.y, &scale.z);
 			sscanf(i.attribute("position"), "%g %g %g", &pos.x, &pos.y, &pos.z);
 			sscanf(i.attribute("orientation"), "%g %g %g %g", &rot.w, &rot.x, &rot.y, &rot.z);
 			
 			String f = m_fileSystem->getFile(file);
 			Model* model = base::bmodel::BMLoader::load(f);
-			if(model && mesh < model->getMeshCount()) {
+			if(model && meshIndex < model->getMeshCount()) {
 				Object* o = new Object();
-				model->getMesh(mesh)->calculateBounds();
-				DrawableMesh* d = new DrawableMesh(model->getMesh(mesh), createMaterial(model->getMaterialName(mesh)));
+				Mesh* mesh = model->getMesh(meshIndex);
+				mesh->calculateBounds();
+				bool hasTangents = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_TANGENT);
+				bool hasColour = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_COLOUR);
+				DrawableMesh* d = new DrawableMesh(mesh, getMaterial(model->getMaterialName(meshIndex), hasTangents, hasColour));
 				m_node->addChild(o);
 				o->setName(name);
 				o->attach(d);
@@ -373,11 +377,14 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 			if(base::Game::Pressed(base::KEY_4)) m_gizmo->setLocalMode();
 			if(base::Game::Pressed(base::KEY_5)) m_gizmo->setRelative(Matrix());
 			if(base::Game::Pressed(base::KEY_G)) {
-				vec3 pos = m_selected[0]->getPosition();
-				pos.y = m_terrain->getHeight(pos);
-				m_selected[0]->setPosition(pos);
-				m_gizmo->setPosition(pos);
-				updateObjectBounds(m_selected[0]);
+				selectionChanged();
+				for(Object* o: m_selected) {
+					vec3 pos = o->getPosition() + o->getParent()->getPosition();
+					pos.y = m_terrain->getHeight(pos);
+					o->setPosition(pos - o->getParent()->getPosition());
+					updateObjectBounds(o);
+				}
+				selectionChanged();
 			}
 		}
 	}
@@ -388,6 +395,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 		else if(mouse.released&1) {
 			if(m_box->isValid()) {
 				m_box->updatePlanes(camera);
+				if(~keyMask&SHIFT_MASK) clearSelection();
 				for(SceneNode* node: m_node->children()) {
 					for(Drawable* d: node->attachments()) {
 						if(m_box->inside(d->getBounds())) selectObject(static_cast<Object*>(node), true);
@@ -475,6 +483,10 @@ void ObjectEditor::selectionChanged() {
 		gizmoRoot = m_selectGroup;
 	}
 
+	// Use render queue for selection highlight
+	for(SceneNode* n: m_node->children()) if(n->getAttachmentCount()) n->getAttachment(0)->setRenderQueue(0);
+	for(Object* o: m_selected) o->getAttachment(0)->setRenderQueue(12);
+
 	// Set up gizmo
 	if(m_selected.empty()) m_gizmo->setVisible(false);
 	else {
@@ -519,19 +531,28 @@ Object* ObjectEditor::pick(SceneNode* node, const Ray& ray, float& t) const {
 
 static const char* shaderSourceVS =
 "#version 150\n"
-"in vec4 vertex;\nin vec3 normal;\nin vec2 texCoord;\n"
+"in vec4 vertex;\nin vec3 normal;\nin vec2 texCoord;\nin vec4 tangent;\nin vec4 vcolour;\n"
 "uniform mat4 transform;\nuniform mat4 modelMatrix;\n"
-"out vec2 texcoord;\nout vec3 worldNormal;\nout vec3 worldPos;\n"
-"void main() { gl_Position=transform*vertex; texcoord=texCoord; worldNormal=mat3(modelMatrix)*normal; worldPos=(modelMatrix * vertex).xyz; }\n";
+"out vec2 texcoord;\nout vec3 worldNormal;\nout vec3 worldPos;\nout vec4 colour;\nout vec3 worldTangent;\nout vec3 worldBinormal;\n"
+"void main() { gl_Position=transform*vertex; texcoord=texCoord; worldNormal=mat3(modelMatrix)*normal; worldPos=(modelMatrix * vertex).xyz;"
+"worldTangent=mat3(modelMatrix)*tangent.xyz;\nworldBinormal=cross(worldNormal,worldTangent)*tangent.w; colour=vcolour; }\n";
 static const char* shaderSourceFS =
 "#version 150\n"
-"in vec2 texcoord;\nin vec3 worldNormal;\nin vec3 worldPos;\nout vec4 fragment;\n"
-"uniform sampler2D diffuse;\nuniform vec3 lightDirection;\n"
-"void main() { vec4 diff=texture2D(diffuse, texcoord.st);\n"
+"in vec2 texcoord;\nin vec3 worldNormal;\nin vec3 worldPos;\nout vec4 fragment;\nin vec4 colour;\n"
+"in vec3 worldTangent;\nin vec3 worldBinormal;\n"
+"uniform sampler2D diffusemap;\nuniform sampler2D normalmap;\n\nuniform vec3 lightDirection;\n"
+"void main() { vec4 diff=texture2D(diffusemap, texcoord.st);\n"
+"#ifdef COLOUR\ndiff *= colour;\n#endif\n"
 "if(diff.a < 0.5) discard;\n"
-"float l = dot(normalize(worldNormal), normalize(lightDirection));\n"
+"#ifdef NORMALMAP\nvec3 norm=texture2D(normalmap, texcoord.st).xyz*2.0-1.0;\n"
+"vec3 normal = mat3(normalize(worldTangent), normalize(worldBinormal), normalize(worldNormal)) * norm;\n"
+"#else\nvec3 normal=normalize(worldNormal);\n#endif\n"
+"float l = dot(normal, normalize(lightDirection));\n"
 "float s = (l+1)/1.3*0.2+0.1;\n"
+"diff.rgb *= max(s, l);\n"
 "fragment = vec4(diff.rgb * max(s,l), 1.0); }";
+static const char* shaderSourceSelectedFS = 
+"#version 150\nout vec4 fragment;\nvoid main() { fragment = vec4(1,1,1,1); }\n";
 
 bool findFile(char* path, const char* name, int limit=3) {
 	int o = strlen(path);
@@ -551,62 +572,99 @@ bool findFile(char* path, const char* name, int limit=3) {
 	return false;
 }
 
-scene::Material* ObjectEditor::createMaterial(const char* name) {
-	if(!name || !name[0]) name = "default";
-	scene::Material* material = m_materials.get(name, 0);
-	if(material) return material;
+void ObjectEditor::setupMaterials() {
+	char name[32];
+	uint data = 0xffffffff;
+	uint dataN = 0xff8080;
+	base::Texture* white = new base::Texture(base::Texture::create(1, 1, base::Texture::R8, &data));
+	base::Texture* flat =  new base::Texture(base::Texture::create(1, 1, base::Texture::RGB8, &dataN));
+	char log[2048];
 
-	static scene::Shader* shader = 0;
-	if(!shader) {
-		scene::ShaderPart* vs = new scene::ShaderPart(scene::VERTEX_SHADER, shaderSourceVS);
+	scene::ShaderPart* vs = new scene::ShaderPart(scene::VERTEX_SHADER, shaderSourceVS);
+	
+	// Selected material
+	scene::ShaderPart* fs = new scene::ShaderPart(scene::FRAGMENT_SHADER, shaderSourceSelectedFS);
+	scene::Shader* selectShader = new scene::Shader();
+	selectShader->attach(vs);
+	selectShader->attach(fs);
+
+	for(int i=0; i<4; ++i) {
 		scene::ShaderPart* fs = new scene::ShaderPart(scene::FRAGMENT_SHADER, shaderSourceFS);
-		shader = new scene::Shader();
+		if(i&1) fs->define("NORMALMAP");
+		if(i&2) fs->define("COLOUR");
+		scene::Shader* shader = new scene::Shader();
 		shader->attach(vs);
 		shader->attach(fs);
 		shader->bindAttributeLocation("vertex",  0);
 		shader->bindAttributeLocation("normal",  1);
+		shader->bindAttributeLocation("tangent", 2);
 		shader->bindAttributeLocation("texCoord",3);
-	}
+		shader->bindAttributeLocation("vcolour", 4);
 
-	material = new scene::Material;
-	scene::Pass* pass = material->addPass("default");
-	pass->setShader(shader);
-	pass->getParameters().set("lightDirection", vec3(1,1,1));
-	pass->getParameters().setAuto("transform", scene::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
-	pass->getParameters().setAuto("modelMatrix", scene::AUTO_MODEL_MATRIX);
-	
-	// Find texture
-	bool foundTexture = false;
-	char fullName[128];
+		scene::Material* material = new scene::Material;
+		scene::Pass* pass = material->addPass("default");
+		pass->setShader(shader);
+		pass->getParameters().set("lightDirection", vec3(1,1,1));
+		pass->getParameters().setAuto("transform", scene::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
+		pass->getParameters().setAuto("modelMatrix", scene::AUTO_MODEL_MATRIX);
+		pass->setTexture("diffusemap", white);
+		if(i&1) pass->setTexture("normalmap", flat);
+
+		pass->compile();
+		if(pass->getShader()->getLog(log, sizeof(log)))	printf(log);
+		if(!pass->getShader()->isCompiled()) printf("Failed\n");
+
+		pass = material->addPass("selected");
+		pass->setShader(selectShader);
+		pass->getParameters().setAuto("transform", scene::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
+		pass->state.wireframe = true;
+		pass->state.cullMode = scene::CULL_FRONT;
+		pass->compile();
+		if(pass->getShader()->getLog(log, sizeof(log)))	printf(log);
+
+		sprintf(name, "default|%d", i);
+		m_materials[name] = material;
+	}
+}
+
+base::Texture* ObjectEditor::findTexture(const char* name, const char* suffix, int limit) {
 	char path[2048];
-	sprintf(fullName, "%s.png", name);
+	char file[256];
 	strcpy(path, m_fileSystem->getRootPath());
-	if(findFile(path, fullName)) {
+	sprintf(file, "%s%s", name, suffix);
+	if(findFile(path, file, limit)) {
 		base::PNG png = base::PNG::load(path);
 		if(png.data) {
-			base::Texture tex = base::Texture::create(png.width, png.height, png.bpp/8, png.data);
-			pass->setTexture("diffuse", new base::Texture(tex));
-			foundTexture = true;
+			return new base::Texture(base::Texture::create(png.width, png.height, png.bpp/8, png.data));
 		}
 	}
+	return 0;
+}
 
-	// Fallback texture
-	if(!foundTexture) {
-		static base::Texture* defaultTexture = 0;
-		if(!defaultTexture) {
-			uint data = 0xffffffff;
-			defaultTexture = new base::Texture(base::Texture::create(1, 1, base::Texture::R8, &data));
-		}
-		pass->setTexture("diffuse", defaultTexture);
+scene::Material* ObjectEditor::getMaterial(const char* name, bool nmap, bool col) {
+	int code = (nmap?1:0) | (col?2:0);
+	char key[256];
+	sprintf(key, "%s|%d", name&&*name?name: "default", code);
+	scene::Material* material = m_materials.get(key, 0);
+	if(material) return material;
+
+	material = getMaterial(0, nmap, col);
+	base::Texture* diffuse = findTexture(name, ".png");
+	base::Texture* normal = 0;
+	if(nmap) {
+		normal = findTexture(name, "_n.png");
+		if(!normal) normal = findTexture(name, "_normal.png");
 	}
 
-	pass->compile();
-	char buffer[2048]; buffer[0] = 0;
-	pass->getShader()->getLog(buffer, sizeof(buffer));
-	printf(buffer);
-	if(!pass->getShader()->isCompiled()) printf("Failed\n");
+	if(diffuse || normal) {
+		material = material->clone();
+		if(diffuse) material->getPass(0)->setTexture("diffusemap", diffuse);
+		if(normal) material->getPass(0)->setTexture("normalmap", normal);
+		material->getPass(0)->compile();
+		material->getPass(1)->compile();
+	}
 
-	m_materials[name] = material;
+	m_materials[key] = material;
 	return material;
 }
 
@@ -623,8 +681,10 @@ void ObjectEditor::selectResource(TreeView*, TreeNode* resource) {
 
 		if(mesh) {
 			printf("Creating object %s\n", name);
+			bool hasTangents = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_TANGENT);
+			bool hasColour = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_COLOUR);
 			DrawableMesh* d = new DrawableMesh(mesh);
-			d->setMaterial(createMaterial(resource->getText(3)));
+			d->setMaterial(getMaterial(resource->getText(3), hasTangents, hasColour));
 			m_placement = new Object();
 			m_placement->setName(name);
 			m_placement->attach(d);

@@ -412,6 +412,9 @@ void WorldEditor::drawScene() {
 	m_renderer->getState().setCamera(m_camera);
 	m_scene->collect(m_renderer, m_camera);
 	m_renderer->render();
+	// Object selection
+	m_renderer->getState().setMaterialTechnique("selected");
+	m_renderer->render(12,12);
 	m_renderer->getState().reset();
 
 	// Draw editor stuff
