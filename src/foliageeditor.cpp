@@ -483,8 +483,9 @@ XMLElement FoliageEditor::save(const TerrainMap* context) const {
 	return e;
 }
 XMLElement FoliageLayerEditor::save() const {
+	const char* types[] = { "instanced", "grass" };
 	XMLElement e("layer");
-	e.setAttribute("type", (int)m_type);
+	e.setAttribute("type", types[(int)m_type]);
 	e.setAttribute("name", m_name);
 	e.setAttribute("range", m_range);
 	e.setAttribute("density", m_density);
@@ -516,8 +517,13 @@ void FoliageEditor::load(const XMLElement& e, const TerrainMap* context) {
 	clear();
 	const XMLElement& list = e.find("foliage");
 	for(const XMLElement& layerData: list) {
-		int type = layerData.attribute("type", 0);
-		FoliageLayerEditor* editor = addLayer((FoliageType)type);
+		const char* typeName = layerData.attribute("type");
+		FoliageType type;
+		if(strcmp(typeName, "instanced")==0) type = FoliageType::Instanced;
+		else if(strcmp(typeName, "grass")==0) type = FoliageType::Grass;
+		else continue;	// Invalid type
+
+		FoliageLayerEditor* editor = addLayer(type);
 		editor->load(layerData);
 	}
 }

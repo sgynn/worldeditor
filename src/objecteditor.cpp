@@ -127,7 +127,7 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 				TreeNode* node = new TreeNode(name);
 				node->setData(1, o);
 				node->setData(2, f);
-				node->setData(3, mesh);
+				node->setData(3, meshIndex);
 				m_sceneTree->getRootNode()->add(node);
 			}
 		}

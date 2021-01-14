@@ -117,7 +117,6 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_ac
 	if(m_options.fov<=0) m_options.fov = 90; // causes nothing to appear but no errors
 	base::FPSCamera* cam = new base::FPSCamera(m_options.fov, base::Game::aspect(), 0.01, m_options.distance);
 	cam->setSpeed(m_options.speed, 0.004);
-	cam->setEnabled(false);
 	cam->lookat( vec3(10, 50, 10), vec3(100,0,100));
 	m_camera = cam;
 
@@ -320,11 +319,12 @@ void WorldEditor::update() {
 	
 
 	// Update camera
+	int mask = 0;
+	if(mouse.button&4) mask |= CU_MOUSE;
+	if(!editingText && shift!=CTRL_MASK) mask |= CU_KEYS;
 	FPSCamera* cam = static_cast<base::FPSCamera*>(m_camera);
-	cam->setSpeed( editingText? 0: m_options.speed, 0.004 );	// FIXME: use flags in update()
-	cam->setEnabled( mouse.button&4 );
 	cam->grabMouse( (mouse.button&4) && !m_options.tabletMode );
-	cam->update();
+	cam->update(mask);
 	cam->updateFrustum();
 
 	// Change speed with mouse wheel
