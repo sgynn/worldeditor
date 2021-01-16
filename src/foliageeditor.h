@@ -10,6 +10,7 @@ namespace base { class XMLElement; class Texture; namespace bmodel { class Mesh;
 class FileSystem;
 class FileDialog;
 class MapGrid;
+class FoliageLayerEditor;
 
 enum class FoliageType { Instanced, Grass };
 
@@ -56,7 +57,8 @@ class FoliageEditor : public EditorPlugin {
 
 	void showFoliage(bool);
 	scene::Material* createMaterial(FoliageType type, const char* diffuse);
-	class FoliageLayerEditor* addLayer(FoliageType type);
+	FoliageLayerEditor* addLayer(FoliageType type);
+	void showEditor(FoliageLayerEditor* layer);
 	
 	protected:
 	void layerSelected(gui::Listbox*, int);

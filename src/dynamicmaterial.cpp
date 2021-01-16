@@ -261,10 +261,12 @@ bool DynamicMaterial::compile() {
 	bool hasTextureArray = false;
 	bool hasIndexed = false;
 	bool hasMaps = false;
+	bool hasTriplanar = false;
 	for(MaterialLayer* layer: m_layers) {
 		if(layer->type==LAYER_WEIGHT || layer->type == LAYER_AUTO) hasTextureArray=true;
 		if(layer->mapIndex > 0) hasMaps = true;
 		if(layer->type == LAYER_INDEXED) hasIndexed = hasTextureArray = true;
+		if(layer->projection != PROJECTION_FLAT) hasTriplanar = true;
 	}
 
 
@@ -316,13 +318,13 @@ bool DynamicMaterial::compile() {
 	source += "\n\n//Utility functions\n";
 
 	// Functions
-	if(hasTextureArray) source +=
+	if(hasTextureArray && hasTriplanar) source +=
 	"vec4 sampleTriplanar(float map, vec3 coord, vec3 weights) {\n"
 	"	vec4 c = vec4(coord.xyz, map);\n"
 	"	return texture(diffuseArray, c.yzw)*weights.xxxx + texture(diffuseArray, c.zxw)*weights.yyyy + texture(diffuseArray, c.xyw)*weights.zzzz;\n"
 	"}\n";
 
-	if(hasTextureArray) source +=
+	if(hasTextureArray && hasTriplanar) source +=
 	"vec4 sampleTriplanerNormal(float map, vec3 coord, vec3 normal, vec3 weights) {\n"
 	"	vec4 c = vec4(coord.xyz, map);\n"
 	"	vec4 nX = texture(normalArray, c.yzw);\n"
@@ -359,7 +361,7 @@ bool DynamicMaterial::compile() {
 
 	if(hasTextureArray) source +=
 	"vec4 sampleNormal(float map, vec2 coord) {\n"
-	"	vec4 n = texture(diffuseArray, vec3(coord, map));\n"
+	"	vec4 n = texture(normalArray, vec3(coord, map));\n"
 	"	return vec4(n.xyz * 2.0 - 1.0, n.w);\n"
 	"}\n";
 	
@@ -611,7 +613,7 @@ bool DynamicMaterial::compile() {
 	// Lighting (basic diffuse);
 	source +=
 	"	// Lighting\n"
-	"	float l = dot( normalize(worldNormal), normalize(lightDirection) );\n"
+	"	float l = dot( normalize(worldNormal + normal.xyz), normalize(lightDirection) );\n"
 	"	float s = (l+1)/1.3 * 0.2 + 0.1;\n"
 	"	fragment = diffuse * max(l, s);\n"
 	"}\n";
@@ -672,6 +674,68 @@ bool DynamicMaterial::compile() {
 	return false;
 }
 
+#include <base/xml.h>
+using base::XMLElement;
+void DynamicMaterial::exportMaterial() const {
+	// export shader file
+	Pass* pass = m_material->getPass(0);
+	const char* vs = "";
+	const char* fs = "";
+	for(ShaderPart* s: pass->getShader()->getParts()) {
+		if(s->getType() == scene::VERTEX_SHADER) vs = s->getSource() + 12;
+		if(s->getType() == scene::FRAGMENT_SHADER) fs = s->getSource() + 12;
+	}
+
+	char shaderFile[128];
+	sprintf(shaderFile, "%s.glsl", getName());
+	FILE* fp = fopen(shaderFile, "w");
+	fprintf(fp, "#version 130\n\n");
+	fprintf(fp, "#pragma vertex_shader\n%s\n", vs);
+	fprintf(fp, "#pragma fragment_shader\n%s\n", fs);
+	fclose(fp);
+
+	// export material file
+	base::XML xml("material");
+	xml.getRoot().add("shader").setAttribute("file", shaderFile);
+	XMLElement& transform = xml.getRoot().add("variable");
+	transform.setAttribute("type", "auto");
+	transform.setAttribute("name", "transform");
+	transform.setAttribute("value", "modelviewprojection_matrix");
+
+	auto addVar1 = [&xml](const char* name, float value) { XMLElement& e=xml.getRoot().add("variable"); e.setAttribute("name", name); e.setAttribute("type", "float"); e.setAttribute("value", value); };
+	auto addVar2 = [&xml](const char* name, vec2 value) { XMLElement& e=xml.getRoot().add("variable"); e.setAttribute("name", name); e.setAttribute("type", "vec2"); char buf[64]; sprintf(buf,"%g %g",value.x, value.y); e.setAttribute("value", buf); };
+	auto addVar3 = [&xml](const char* name, vec3 value) { XMLElement& e=xml.getRoot().add("variable"); e.setAttribute("name", name); e.setAttribute("type", "vec3"); char buf[64]; sprintf(buf,"%g %g %g",value.x, value.y, value.z); e.setAttribute("value", buf); };
+
+	for(size_t index=0; index<m_layers.size(); ++index) {
+		const MaterialLayer* layer = m_layers[index];
+		addVar1( addIndex("opacity",index), layer->visible? layer->opacity: 0);
+
+		// Splat texture scaling
+		if(layer->type != LAYER_COLOUR) {
+			if(layer->projection == PROJECTION_FLAT) addVar2( addIndex("scale",index), 1.0 / layer->scale.xy());
+			else addVar3( addIndex("scale",index), 1.0 / layer->scale);
+		}
+
+		// Auto parameters
+		if(layer->type == LAYER_AUTO) {
+			vec3 min(layer->height.min, layer->slope.min, layer->concavity.min);
+			vec3 max(layer->height.max, layer->slope.max, layer->concavity.max);
+			vec3 blend(layer->height.blend, layer->slope.blend, layer->concavity.blend);
+			for(int i=0; i<3; ++i) if(blend[i]<=0) blend[i] = 0.001; // avoid div0
+
+			//vec3 noise(layer->height.noise, layer->slope.noise, layer->concavity.noise);
+			addVar3( addIndex("autoMin",index), min);
+			addVar3( addIndex("autoMax",index), max);
+			addVar3( addIndex("autoBlend",index), blend);
+			//m_vars->set( addIndex("autoNoise",index), noise);
+		}
+	}
+	addVar3("lightDirection", vec3(1,1,1));
+	sprintf(shaderFile, "%s.mat", getName());
+	xml.save(shaderFile);
+
+	printf("Exported material to %s\n", shaderFile);
+}
 
 
 

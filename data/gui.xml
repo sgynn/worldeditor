@@ -299,6 +299,7 @@
 		<widget template="combobox" name="materiallist" rect="72 8 310 20" anchor="tlr"/>
 		<widget template="scrollpane" name="layerlist" rect="0 32 390 412" fullsize="1" anchor="tlrb"/>
 		<widget caption="New Material" class="Button" name="newmaterial" rect="5 448 100 20" skin="button" anchor="bl"/>
+		<widget caption="Export" class="Button" name="exportmaterial" rect="110 448 60 20" skin="button" anchor="bl"/>
 		<widget caption="Add Layer" template="droplist" name="addlayer" rect="200 448 80 20" skin="button" anchor="br">
 			<item>Procedural</item>
 			<item>Mapped</item>

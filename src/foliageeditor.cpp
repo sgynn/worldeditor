@@ -182,7 +182,7 @@ void FoliageEditor::update(const Mouse&, const Ray& ray, int keyMask, base::Came
 
 void FoliageEditor::addLayer(gui::Combobox* c, int i) {
 	FoliageLayerEditor* editor = addLayer((FoliageType)i);
-	editor->getPanel()->setVisible(true);
+	showEditor(editor);
 }
 
 FoliageLayerEditor* FoliageEditor::addLayer(FoliageType type) {
@@ -223,7 +223,7 @@ void FoliageEditor::duplicateLayer(Button*) {
 		FoliageLayerEditor* from = m_layerList->getItemData(index).getValue<FoliageLayerEditor*>(0);
 		FoliageLayerEditor* to =  addLayer(from->getType());
 		to->load(from->save()); // meh ?
-		to->getPanel()->setVisible(true);
+		showEditor(to);
 	}
 }
 
@@ -234,8 +234,7 @@ void FoliageEditor::layerSelected(Listbox* list, int i) {
 		FoliageLayerEditor* editor = 0;
 		list->getItemData(i).read(editor);
 		if(editor) {
-			editor->getPanel()->setVisible(true);
-			editor->getPanel()->raise();
+			showEditor(editor);
 		}
 	}
 }
@@ -245,6 +244,20 @@ void FoliageEditor::layerRenamed(FoliageLayerEditor* e) {
 		if(m_layerList->getItemData(i).getValue<FoliageLayerEditor*>(0) == e) {
 			m_layerList->setItemName(i, e->getName());
 			break;
+		}
+	}
+}
+
+void FoliageEditor::showEditor(FoliageLayerEditor* layer) {
+	layer->getPanel()->setVisible(true);
+	layer->getPanel()->raise();
+	
+	// Don't perfectly overlap them
+	for(uint i=0; i<m_layerList->getItemCount(); ++i) {
+		FoliageLayerEditor* editor = m_layerList->getItemData(i).getValue<FoliageLayerEditor*>(0);
+		if(editor != layer && editor->getPanel()->isVisible() && editor->getPanel()->getPosition() == layer->getPanel()->getPosition()) {
+			layer->getPanel()->setPosition(layer->getPanel()->getPosition() + Point(32, 32));
+			
 		}
 	}
 }

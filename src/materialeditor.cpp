@@ -88,7 +88,8 @@ DynamicMaterial* MaterialEditor::getMaterial() const {
 	return getMaterial(m_selectedMaterial);
 }
 DynamicMaterial* MaterialEditor::getMaterial(int index) const {
-	return m_materials[index];
+	if((size_t)index < m_materials.size()) return m_materials[index];
+	return 0;
 }
 DynamicMaterial* MaterialEditor::getMaterial(const char* name) const {
 	for(size_t i=0; i<m_materials.size(); ++i) {
@@ -357,6 +358,7 @@ void MaterialEditor::setupGui() {
 	m_gui->getWidget<gui::Button>("reloadtexture")->eventPressed.bind(this, &MaterialEditor::reloadTexture);
 
 
+	m_gui->getWidget<gui::Button>("exportmaterial")->eventPressed.bind(this, &MaterialEditor::exportMaterial);
 	m_gui->getWidget<gui::Button>("newmaterial")->eventPressed.bind(this, &MaterialEditor::addMaterial);
 	m_gui->getWidget<gui::Button>("removelayer")->eventPressed.bind(this, &MaterialEditor::removeLayer);
 	m_gui->getWidget<gui::Combobox>("addlayer")->eventSelected.bind(this, &MaterialEditor::addLayer);
@@ -620,6 +622,11 @@ void MaterialEditor::addMaterial(gui::Button*) {
 	createMaterial("New Material");
 	m_materialList->selectItem( m_materials.size()-1 );
 	selectMaterial(0, m_materials.size()-1);
+}
+
+void MaterialEditor::exportMaterial(gui::Button*) {
+	DynamicMaterial* mat = getMaterial();
+	if(mat) mat->exportMaterial();
 }
 
 void MaterialEditor::selectMaterial(gui::Combobox*, int index) {
@@ -967,6 +974,11 @@ void MaterialEditor::changeScaleX(gui::Scrollbar* w, int v) {
 	MaterialLayer* l = getLayer(w);
 	if(l->projection == PROJECTION_FLAT) l->scale.x = v/40.0;
 	else l->scale.x = l->scale.z = v/40.0;
+	if(w->getRoot()->getKeyMask() == gui::KeyMask::Shift) {
+		gui::Scrollbar* other = w->getParent()->getWidget(w->getIndex() + 1)->cast<gui::Scrollbar>();
+		if(other) other->setValue(v);
+		return;
+	}
 	updateMaterial(w);
 }
 void MaterialEditor::changeScaleY(gui::Scrollbar* w, int v) {

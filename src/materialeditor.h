@@ -77,6 +77,7 @@ class MaterialEditor {
 	void addMaterial(gui::Button*);
 	void selectMaterial(gui::Combobox*, int);
 	void renameMaterial(gui::Combobox*);
+	void exportMaterial(gui::Button*);
 	void addLayer(gui::Combobox*, int);
 	void removeLayer(gui::Button*);
 	void toggleLayer(gui::Button*);
