@@ -522,6 +522,7 @@ XMLElement FoliageLayerEditor::save() const {
 			f.setAttribute("file", m_editor->m_fileSystem->getRelative(mesh->file));
 		}
 		e.add("align").setAttribute("mode", m_align);
+		if(m_align > 1) saveRange(e, "angle", m_angle);
 	}
 	return e;
 }
@@ -549,7 +550,6 @@ void FoliageLayerEditor::load(const XMLElement& e) {
 	loadRange(e.find("slope"), m_slope);
 	loadRange(e.find("scale"), m_scale);
 
-	updateSliders();
 	
 	if(m_type==FoliageType::Grass) {
 		const XMLElement& f = e.find("sprite");
@@ -566,8 +566,10 @@ void FoliageLayerEditor::load(const XMLElement& e) {
 		if(mode) m_align = atoi(mode);
 		m_panel->getWidget<Combobox>("alignment")->selectItem(m_align);
 		m_panel->getWidget<Widget>("alignrange")->setVisible(m_align>1);
+		loadRange(e.find("angle"), m_angle);
 	}
 
+	updateSliders();
 	refresh();
 	if(eventRenamed) eventRenamed(this);
 }
