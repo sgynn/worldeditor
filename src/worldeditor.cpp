@@ -1096,6 +1096,8 @@ void WorldEditor::saveWorld(const char* file) {
 	if(!file && !m_file) return;
 	if(m_file != file) m_file = file;
 	m_fileSystem->setRootPath(m_file, true);
+	if(m_root) m_fileSystem->setRootPath(m_fileSystem->getRootPath() + m_root);
+
 	char buffer[1024];
 	updateTitle();
 
@@ -1114,6 +1116,7 @@ void WorldEditor::saveWorld(const char* file) {
 	xml.getRoot().setAttribute("mapsize", m_mapSize);
 	xml.getRoot().setAttribute("min", m_heightRange.min);
 	xml.getRoot().setAttribute("max", m_heightRange.max);
+	if(m_root) xml.getRoot().setAttribute("root", m_root);
 
 	// Terrain
 	for(TerrainMap* map: m_maps) {
@@ -1224,6 +1227,10 @@ void WorldEditor::loadWorld(const char* file) {
 	createNewTerrain(m_mapSize);
 	m_fileSystem->setRootPath(file, true);
 	m_file = file;
+
+	m_root = xml.getRoot().attribute("root");
+	if(m_root) m_fileSystem->setRootPath(m_fileSystem->getRootPath() + "/" + m_root);
+
 
 	// Load overlay definitions
 	for(const XMLElement& e: xml.getRoot()) {

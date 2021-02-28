@@ -106,6 +106,7 @@ class WorldEditor : public base::SceneState {
 	scene::Scene*    m_scene;
 	scene::Renderer* m_renderer;
 	FileSystem*      m_fileSystem;
+	gui::String      m_root;
 
 	// Terrain properies
 	bool  m_streaming;					// Use streaming editor

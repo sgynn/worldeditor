@@ -585,7 +585,7 @@ static const char* shaderSourceSelectedFS =
 
 bool findFile(char* path, const char* name, int limit=3) {
 	int o = strlen(path);
-	path[o++] = '/';
+	strcpy(path + o++, "/");
 	base::Directory dir(path);
 	for(const auto& file: dir) {
 		if(strcmp(file.name, name)==0) {
@@ -724,7 +724,7 @@ void ObjectEditor::selectResource(TreeView*, TreeNode* resource) {
 
 TreeNode* ObjectEditor::addModel(const char* path, const char* name) {
 	Model* model = base::bmodel::BMLoader::load(path);
-	if(!model) return 0;
+	if(!model || model->getMeshCount()==0) return 0;
 	TreeNode* node = new TreeNode(name);
 	node->setData(1, model);
 	node->setData(2, String(path));
@@ -751,8 +751,10 @@ TreeNode* ObjectEditor::addFolder(const char* path, const char* name) {
 		if(file.type == base::Directory::FILE && strcmp(file.name+file.ext, "bm")==0) {
 			strcpy(fullPath+o, file.name);
 			TreeNode* node = addModel(fullPath, file.name);
-			if(!folder) folder = new TreeNode(name);
-			folder->add(node);
+			if(node) {
+				if(!folder) folder = new TreeNode(name);
+				folder->add(node);
+			}
 		}
 		else if(file.type == base::Directory::DIRECTORY) {
 			if(strcmp(file.name, ".")==0 || strcmp(file.name, "..")==0) continue;
