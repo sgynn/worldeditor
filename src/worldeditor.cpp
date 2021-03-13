@@ -290,8 +290,9 @@ void WorldEditor::update() {
 
 	// Update GUI
 	Point guiMouse(mouse.position.x, Game::height() - mouse.position.y);
+	m_gui->setKeyMask((gui::KeyMask)shift);
 	m_gui->mouseEvent(guiMouse, mouse.button, mouse.wheel);
-	if(Game::LastKey()) m_gui->keyEvent(Game::LastKey(), Game::LastChar(), (gui::KeyMask)shift);
+	if(Game::LastKey()) m_gui->keyEvent(Game::LastKey(), Game::LastChar());
 	m_gui->update();
 
 

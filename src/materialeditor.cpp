@@ -112,13 +112,17 @@ void MaterialEditor::destroyMaterial(int index) {
 }
 
 int readVector(const char* src, vec3& out) {
-	for(int i=0; i<3; ++i) {
-		out[i] = atof(src);
-		while(*src && *src!=',') ++src;
-		if(*src==0) return i+1;
-		while(*src==',' || *src==' ') ++src;
+	int read = 0;
+	char* end;
+	while(*src && read<3) {
+		out[read] = strtod(src, &end);
+		if(end==src) break;
+		if(*end==',' || *end==';' || *end==' ') ++end;
+		src = end;
+		++read;
 	}
-	return 3;	// should not be hit
+	for(int i=read; i<3; ++i) out[i] = out[read];
+	return read;
 }
 
 void readAutoParams(const XMLElement& e, AutoParams& p) {
@@ -205,7 +209,7 @@ XMLElement MaterialEditor::serialiseMaterial(int index) {
 		if(l->projection)          layer.setAttribute("projection", projections[l->projection]);
 
 		// Scale can have different formats
-		if(l->scale.x == l->scale.y && l->scale.y == l->scale.z) sprintf(buffer, "%g", l->scale.x);
+		if(l->scale.x == l->scale.y && (l->scale.y == l->scale.z || l->projection==PROJECTION_FLAT)) sprintf(buffer, "%g", l->scale.x);
 		else if(l->projection == PROJECTION_FLAT) sprintf(buffer, "%g,%g", l->scale.x, l->scale.y);
 		else sprintf(buffer, "%g,%g,%g", l->scale.x, l->scale.y, l->scale.z);
 		layer.setAttribute("scale", buffer);
