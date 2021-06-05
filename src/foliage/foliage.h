@@ -11,7 +11,7 @@
 #include <map>
 
 namespace scene { class Material; class DrawableMesh; }
-namespace base { namespace bmodel { class Mesh; } }
+namespace base { namespace bmodel { class Mesh; } class HardwareVertexBuffer; }
 class FoliageSystem;
 
 class FoliageMap {
@@ -67,7 +67,8 @@ class FoliageLayer : protected scene::SceneNode {
 	typedef Point Index;
 	typedef std::vector<Index> IndexList;
 	enum ChunkState { EMPTY, GENERATING, GENERATED, COMPLETE };
-	struct Chunk { scene::DrawableMesh* mesh; ChunkState state; bool active; };
+	struct Geometry { base::bmodel::Mesh* mesh; base::HardwareVertexBuffer* instances; size_t count; };
+	struct Chunk { scene::DrawableMesh* drawable; Geometry geometry; ChunkState state; bool active; };
 	std::map<Index, Chunk*> m_chunks;
 
 	protected:
@@ -76,8 +77,8 @@ class FoliageLayer : protected scene::SceneNode {
 	float getMapValue(const FoliageMap* map, const vec3& point) const;
 	int generatePoints(const Index& index, int count, vec3* corners, const vec3& up, PointList& out) const;
 	int generatePoints(const Index& index, PointList& points, vec3& up) const;
-	virtual scene::DrawableMesh* generateGeometry(const Point&) const = 0;
-	virtual void destroyChunk(const Chunk&) const {};
+	virtual Geometry generateGeometry(const Point&) const = 0;
+	virtual void destroyChunk(Chunk&) const {};
 	bool deleteChunk(Chunk*);
 	void deleteMap(FoliageMap*&);
 	FoliageMap* referenceMap(FoliageMap*);
@@ -92,7 +93,7 @@ class FoliageInstanceLayer : public FoliageLayer {
 	void setMesh(base::bmodel::Mesh*);
 	void setAlignment(OrientaionMode mode, const Rangef& range=0);
 	protected:
-	virtual scene::DrawableMesh* generateGeometry(const Index& page) const override;
+	virtual Geometry generateGeometry(const Index& page) const override;
 	protected:
 	base::bmodel::Mesh* m_mesh;
 	Rangef              m_alignRange; // RELATIVE: lerp range between normal and up vector, ABSOLUTE: lerp between sideways and up.
@@ -108,8 +109,8 @@ class GrassLayer : public FoliageLayer {
 	void setSpriteSize(float w, float h, int tiles=1);
 	void setScaleMap(FoliageMap* map, float low=0, float high=1);
 	protected:
-	virtual scene::DrawableMesh* generateGeometry(const Index& page) const;
-	virtual void destroyChunk(const Chunk&) const;
+	virtual Geometry generateGeometry(const Index& page) const override;
+	virtual void destroyChunk(Chunk&) const override;
 	protected:
 	vec2        m_size;
 	int         m_tiles;

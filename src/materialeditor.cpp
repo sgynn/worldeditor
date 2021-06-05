@@ -719,7 +719,7 @@ void MaterialEditor::expandLayer(gui::Button* b) {
 		y += m_layerList->getWidget(i)->getSize().y;
 	}
 	// update pane
-	m_layerList->setPaneAutoSize(true);
+	m_layerList->setAutosize(true);
 }
 
 void MaterialEditor::moveLayer(int from, int to) {

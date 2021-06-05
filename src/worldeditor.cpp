@@ -280,7 +280,6 @@ void WorldEditor::update() {
 	lbutton = mouse.button;
 
 	Ray mouseRay = m_camera->getMouseRay(mouse.position, Game::getSize());
-	
 
 	int shift = 0;
 	if(Game::Key(KEY_LSHIFT) || Game::Key(KEY_RSHIFT)) shift |= SHIFT_MASK;
@@ -298,8 +297,7 @@ void WorldEditor::update() {
 
 	// Resized window
 	if(Game::getSize() != m_gui->getRootWidget()->getSize()) resized();
-	const gui::Widget* mw = m_gui->getWidgetUnderMouse();
-	bool guiHasMouse = mw && mw != m_gui->getRootWidget() && mw->isTangible();
+	bool guiHasMouse = m_gui->getWidgetUnderMouse();
 	bool editingText = m_gui->getFocusedWidget()->cast<Textbox>();
 
 
@@ -354,14 +352,14 @@ void WorldEditor::update() {
 		}
 	}
 
-	// Pretend mouse buttons resleased when over gui
-	if(guiHasMouse) {
-		mouse.released |= mouse.button;
-		mouse.button = 0;
-		mouse.pressed = 0;
-		mouse.wheel = 0;
-		lbutton = 0;
-	}
+	// Pretend mouse buttons released when over gui
+//	if(guiHasMouse) {
+//		mouse.released |= mouse.button;
+//		mouse.button = 0;
+//		mouse.pressed = 0;
+//		mouse.wheel = 0;
+//		lbutton = 0;
+//	}
 
 	// Update editor
 	if(m_editor) {
@@ -423,10 +421,6 @@ void WorldEditor::drawScene() {
 }
 
 void WorldEditor::drawHUD() {
-	scene::Material m;
-	m.addPass()->blend = scene::BLEND_ALPHA;
-	m.getPass(0)->bind();
-
 	m_gui->draw();
 }
 

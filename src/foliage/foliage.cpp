@@ -66,7 +66,7 @@ void FoliageLayer::setScaleRange(float min, float max)  { m_scaleRange.set(min, 
 void FoliageLayer::setMaterial(Material* m) {
 	m_material = m;
 	for(auto& c: m_chunks) {
-		if(c.second->mesh) c.second->mesh->setMaterial(m);
+		if(c.second->drawable) c.second->drawable->setMaterial(m);
 	}
 }
 void FoliageLayer::setMapBounds(const BoundingBox2D& b) { m_mapBounds = b; }
@@ -84,9 +84,10 @@ void FoliageLayer::clear() {
 void FoliageLayer::regenerate() {
 	for(auto& i:m_chunks) {
 		if(i.second->state != EMPTY) {
-			detach(i.second->mesh);
+			detach(i.second->drawable);
+			delete i.second->drawable;
+			i.second->drawable = 0;
 			destroyChunk(*i.second);
-			i.second->mesh = 0;
 			i.second->state = EMPTY;
 			m_parent->queueChunk(this, i.first, i.second);
 		}
@@ -161,9 +162,7 @@ void FoliageLayer::update(const vec3& context) {
 	for(Index& index: active) {
 		auto c = m_chunks.find(index);
 		if(c == m_chunks.end()) {
-			Chunk* chunk = new Chunk();
-			chunk->state = EMPTY;
-			chunk->mesh = 0;
+			Chunk* chunk = new Chunk{0, Geometry{0,0,0}, EMPTY, false};
 			c = m_chunks.insert( std::make_pair(index, chunk) ).first;
 			m_parent->queueChunk(this, index, chunk);
 		}
@@ -171,19 +170,25 @@ void FoliageLayer::update(const vec3& context) {
 		// Completed
 		if(c->second->state == GENERATED) {
 			c->second->state = COMPLETE;
-			DrawableMesh* d = c->second->mesh;
-			if(d) {
-				d->getMesh()->getVertexBuffer()->createBuffer();
-				d->getMesh()->getIndexBuffer()->createBuffer();
-				if(d->getInstanceBuffer()) d->getInstanceBuffer()->createBuffer();
-				attach(c->second->mesh);
+			Geometry& g = c->second->geometry;
+			if(g.mesh) {
+				g.mesh->getVertexBuffer()->createBuffer();
+				g.mesh->getIndexBuffer()->createBuffer();
+				DrawableMesh* d = c->second->drawable = new DrawableMesh(g.mesh, m_material);
+
+				if(g.instances) {
+					g.instances->createBuffer();
+					d->setInstanceBuffer(g.instances);
+					d->setInstanceCount(g.count);
+				}
+				attach(d);
 			}
 		}
 	}
 	// delete inactive chunks
 	for(auto i=m_chunks.begin(); i!=m_chunks.end();) {
 		if(!i->second->active) {
-			if(i->second->mesh) detach(i->second->mesh);
+			if(i->second->drawable) detach(i->second->drawable);
 			deleteChunk(i->second);
 			i = m_chunks.erase(i);
 		}
@@ -193,8 +198,8 @@ void FoliageLayer::update(const vec3& context) {
 
 bool FoliageLayer::deleteChunk(Chunk* chunk) {
 	if(m_parent->cancelChunk(chunk)) {
+		delete chunk->drawable;
 		destroyChunk(*chunk);
-		delete chunk->mesh;
 		delete chunk;
 		return true;
 	}
@@ -212,12 +217,12 @@ void FoliageLayer::shift(const vec3& offset) {
 FoliageInstanceLayer::FoliageInstanceLayer(float cs, float r) : FoliageLayer(cs,r), m_mesh(0), m_alignMode(VERTICAL) {}
 void FoliageInstanceLayer::setMesh(Mesh* mesh) { m_mesh = mesh; }
 void FoliageInstanceLayer::setAlignment(OrientaionMode m, const Rangef& r) { m_alignMode = m; m_alignRange = r; }
-DrawableMesh* FoliageInstanceLayer::generateGeometry(const Index& index) const {
-	if(!m_mesh || !m_material) return 0;
+FoliageLayer::Geometry FoliageInstanceLayer::generateGeometry(const Index& index) const {
+	if(!m_mesh || !m_material) return Geometry{0,0,0};
 	vec3 up;
 	PointList points;
 	generatePoints(index, points, up);
-	if(points.empty()) return 0;
+	if(points.empty()) return Geometry{0,0,0};
 	static const vec3 unitY(0,1,0);
 	Quaternion q, a, rot = Quaternion::arc(unitY, up );
 
@@ -248,10 +253,7 @@ DrawableMesh* FoliageInstanceLayer::generateGeometry(const Index& index) const {
 	buffer->attributes.add(base::VA_CUSTOM, base::VA_FLOAT4, 0, "loc", 1);
 	buffer->attributes.add(base::VA_CUSTOM, base::VA_FLOAT4, 16, "rot", 1);
 
-	DrawableMesh* d = new DrawableMesh(m_mesh, m_material);
-	d->setInstanceBuffer(buffer);
-	d->setInstanceCount(points.size());
-	return d;
+	return Geometry{m_mesh, buffer, points.size()};
 }
 
 
@@ -268,12 +270,12 @@ void GrassLayer::setScaleMap(FoliageMap* map, float min, float max) {
 	m_scaleMap = referenceMap(map);
 	m_scaleMapRange.set(min, max);
 }
-DrawableMesh* GrassLayer::generateGeometry(const Index& index) const {
-	if(!m_material) return 0;
+FoliageLayer::Geometry GrassLayer::generateGeometry(const Index& index) const {
+	if(!m_material) return Geometry{0,0,0};
 	vec3 up;
 	PointList points;
 	generatePoints(index, points, up);
-	if(points.empty()) return 0;
+	if(points.empty()) return Geometry{0,0,0};
 	Quaternion rot = Quaternion::arc( vec3(0,1,0), up );
 	float hw = m_size.x / 2;
 	float lean = 0.4;
@@ -337,13 +339,13 @@ DrawableMesh* GrassLayer::generateGeometry(const Index& index) const {
 	mesh->setPolygonMode(base::bmodel::TRIANGLES);
 	mesh->setVertexBuffer(vbuffer);
 	mesh->setIndexBuffer(ibuffer);
-	return new DrawableMesh(mesh, m_material);
+	return Geometry{ mesh, nullptr, 0 };
 }
 
-void GrassLayer::destroyChunk(const Chunk& chunk) const {
-	if(chunk.mesh) {
-		delete chunk.mesh->getMesh();
-		chunk.mesh->setMesh(0);
+void GrassLayer::destroyChunk(Chunk& chunk) const {
+	if(chunk.geometry.mesh) {
+		delete chunk.geometry.mesh;
+		chunk.geometry.mesh = 0;
 	}
 }
 
@@ -383,7 +385,7 @@ void FoliageSystem::removeLayer(FoliageLayer* l) {
 void FoliageSystem::update(const vec3& context) {
 	// Single thread version
 	if(!m_threads && !m_queue.empty()) {
-		m_queue.back().chunk->mesh =  m_queue.back().layer->generateGeometry(m_queue.back().index);
+		m_queue.back().chunk->geometry = m_queue.back().layer->generateGeometry(m_queue.back().index);
 		m_queue.back().chunk->state = FoliageLayer::GENERATED;
 		m_queue.pop_back();
 	}
@@ -425,7 +427,7 @@ void FoliageSystem::threadFunc(int index) {
 
 		// Generate this chunk
 		if(current.chunk) {
-			current.chunk->mesh = current.layer->generateGeometry(current.index);
+			current.chunk->geometry = current.layer->generateGeometry(current.index);
 			current.chunk->state = FoliageLayer::GENERATED;
 		}
 		else Thread::sleep(1);

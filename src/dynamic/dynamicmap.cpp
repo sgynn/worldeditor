@@ -14,31 +14,70 @@
 
 class DynamicHeightmapDrawable : public scene::Drawable {
 	Landscape* m_land;
+	struct PatchTag {
+		base::HardwareVertexBuffer* vertexBuffer;
+		base::HardwareIndexBuffer* indexBuffer;
+		uint binding;
+	};
 	public:
-	DynamicHeightmapDrawable(Landscape* land) : m_land(land) {}
+	DynamicHeightmapDrawable(Landscape* land) : m_land(land) {
+		m_land->setPatchCallbacks( ::bind(this, &DynamicHeightmapDrawable::patchCreated),
+		                           ::bind(this, &DynamicHeightmapDrawable::patchDetroyed),
+								   ::bind(this, &DynamicHeightmapDrawable::patchUpdated));
+	}
 	void draw(scene::RenderState& r) {
 		base::Camera cam = *r.getCamera();
 		cam.setPosition( cam.getPosition() - vec3(&getTransform()[12]));
 		cam.updateFrustum();
 		m_land->update( &cam );
 		m_land->cull( &cam );
-
-		// ToDo: use PatchGeometry tag property to store vertex buffer objects
-		static base::HardwareIndexBuffer ti;
-		static base::HardwareVertexBuffer tv;
-		ti.bind();
-		tv.bind();
-
-		const int stride = 10 * sizeof(float);
 		r.setMaterial( m_material );
-		r.setAttributeArrays(scene::VERTEX_ARRAY | scene::NORMAL_ARRAY);
 		for(const PatchGeometry* g: m_land->getGeometry()) {
-			scene::Shader::current().setAttributePointer(0, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices);
-			scene::Shader::current().setAttributePointer(1, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices+3);
-			glDrawElements(GL_TRIANGLE_STRIP, g->indexCount, GL_UNSIGNED_SHORT, g->indices);
+			PatchTag* tag = (PatchTag*)g->tag;
+			if(tag) {
+				glBindVertexArray(tag->binding);
+				tag->indexBuffer->bind(); // Because it is not part of the buffer for some bizarre reason
+				glDrawElements(GL_TRIANGLE_STRIP, g->indexCount, tag->indexBuffer->getDataType(), 0);
+			}
+		}
+	}
+	void patchCreated(PatchGeometry* patch) {
+		PatchTag* tag = new PatchTag;
+		patch->tag = tag;
+		tag->vertexBuffer = new base::HardwareVertexBuffer();
+		tag->vertexBuffer->attributes.add(base::VA_VERTEX, base::VA_FLOAT3);
+		tag->vertexBuffer->attributes.add(base::VA_NORMAL, base::VA_FLOAT3);
+		tag->vertexBuffer->attributes.add(base::VA_TANGENT, base::VA_FLOAT4); // actually noormal2,height2 but need something to pad out the stride
+		tag->vertexBuffer->setData(patch->vertices, patch->vertexCount, 10*sizeof(float));
+		tag->vertexBuffer->createBuffer();
+		tag->vertexBuffer->addReference();
 
-			//static scene::DebugGeometry dd(scene::SDG_FRAME);
-			//for(uint i=0; i<g->vertexCount; ++i) dd.vector(vec3(g->vertices+i*10)+vec3(&getTransform()[12]), vec3(g->vertices+i*10+3), 0x0000ff);
+		tag->indexBuffer = new base::HardwareIndexBuffer();
+		tag->indexBuffer->setData(patch->indices, patch->indexCount);
+		tag->indexBuffer->createBuffer();
+		tag->indexBuffer->addReference();
+		
+		m_binding = 0;
+		addBuffer(tag->vertexBuffer);
+		addBuffer(tag->indexBuffer);
+		tag->binding = m_binding;
+		m_binding = 0;
+	}
+	void patchUpdated(PatchGeometry* patch) {
+		PatchTag* tag = (PatchTag*)patch->tag;
+		if(tag) {
+			tag->vertexBuffer->setData(patch->vertices, patch->vertexCount, 10*sizeof(float));
+			tag->indexBuffer->setData(patch->indices, patch->indexCount);
+		}
+	}
+	void patchDetroyed(PatchGeometry* patch) {
+		PatchTag* tag = (PatchTag*)patch->tag;
+		if(tag) {
+			glDeleteVertexArrays(1, &tag->binding);
+			tag->indexBuffer->dropReference();
+			tag->vertexBuffer->dropReference();
+			patch->tag = nullptr;
+			delete tag;
 		}
 	}
 };

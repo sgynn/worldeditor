@@ -114,6 +114,8 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 				Object* o = new Object();
 				Mesh* mesh = model->getMesh(meshIndex);
 				mesh->calculateBounds();
+				mesh->getVertexBuffer()->createBuffer();
+				mesh->getIndexBuffer()->createBuffer();
 				bool hasTangents = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_TANGENT);
 				bool hasColour = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_COLOUR);
 				DrawableMesh* d = new DrawableMesh(mesh, getMaterial(model->getMaterialName(meshIndex), hasTangents, hasColour));
@@ -190,7 +192,7 @@ void ObjectEditor::changePath(Textbox* t) {
 
 void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base::Camera* camera) {
 	if(!m_panel->isVisible()) return;
-	bool overGUI = m_panel->getRoot()->getWidgetUnderMouse()!=m_panel->getRoot()->getRootWidget();
+	bool overGUI = m_panel->getRoot()->getWidgetUnderMouse();
 
 	// Placement update
 	if(m_placement) { 
@@ -398,9 +400,13 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 
 	// Picking
 	if(!m_placement && !m_gizmo->isHeld()) {
-		if(mouse.pressed==1 && !overGUI) m_box->start();
+		if(mouse.pressed==1 && !overGUI) {
+			printf("Start box\n");
+			m_box->start();
+		}
 		else if(mouse.released&1) {
 			if(m_box->isValid()) {
+				printf("End box\n");
 				m_box->updatePlanes(camera);
 				if(~keyMask&SHIFT_MASK) clearSelection();
 				for(SceneNode* node: m_node->children()) {
@@ -411,6 +417,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 				m_box->clear();
 			}
 			else if(!overGUI) {
+				printf("Point select\n");
 				float t = 1e4f;
 				m_terrain->castRay(ray.start, ray.direction, t);
 				Object* sel = pick(m_node, ray, false, t);
@@ -712,6 +719,8 @@ void ObjectEditor::selectResource(TreeView*, TreeNode* resource) {
 			printf("Creating object %s\n", name);
 			bool hasTangents = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_TANGENT);
 			bool hasColour = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_COLOUR);
+			mesh->getVertexBuffer()->createBuffer();
+			mesh->getIndexBuffer()->createBuffer();
 			DrawableMesh* d = new DrawableMesh(mesh);
 			d->setMaterial(getMaterial(resource->getText(3), hasTangents, hasColour));
 			m_placement = new Object();

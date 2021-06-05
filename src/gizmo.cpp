@@ -27,7 +27,7 @@ vec3 MouseRay::project(const vec3& p) const {
 
 
 Gizmo::Gizmo() : mScale(1,1,1), mLocalMode(false), mMode(POSITION), mHandle(0), mOffset(0), mHeld(false), mSize(0.2), mCachedScale(1) {
-	createGeometryBuffers();
+	createGeometry();
 }
 Gizmo::~Gizmo() {
 }
@@ -334,25 +334,31 @@ bool Gizmo::overRing(const MouseRay& m, const vec3& centre, const Quaternion& or
 // --------------------------------------- //
 
 using base::HardwareVertexBuffer;
-HardwareVertexBuffer* Gizmo::sArrow = 0;
-HardwareVertexBuffer* Gizmo::sBlock = 0;
-HardwareVertexBuffer* Gizmo::sRing  = 0;
+Gizmo::Geometry Gizmo::sGeometry;
 
-void Gizmo::createGeometryBuffers() {
-	if(sArrow!=0) return;
+void Gizmo::createGeometry() {
+	if(sGeometry.arrowData) return;
 	int stride = 2*sizeof(float);
+
 	// Arrow
 	const float ap[12] = { 0,0,  0,0.9, 0.05,0.9,  0,1,  -0.05,0.9,  0,0.9 };
-	sArrow = new HardwareVertexBuffer();
-	sArrow->copyData(ap, 6, stride);
-	sArrow->createBuffer();
+	sGeometry.arrowData = new HardwareVertexBuffer();
+	sGeometry.arrowData->copyData(ap, 6, stride);
+	sGeometry.arrowData->attributes.add(base::VA_VERTEX, base::VA_FLOAT2);
+	sGeometry.arrowData->createBuffer();
+	addBuffer(sGeometry.arrowData);
+	sGeometry.arrowBinding = m_binding;
+	m_binding = 0;
 
 	// Block
 	const float bp[21] = { 0,0,  0,0.9,  0.05,0.9,  0.05,1,  -0.05,1,  -0.05,0.9,  0,0.9 };
-	sBlock = new HardwareVertexBuffer();
-	sBlock->copyData(bp, 7, stride);
-	sBlock->createBuffer();
-
+	sGeometry.blockData = new HardwareVertexBuffer();
+	sGeometry.blockData->copyData(bp, 7, stride);
+	sGeometry.blockData->attributes.add(base::VA_VERTEX, base::VA_FLOAT2);
+	sGeometry.blockData->createBuffer();
+	addBuffer(sGeometry.blockData);
+	sGeometry.blockBinding = m_binding;
+	m_binding = 0;
 
 	// Ring (with arrow)
 	const int segments = 42;
@@ -366,9 +372,13 @@ void Gizmo::createGeometryBuffers() {
 	}
 	const float ra[6] = { 0.06,0.90,  -0.06,0.90,  0,1 };
 	memcpy(p, ra, sizeof(ra));
-	sRing = new HardwareVertexBuffer();
-	sRing->setData(rp, segments+4, stride, true);
-	sRing->createBuffer();
+	sGeometry.ringData = new HardwareVertexBuffer();
+	sGeometry.ringData->setData(rp, segments+4, stride, true);
+	sGeometry.ringData->attributes.add(base::VA_VERTEX, base::VA_FLOAT2);
+	sGeometry.ringData->createBuffer();
+	addBuffer(sGeometry.ringData);
+	sGeometry.ringBinding = m_binding;
+	m_binding = 0;
 }
 
 scene::Material* getGizmoMaterial() {
@@ -436,7 +446,6 @@ void Gizmo::draw(scene::RenderState& state) {
 	}
 
 	state.setMaterial(m_material);
-	state.setAttributeArrays(1);
 	scene::Pass* pass = m_material->getPass(0);
 	float* colour = pass->getParameters().getFloatPointer("colour");
 	float& alpha = colour[3];
@@ -458,8 +467,9 @@ void Gizmo::draw(scene::RenderState& state) {
 		decomposeOrientation(local, q[0], q[1], q[2]);
 
 		alpha = 1;
-		const char* ptr = sRing->bind();
-		scene::Shader::current().setAttributePointer(0, 2, GL_FLOAT, 0, scene::SA_FLOAT, ptr);
+		m_binding = sGeometry.ringBinding;
+		int count = sGeometry.ringData->getVertexCount();
+		bind();
 		for(int i=0; i<3; ++i) {
 			setColour(colour, i, i==mHandle-1);
 			q[i] = base * q[i];
@@ -469,7 +479,7 @@ void Gizmo::draw(scene::RenderState& state) {
 			
 			state.getVariableSource()->setModelMatrix(matrix);
 			pass->bindVariables(state.getVariableSource());
-			glDrawArrays(GL_LINE_STRIP, 0, sRing->getVertexCount());
+			glDrawArrays(GL_LINE_STRIP, 0, count);
 		}
 
 		// extra two rings
@@ -485,19 +495,25 @@ void Gizmo::draw(scene::RenderState& state) {
 		colour[0] = colour[1] = colour[2] = 1.0;
 		state.getVariableSource()->setModelMatrix(matrix);
 		pass->bindVariables(state.getVariableSource());
-		glDrawArrays(GL_LINE_STRIP, 0, sRing->getVertexCount()-3);
+		glDrawArrays(GL_LINE_STRIP, 0, count-3);
 
 		matrix.scale(0.1);
 		state.getVariableSource()->setModelMatrix(matrix);
 		pass->bindVariables(state.getVariableSource(), true);
-		glDrawArrays(GL_LINE_STRIP, 0, sRing->getVertexCount()-3);
+		glDrawArrays(GL_LINE_STRIP, 0, count-3);
 	}
 	else {
 		vec3 dir = (position - pos).normalise();
-		HardwareVertexBuffer* buffer = mMode == POSITION? sArrow: sBlock;
-		const char* ptr = buffer->bind();
-		glVertexPointer(2, GL_FLOAT, 0, ptr);
-		scene::Shader::current().setAttributePointer(0, 2, GL_FLOAT, 0, scene::SA_FLOAT, ptr);
+		int count = 0;
+		if(mMode == POSITION) {
+			m_binding = sGeometry.arrowBinding;
+			count = sGeometry.arrowData->getVertexCount();
+		}
+		else {
+			m_binding = sGeometry.blockBinding;
+			count = sGeometry.blockData->getVertexCount();
+		}
+		bind();
 		// draw three axes
 		for(int i=0; i<3; ++i) {
 			vec3 axis;
@@ -511,7 +527,7 @@ void Gizmo::draw(scene::RenderState& state) {
 
 			state.getVariableSource()->setModelMatrix(matrix);
 			pass->bindVariables(state.getVariableSource());
-			glDrawArrays(GL_LINE_STRIP, 0, buffer->getVertexCount());
+			glDrawArrays(GL_LINE_STRIP, 0, count);
 		}
 	}
 

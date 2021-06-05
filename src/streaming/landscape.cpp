@@ -592,7 +592,8 @@ void Patch::updateEdges() {
 	if(m_changed&2) updateEdge(1);
 	if(m_changed&4) updateEdge(2);
 	if(m_changed&8) updateEdge(3);
-	if(m_changed && m_landscape->m_updateCallback) m_landscape->m_updateCallback(&m_geometry);
+	if(m_changed && m_landscape->m_updateCallback)
+		m_landscape->m_updateCallback(&m_geometry);
 	m_changed = 0;
 }
 
@@ -630,7 +631,7 @@ void Patch::updateEdge(int edge) {
 			*ix = (size-1)*size + v;
 		} break;
 	}
-	m_changed &= ~(1<<edge);
+	//m_changed &= ~(1<<edge);
 }
 
 int Patch::getAdjacentStep(int side) const {
@@ -758,6 +759,7 @@ void Patch::updateGeometry(const BoundingBox& box, bool normals) {
 		m_error = fmax( fabs(v[9] - v[1]), m_error);
 	}
 
+	if(m_landscape->m_updateCallback) m_landscape->m_updateCallback(&m_geometry);
 }
 
 

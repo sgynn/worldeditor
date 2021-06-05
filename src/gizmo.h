@@ -83,12 +83,16 @@ class Gizmo : public scene::Drawable {
 	static void decomposeOrientation(const Quaternion& in, Quaternion& y, Quaternion& p, Quaternion& r);
 
 	private:
-	static base::HardwareVertexBuffer* sArrow;
-	static base::HardwareVertexBuffer* sBlock;
-	static base::HardwareVertexBuffer* sRing;
-	static void createGeometryBuffers();
-
-
+	struct Geometry {
+		base::HardwareVertexBuffer* arrowData = 0;
+		base::HardwareVertexBuffer* blockData = 0;
+		base::HardwareVertexBuffer* ringData = 0;
+		unsigned arrowBinding = 0;
+		unsigned blockBinding = 0;
+		unsigned ringBinding = 0;
+	};
+	static Geometry sGeometry;
+	void createGeometry();
 };
 
 }

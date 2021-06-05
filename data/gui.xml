@@ -136,16 +136,16 @@
 	</template>
 
 	<template name="vscroll" class="Scrollbar" rect="0 0 16 100">
-		<widget name="_scrollUp" template="iconbutton" rect="0 0 16 16" anchor="tlr" icon="scroll_up"/>
-		<widget name="_scrollDown" template="iconbutton" rect="0 84 16 16" anchor="blr" icon="scroll_down"/>
+		<widget name="_dec" template="iconbutton" rect="0 0 16 16" anchor="tlr" icon="scroll_up"/>
+		<widget name="_inc" template="iconbutton" rect="0 84 16 16" anchor="blr" icon="scroll_down"/>
 		<widget name="_track" rect="0 16 16 68" anchor="tlrb">
-			<widget name="_scrollBlock" class="Button" rect="0 0 16 24" anchor="lr" skin="button"/>
+			<widget name="_block" class="Button" rect="0 0 16 24" anchor="lr" skin="button"/>
 		</widget>
 	</template>
 
 	<template name="slider" class="Scrollbar" rect="0 0 100 16" skin="clear" orientation="horizontal" max="1000">
 		<widget rect="0 6 100 4" skin="button" anchor="mlr" inheritstate="1" tangible="0"/>
-		<widget class="Button" name="_scrollBlock" rect="0 0 12 16" skin="button" anchor="tb"/>
+		<widget class="Button" name="_block" rect="0 0 12 16" skin="button" anchor="tb"/>
 	</template>
 
 	<template name="spinbox" class="Spinbox" rect="0 0 60 20">

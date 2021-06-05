@@ -9,7 +9,7 @@ class BoxSelect : public gui::Widget {
 	public:
 	BoxSelect(int colour=0xffffff) : Widget(Rect(0,0,0,0), 0) {
 		setColour(colour);
-		setTangible(false);
+		setTangible(gui::Tangible::NONE);
 		setVisible(false);
 	}
 	void draw() const override {

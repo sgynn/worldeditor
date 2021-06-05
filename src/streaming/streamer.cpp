@@ -136,7 +136,7 @@ void StreamerDrawable::draw( scene::RenderState& r) {
 	// Update terrain lod stuff - Note: only needs to be called one per frame
 	lodCameraPosition = r.getCamera()->getPosition();
 	m_land->update( r.getCamera() );
-	m_land->visitAllPatches( bind(Streamer::updatePatchMaterial) );
+	m_land->visitAllPatches( ::bind(Streamer::updatePatchMaterial) );
 
 	// View frustum culling
 	m_land->cull( r.getCamera() );

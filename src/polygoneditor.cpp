@@ -325,13 +325,14 @@ static const char* polygonFS =
 void PolygonEditor::updateDrawable(Polygon* poly) {
 	// Create drawable
 	if(!poly->drawable) {
-		scene::DrawableMesh* mesh = new scene::DrawableMesh( new base::bmodel::Mesh() );
-		mesh->getMesh()->setPolygonMode(base::bmodel::TRIANGLE_STRIP);
+		base::bmodel::Mesh* mesh = new base::bmodel::Mesh();
+		mesh->setPolygonMode(base::bmodel::TRIANGLE_STRIP);
 		base::HardwareVertexBuffer* buffer = new base::HardwareVertexBuffer();
 		buffer->attributes.add(base::VA_VERTEX, base::VA_FLOAT3);
 		buffer->attributes.add(base::VA_COLOUR, base::VA_ARGB);
-		mesh->getMesh()->setVertexBuffer(buffer);
-		poly->drawable = mesh;
+		buffer->createBuffer();
+		mesh->setVertexBuffer(buffer);
+		poly->drawable = new scene::DrawableMesh(mesh);
 		m_node->attach(poly->drawable);
 
 		// Create material
@@ -351,7 +352,7 @@ void PolygonEditor::updateDrawable(Polygon* poly) {
 			pass->state.cullMode = scene::CULL_NONE;
 			pass->compile();
 		}
-		mesh->setMaterial(material);
+		poly->drawable->setMaterial(material);
 	}
 	
 	// Update drawable
@@ -374,7 +375,6 @@ void PolygonEditor::updateDrawable(Polygon* poly) {
 
 	base::HardwareVertexBuffer* buffer = poly->drawable->getMesh()->getVertexBuffer();
 	buffer->copyData(&data[0], data.size(), sizeof(Vertex));
-	buffer->createBuffer();
 }
 void PolygonEditor::destroyDrawable(Polygon* poly) {
 	if(poly->drawable) {
