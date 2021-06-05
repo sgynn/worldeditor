@@ -14,6 +14,12 @@ class Object : public scene::SceneNode {
 
 	/** Update object (needs to be in update list) */
 	virtual void update() {};
+
+	void updateBounds();
+	const BoundingBox& getBounds() const { return m_bounds; }
+
+	protected:
+	BoundingBox m_bounds;
 	
 };
 

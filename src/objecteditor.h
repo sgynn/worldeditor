@@ -7,7 +7,7 @@
 #include <vector>
 
 namespace scene { class Material; }
-namespace base { class Texture; namespace bmodel { class Mesh; } }
+namespace base { class Texture; namespace bmodel { class Model; class Mesh; } }
 namespace gui { class Button; class Listbox; class Textbox; class Spinbox; class TreeView; class TreeNode; }
 
 namespace editor { class Gizmo; }
@@ -41,10 +41,10 @@ class ObjectEditor : public EditorPlugin {
 	scene::Material* getMaterial(const char* name, bool normalMap, bool coloured);
 	gui::TreeNode* addModel(const char* path, const char* name);
 	gui::TreeNode* addFolder(const char* path, const char* name);
-	void updateObjectBounds(Object*);
 	void cancelPlacement();
 	bool isSelected(scene::SceneNode* obj) const;
 	void clearSelection();
+	Object* createObject(const char* name, base::bmodel::Model*, base::bmodel::Mesh*, const char* material);
 	void placeObject(Object* object, gui::TreeNode* data);
 	void applySelectTransform();
 	void selectionChanged();

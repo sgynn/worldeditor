@@ -106,7 +106,7 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 			vec3 pos, scale(1,1,1);
 			const char* name = i.attribute("name");
 			const char* file = i.attribute("file");
-			int meshIndex = i.attribute("mesh", 0);
+			int meshIndex = i.attribute("mesh", -1);
 			sscanf(i.attribute("scale"), "%g %g %g", &scale.x, &scale.y, &scale.z);
 			sscanf(i.attribute("position"), "%g %g %g", &pos.x, &pos.y, &pos.z);
 			sscanf(i.attribute("orientation"), "%g %g %g %g", &rot.w, &rot.x, &rot.y, &rot.z);
@@ -114,23 +114,15 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 			String f = m_fileSystem->getFile(file);
 			Model* model = base::bmodel::BMLoader::load(f);
 			if(model && meshIndex < model->getMeshCount()) {
-				Object* o = new Object();
-				Mesh* mesh = model->getMesh(meshIndex);
-				mesh->calculateBounds();
-				mesh->getVertexBuffer()->createBuffer();
-				mesh->getIndexBuffer()->createBuffer();
-				bool hasTangents = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_TANGENT);
-				bool hasColour = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_COLOUR);
-				DrawableMesh* d = new DrawableMesh(mesh, getMaterial(model->getMaterialName(meshIndex), hasTangents, hasColour));
-				m_node->addChild(o);
-				o->setName(name);
-				o->attach(d);
-				o->setTransform(pos, rot, scale);
-				o->getDerivedTransformUpdated();
-				d->updateBounds();
+				Object* object;
+				if(meshIndex<0) object = createObject(name, model, 0, 0); // Full model
+				else object = createObject(name, 0, model->getMesh(meshIndex), model->getMaterialName(meshIndex));
+				m_node->addChild(object);
+				object->setTransform(pos, rot, scale);
+				object->updateBounds();
 
 				TreeNode* node = new TreeNode(name);
-				node->setData(1, o);
+				node->setData(1, object);
 				node->setData(2, f);
 				node->setData(3, meshIndex);
 				m_sceneTree->getRootNode()->add(node);
@@ -280,7 +272,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 		if(m_mode==SINGLE && base::Game::Pressed(base::KEY_C)) {
 			Quaternion tmp = m_placement->getOrientation();
 			m_placement->setOrientation(Quaternion());
-			updateObjectBounds(m_placement);
+			m_placement->updateBounds();
 			m_placement->setOrientation(tmp);
 			m_chainStep = m_placement->getAttachment(0)->getBounds().size();
 			m_chainStep.y = 0;
@@ -370,7 +362,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 			if(m_gizmo->isHeld()) {
 				SceneNode* target = m_selected.size()==1? m_selected[0]: m_selectGroup;
 				target->setTransform(m_gizmo->getPosition(), m_gizmo->getOrientation(), m_gizmo->getScale());
-				for(Object* obj: m_selected) updateObjectBounds(obj);
+				for(Object* obj: m_selected) obj->updateBounds();
 			}
 		}
 		if(wasHeld) return;
@@ -394,7 +386,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 						if(p>pos.y) pos.y = p;
 					}
 					o->setPosition(pos - o->getParent()->getPosition());
-					updateObjectBounds(o);
+					o->updateBounds();
 				}
 				selectionChanged();
 			}
@@ -413,9 +405,8 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 				m_box->updatePlanes(camera);
 				if(~keyMask&SHIFT_MASK) clearSelection();
 				for(SceneNode* node: m_node->children()) {
-					for(Drawable* d: node->attachments()) {
-						if(m_box->inside(d->getBounds())) selectObject(static_cast<Object*>(node), true);
-					}
+					Object* object = static_cast<Object*>(node);
+					if(m_box->inside(object->getBounds())) selectObject(object, true);
 				}
 				m_box->clear();
 			}
@@ -431,8 +422,11 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 }
 
 void ObjectEditor::cancelPlacement() {
-	if(m_mode == CHAIN) for(Object* o: m_selected) delete o;
-	else delete m_placement;
+	if(m_mode == CHAIN) for(Object* o: m_selected) { o->deleteChildren(true); delete o; }
+	else if(m_placement) {
+		m_placement->deleteChildren(true);
+		delete m_placement;
+	}
 	m_selected.clear();
 	m_placement = 0;
 	m_resourceList->clearSelection();
@@ -448,16 +442,11 @@ void ObjectEditor::placeObject(Object* object, TreeNode* data) {
 		node->setData(3, data->getIndex());
 	}
 	m_sceneTree->getRootNode()->add(node);
-	updateObjectBounds(object);
+	object->updateBounds();
 }
 
 void ObjectEditor::selectObject(TreeView*, TreeNode* node) {
 	selectObject(node? node->getData(1).getValue<Object*>(0): 0);
-}
-
-void ObjectEditor::updateObjectBounds(Object* obj) {
-	obj->getDerivedTransformUpdated();
-	for(Drawable* d: obj->attachments()) d->updateBounds();
 }
 
 void ObjectEditor::selectObject(Object* obj, bool append) {
@@ -533,19 +522,32 @@ void ObjectEditor::clearSelection() {
 
 Object* ObjectEditor::pick(SceneNode* node, const Ray& ray, bool ignoreSelection, float& t) const {
 	if(ignoreSelection && isSelected(node)) return 0;
-	Object* result = 0;
+
+	Object* obj = dynamic_cast<Object*>(node);
+	if(obj) {
+		float dist = t;
+		const BoundingBox& box = obj->getBounds();
+		if(!base::intersectRayAABB(ray.start, ray.direction, box.centre(), box.size()/2, dist)) return 0;
+	}
+
+	bool hit = false;
 	for(Drawable* d: node->attachments()) {
 		// Test drawables
 		float dist = 0;
 		const BoundingBox& box = d->getBounds();
 		if(base::intersectRayAABB(ray.start, ray.direction, box.centre(), box.size()/2, dist)) {
 			dist = t;
-			Object* obj = dynamic_cast<Object*>(node);
-			if(obj && dynamic_cast<DrawableMesh*>(d) && pickMesh(ray, static_cast<DrawableMesh*>(d)->getMesh(), node->getDerivedTransform(), dist)) {
-				result = obj;
+			if(dynamic_cast<DrawableMesh*>(d) && pickMesh(ray, static_cast<DrawableMesh*>(d)->getMesh(), node->getDerivedTransform(), dist)) {
+				hit = true;
 				t = dist;
 			}
 		}
+	}
+
+	Object* result = 0;
+	if(hit) {
+		for(SceneNode* n=node->getParent(); !obj && n; n=n->getParent()) obj = dynamic_cast<Object*>(n);
+		result = obj;
 	}
 	for(SceneNode* n: node->children()) {
 		Object* r = pick(n, ray, ignoreSelection, t);
@@ -712,6 +714,61 @@ scene::Material* ObjectEditor::getMaterial(const char* name, bool nmap, bool col
 	return material;
 }
 
+Object* ObjectEditor::createObject(const char* name, Model* model, Mesh* mesh, const char* material) {
+	if(!model && !mesh) return 0;
+	
+	auto createDrawable = [&](Mesh* mesh) {
+		bool hasTangents = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_TANGENT);
+		bool hasColour = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_COLOUR);
+		mesh->getVertexBuffer()->createBuffer();
+		mesh->getIndexBuffer()->createBuffer();
+		DrawableMesh* d = new DrawableMesh(mesh);
+		d->setMaterial(getMaterial(material, hasTangents, hasColour));
+		return d;
+	};
+	auto calculateMeshBounds = [](Mesh* m) { if(m->getBounds().isEmpty()) m->calculateBounds(); };
+
+	Object* object = new Object();
+	object->setName(name);
+	m_node->addChild(object);
+
+	if(model) {
+		if(LayoutExtension* layout = model->getExtension<LayoutExtension>()) {
+			vec3 pos, scale(1);
+			Quaternion rot;
+			int count=0;
+			for(const LayoutExtension::Node* n: *layout) {
+				SceneNode* node = new SceneNode(n->name);
+				// Get all meshes with matching name
+				if(n->mesh) for(int i=0; i<model->getMeshCount(); ++i) {
+					if(strcmp(n->mesh, model->getMeshName(i))==0) {
+						node->attach(createDrawable(model->getMesh(i)));
+						calculateMeshBounds(model->getMesh(i));
+						++count;
+					}
+				}
+				LayoutExtension::getDerivedTransform(n, pos, rot);
+				node->setTransform(pos, rot, scale);
+				object->addChild(node);
+			}
+			printf("Created model %s (%d)\n", name, count);
+		}
+		else {
+			printf("Created model %s (%d)\n", name, model->getMeshCount());
+			for(int i=0; i<model->getMeshCount(); ++i) {
+				object->attach(createDrawable(model->getMesh(i)));
+				calculateMeshBounds(model->getMesh(i));
+			}
+		}
+	}
+	else if(mesh) {
+		printf("Created single mesh %s\n", name);
+		object->attach(createDrawable(mesh) );
+		calculateMeshBounds(mesh);
+	}
+	return object;
+}
+
 
 void ObjectEditor::selectResource(TreeView*, TreeNode* resource) {
 	if(m_mode!=CHAIN) selectObject(0);
@@ -721,46 +778,8 @@ void ObjectEditor::selectResource(TreeView*, TreeNode* resource) {
 		const char* name = resource->getText();
 		Model* model = resource->getData(1).getValue<Model*>(0);
 		Mesh* mesh = resource->getData(1).getValue<Mesh*>(0);
-		if(!model && !mesh) return;
-		
-		auto createDrawable = [&](Mesh* mesh) {
-			bool hasTangents = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_TANGENT);
-			bool hasColour = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_COLOUR);
-			mesh->getVertexBuffer()->createBuffer();
-			mesh->getIndexBuffer()->createBuffer();
-			DrawableMesh* d = new DrawableMesh(mesh);
-			d->setMaterial(getMaterial(resource->getText(3), hasTangents, hasColour));
-			return d;
-		};
-
-		m_placement = new Object();
-		m_placement->setName(name);
-		m_node->addChild(m_placement);
-
-		if(model) {
-			if(LayoutExtension* layout = model->getExtension<LayoutExtension>()) {
-				std::vector<SceneNode*> nodes;
-				nodes.push_back(m_placement);
-				for(const LayoutExtension::Node* n: *layout) {
-					SceneNode* node = new SceneNode(n->name);
-					if(n->mesh) node->attach(createDrawable(model->getMesh(n->mesh)));
-					node->setTransform(n->position, n->orientation, n->scale);
-					nodes[n->parent->index+1]->addChild(node);
-					nodes.push_back(node);
-				}
-				printf("Created model %s (%d)\n", name, (int)nodes.size()-1);
-			}
-			else {
-				printf("Created model %s (%d)\n", name, model->getMeshCount());
-				for(int i=0; i<model->getMeshCount(); ++i) {
-					m_placement->attach(createDrawable(model->getMesh(i)));
-				}
-			}
-		}
-		else if(mesh) {
-			printf("Created single mesh %s\n", name);
-			m_placement->attach(createDrawable(mesh) );
-		}
+		const char* material = resource->getText(3);
+		m_placement = createObject(name, model, mesh, material);
 	}
 }
 
@@ -826,6 +845,24 @@ void ObjectEditor::setResourcePath(const char* root) {
 	m_resourceList->getRootNode()->expandAll();
 }
 
+
+// ================================================================== //
+
+void Object::updateBounds() {
+	getDerivedTransformUpdated();
+	m_bounds.setInvalid();
+	for(Drawable* d: attachments()) {
+		d->updateBounds();
+		m_bounds.include(d->getBounds());
+	}
+	for(SceneNode* n : children()) {
+		n->getDerivedTransformUpdated();
+		for(Drawable* d: n->attachments()) {
+			d->updateBounds();
+			m_bounds.include(d->getBounds());
+		}
+	}
+}
 
 
 
