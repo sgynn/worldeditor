@@ -3,10 +3,10 @@
 	<external file="data/gui.xml"/>
 	<!--Templates-->
 	<template class="Scrollbar" rect="0 0 16 100" name="vscroll">
-		<widget anchor="tlr" template="iconbutton" name="_scrollUp" rect="0 0 16 16" icon="scroll_up"/>
-		<widget anchor="blr" template="iconbutton" name="_scrollDown" rect="0 84 16 16" icon="scroll_down"/>
+		<widget anchor="tlr" template="iconbutton" name="_dec" rect="0 0 16 16" icon="scroll_up"/>
+		<widget anchor="blr" template="iconbutton" name="_inc" rect="0 84 16 16" icon="scroll_down"/>
 		<widget anchor="tlrb" rect="0 16 16 68" name="_track">
-			<widget anchor="lr" class="Button" rect="0 0 16 24" name="_scrollBlock" skin="button"/>
+			<widget anchor="lr" class="Button" rect="0 0 16 24" name="_block" skin="button"/>
 		</widget>
 	</template>
 	<template class="TreeView" rect="0 0 100 100" name="tree" skin="panel" category="Lists">

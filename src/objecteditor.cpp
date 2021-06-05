@@ -12,6 +12,7 @@
 #include <base/collision.h>
 #include <base/directory.h>
 
+#include "extensions.h"
 #include "model/model.h"
 #include "model/bmloader.h"
 #include "scene/shader.h"
@@ -67,6 +68,8 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 
 	m_box = new BoxSelect();
 	m_panel->getParent()->add(m_box);
+
+	base::bmodel::BMLoader::registerExtension("layout", LayoutExtension::construct);
 
 	setupMaterials();
 	setResourcePath(fs->getRootPath());
@@ -471,6 +474,11 @@ void ObjectEditor::selectObject(Object* obj, bool append) {
 	selectionChanged();
 }
 
+void setRenderQueue(SceneNode* node, int queue) {
+	for(Drawable* d: node->attachments()) d->setRenderQueue(queue);
+	for(SceneNode* n: node->children()) setRenderQueue(n, queue);
+};
+
 void ObjectEditor::selectionChanged() {
 	// Apply group transforms
 	for(SceneNode* n: m_selectGroup->children()) n->setTransform(n->getDerivedTransform());
@@ -499,8 +507,8 @@ void ObjectEditor::selectionChanged() {
 	}
 
 	// Use render queue for selection highlight
-	for(SceneNode* n: m_node->children()) if(n->getAttachmentCount()) n->getAttachment(0)->setRenderQueue(0);
-	for(Object* o: m_selected) o->getAttachment(0)->setRenderQueue(12);
+	setRenderQueue(m_node, 0);
+	for(Object* o: m_selected) setRenderQueue(o, 12);
 
 	// Set up gizmo
 	if(m_selected.empty()) m_gizmo->setVisible(false);
@@ -612,7 +620,7 @@ void ObjectEditor::setupMaterials() {
 	char name[32];
 	uint data = 0xffffffff;
 	uint dataN = 0xff8080;
-	base::Texture* white = new base::Texture(base::Texture::create(1, 1, base::Texture::R8, &data));
+	base::Texture* white = new base::Texture(base::Texture::create(1, 1, base::Texture::RGB8, &data));
 	base::Texture* flat =  new base::Texture(base::Texture::create(1, 1, base::Texture::RGB8, &dataN));
 	char log[2048];
 
@@ -713,20 +721,45 @@ void ObjectEditor::selectResource(TreeView*, TreeNode* resource) {
 		const char* name = resource->getText();
 		Model* model = resource->getData(1).getValue<Model*>(0);
 		Mesh* mesh = resource->getData(1).getValue<Mesh*>(0);
-		if(model) mesh = model->getMesh(0);
-
-		if(mesh) {
-			printf("Creating object %s\n", name);
+		if(!model && !mesh) return;
+		
+		auto createDrawable = [&](Mesh* mesh) {
 			bool hasTangents = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_TANGENT);
 			bool hasColour = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_COLOUR);
 			mesh->getVertexBuffer()->createBuffer();
 			mesh->getIndexBuffer()->createBuffer();
 			DrawableMesh* d = new DrawableMesh(mesh);
 			d->setMaterial(getMaterial(resource->getText(3), hasTangents, hasColour));
-			m_placement = new Object();
-			m_placement->setName(name);
-			m_placement->attach(d);
-			m_node->addChild(m_placement);
+			return d;
+		};
+
+		m_placement = new Object();
+		m_placement->setName(name);
+		m_node->addChild(m_placement);
+
+		if(model) {
+			if(LayoutExtension* layout = model->getExtension<LayoutExtension>()) {
+				std::vector<SceneNode*> nodes;
+				nodes.push_back(m_placement);
+				for(const LayoutExtension::Node* n: *layout) {
+					SceneNode* node = new SceneNode(n->name);
+					if(n->mesh) node->attach(createDrawable(model->getMesh(n->mesh)));
+					node->setTransform(n->position, n->orientation, n->scale);
+					nodes[n->parent->index+1]->addChild(node);
+					nodes.push_back(node);
+				}
+				printf("Created model %s (%d)\n", name, (int)nodes.size()-1);
+			}
+			else {
+				printf("Created model %s (%d)\n", name, model->getMeshCount());
+				for(int i=0; i<model->getMeshCount(); ++i) {
+					m_placement->attach(createDrawable(model->getMesh(i)));
+				}
+			}
+		}
+		else if(mesh) {
+			printf("Created single mesh %s\n", name);
+			m_placement->attach(createDrawable(mesh) );
 		}
 	}
 }
