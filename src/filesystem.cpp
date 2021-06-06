@@ -17,6 +17,9 @@ void FileSystem::setRootPath(const char* path, bool isAFile) {
 		if(cw > c) c = cw;
 		if(c) *c = 0;
 	}
+	// Ensure it ends with '/'
+	int len = strlen(buffer);
+	if(len>0 && buffer[len-1]!='/' && buffer[len-1]!='\\') sprintf(buffer+len, "/");
 	m_rootPath = buffer;
 }
 
