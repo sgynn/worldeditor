@@ -87,7 +87,9 @@ class Landscape {
 	int visitAllPatches(PatchFunc callback) const;
 	
 	/** Additional collision routines */
-	int intersect(const vec3& start, const vec3& end, vec3& point, vec3& normal) const;
+	bool intersect(const vec3& start, const vec3& end, vec3& point, vec3& normal) const;
+	bool intersect(const vec3& start, const vec3& normalisedDirection, float& t, vec3& normal) const;
+	bool intersect(const vec3& start, float radius, const vec3& normalisedDirection, float& t, vec3& normal) const;
 
 	/** Information */
 	struct Info { int patches, visiblePatches, triangles, splitQueue, mergeQueue; };
@@ -98,6 +100,7 @@ class Landscape {
 
 
 	// Debug:
+	bool selectPatch(const vec3& start, const vec3& direction); // Select patch from ray intersection
 	const PatchGeometry* getSelectedGeometry() const;
 	void                 getSelectedInfo() const;
 
@@ -158,7 +161,7 @@ class Patch {
 	float getHeight(float x, float z, vec3* normal) const;
 
 	/** intersect with current geometry */
-	int intersect(const vec3& start, const vec3& end, float& t, vec3& normal) const;
+	const Patch* intersect(const vec3& start, float radius, const vec3& direction, float& t, vec3& normal) const;
 
 	/** Get geometry for rendering */
 	const PatchGeometry& getGeometry() const { return m_geometry; }
@@ -195,6 +198,9 @@ class Patch {
 	protected:
 	int getAdjacentStep(int side) const;
 	void updateEdge(int edge);	// Update edge indices to connect to neighbouring patch
+	bool getTriangle(uint index, float lod, vec3& a, vec3& b, vec3& c) const;
+	bool intersectGeometry(const vec3& p, const vec3& d, float& t, vec3& normal) const;
+	bool intersectGeometry(const vec3& p, float radius, const vec3& d, float& t, vec3& normal) const;
 
 	float   projectError(const base::Camera* cam) const;
 	int     minLOD() const;	// Get the minimum lod level this patch can be due to adjacent patches

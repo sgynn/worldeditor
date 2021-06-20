@@ -120,13 +120,21 @@ float Landscape::getHeight(float x, float z, bool real) const {
 float Landscape::getHeight(float x, float z, vec3& normal, bool real) const {
 	return real? m_func(vec3(x,0,z)): m_root->getHeight(x, z, &normal);
 }
-int Landscape::intersect(const vec3& a, const vec3& b, vec3& point, vec3& normal) const {
-	float t = -1;
-	if(m_root->intersect(a,b,t, normal)) {
-		t = sqrt(t) / a.distance(b);
-		point = a + (b-a)*t;
+
+bool Landscape::intersect(const vec3& start, float radius, const vec3& direction, float& t, vec3& normal) const {
+	return m_root->intersect(start, radius, direction, t, normal);
+}
+bool Landscape::intersect(const vec3& start, const vec3& direction, float& t, vec3& normal) const {
+	return intersect(start, 0, direction, t, normal);
+}
+bool Landscape::intersect(const vec3& a, const vec3& b, vec3& point, vec3& normal) const {
+	vec3 dir = b-a;
+	float t = dir.normaliseWithLength();
+	if(intersect(a, 0, dir, t, normal)) {
+		point = a + dir * t;
 		return 1;
-	} else return 0;
+	}
+	return 0;
 }
 
 void Landscape::updateGeometry(const BoundingBox& box, bool normals) {
@@ -819,69 +827,117 @@ float Patch::getHeight(float x, float z, vec3* normal) const {
 	return h;
 }
 
-
-int Patch::intersect(const vec3& a, const vec3& b, float& t, vec3& normal) const {
-	vec3 dir = b-a;
+const Patch* Patch::intersect(const vec3& start, float radius, const vec3& direction, float& t, vec3& normal) const {
 	if(m_split) {
 		// Intersect with children in order
+		const Patch* hit = 0;
 		for(int i=0; i<4; ++i) {
-			int k = dir.x>0? i: i^1;
-			if(dir.z<0) k^=2;
-			if(m_child[k]->intersect(a,b,t,normal)) return 1;
+			int k = direction.x>0? i: i^1;
+			if(direction.z<0) k^=2;
+			if(const Patch* r = m_child[k]->intersect(start, radius, direction, t, normal)) hit = r;
+			if(hit && radius==0) return hit; // may need the adjacent one if there is a radius
 		}
-	} else {
+		return hit;
+	}
+	else {
 		// test bounding box and get intersecting line segment
-		float min=0, max=1;
+		float min=0, max=t;
 		for(int i=0; i<3; ++i) {
-			if(dir[i]!=0) {
-				float t0 = (m_bounds.min[i] - a[i]) / dir[i];
-				float t1 = (m_bounds.max[i] - a[i]) / dir[i];
-				if(t0>t1) { float t=t0; t0=t1; t1=t; } // correct order
+			if(direction[i] == 0) {
+				if(start[i] < m_bounds.min[i]-radius || start[i] > m_bounds.max[i]+radius) return 0;
+			}
+			else {
+				float t0 = (m_bounds.min[i] - radius - start[i]) / direction[i];
+				float t1 = (m_bounds.max[i] + radius - start[i]) / direction[i];
+				if(t0>t1) { float v=t0; t0=t1; t1=v; } // correct order
 				if(t0>min) min = t0;
 				if(t1<max) max = t1;
 				if(min>max) return 0; // Missed
+				if(min>t) return 0; // stopped short
 			}
 		}
 
-		// Line intersects bounding box between min and max.
-		// Need to quantise min on the patch grid
-		
-		// just test all polygons for now
-		int hit = 0;
-		float lod = m_lod<0? 0: m_lod>1? 1: m_lod;
-		const uint16* ix = m_geometry.indices;
-		const float* vx = m_geometry.vertices;
-		for(uint i=0; i<m_geometry.indexCount-2; ++i) {
-			if(ix[i]==ix[i+1] || ix[i+1]==ix[i+2] || ix[i]==ix[i+2]) continue;
-			const float* pa = vx + ix[i+0] * 10;
-			const float* pb = vx + ix[i+1] * 10;
-			const float* pc = vx + ix[i+2] * 10;
-			vec3 ta(pa); ta.y = pa[1]*lod + (1-lod)*pa[9];
-			vec3 tb(pb); tb.y = pb[1]*lod + (1-lod)*pb[9];
-			vec3 tc(pc); tc.y = pc[1]*lod + (1-lod)*pc[9];
-			vec3 out;
-			
-			if(base::intersectLineTriangle(a,b, ta,tb,tc, out)) {
-				float d = out.distance2(a);
-				if(t<0 || t>d) {
-					t = d;
-					hit = 1;
-					// Interpolate normal too - need barycentrics
-					normal = (tb-ta).cross(tc-ta).normalise();
-				}
-			}
-		}
-
-		// Debug: save patch
-		//if(hit && m_landscape->m_selected!=this && m_parent) printInfo();
-		if(hit) m_landscape->m_selected = this;
-
-		return hit;
+		// Geometry
+		if(radius<=0 && intersectGeometry(start, direction, t, normal)) return this;
+		if(radius>0 && intersectGeometry(start, radius, direction, t, normal)) return this;
 	}
 	return 0;
 }
 
+bool Patch::getTriangle(uint i, float lod, vec3& a, vec3& b, vec3& c) const {
+	const uint16* ix = m_geometry.indices;
+	if(ix[i]==ix[i+1] || ix[i+1]==ix[i+2] || ix[i]==ix[i+2]) return false;
+	const int flip = i&1; // Triangle strip needs to flip odd polygons
+	const float* vx = m_geometry.vertices;
+	const float* pa = vx + ix[i+0] * 10;
+	const float* pb = vx + ix[i+1+flip] * 10;
+	const float* pc = vx + ix[i+2-flip] * 10;
+	a = vec3(pa[0], pa[1]*lod + (1-lod)*pa[9], pa[2]);
+	b = vec3(pb[0], pb[1]*lod + (1-lod)*pb[9], pb[2]);
+	c = vec3(pc[0], pc[1]*lod + (1-lod)*pc[9], pc[2]);
+	return true;
+}
+
+// ToDo: Bresenham algorithm. Just brute force for now.
+bool Patch::intersectGeometry(const vec3& p, const vec3& d, float& t, vec3& normal) const {
+	bool hit = false;
+	float value;
+	float lod = m_lod<0? 0: m_lod>1? 1: m_lod;
+	vec3 a,b,c;
+	for(uint i=0; i<m_geometry.indexCount-2; ++i) {
+		if(getTriangle(i, lod, a,b,c) && base::intersectRayTriangle(p,d, a,b,c, value) && value<t) {
+			normal = (b-a).cross(c-a).normalise();
+			hit = true;
+			t = value;
+		}
+	}
+	return hit;
+}
+bool Patch::intersectGeometry(const vec3& p, float radius, const vec3& d, float& t, vec3& normal) const {
+	//Note: d must be normalised
+	bool hit = false;
+	float value;
+	float lod = m_lod<0? 0: m_lod>1? 1: m_lod;
+	vec3 a,b,c,s,edge;
+	for(uint i=0; i<m_geometry.indexCount-2; ++i) {
+		if(getTriangle(i, lod, a,b,c)) {
+			vec3 n = (b-a).cross(c-a);
+			if(n.dot(d)>0) continue; // wrong side
+			n.normalise();
+			s = p - n * radius;
+			float dn = n.dot(d);
+			if(dn != 0) {
+				value = (n.dot(a) - n.dot(s)) / dn;
+				s += d * value;
+				int k = base::closestPointOnTriangle(s, a, b, c, edge);
+				if(k==0 && value >= 0) {
+					normal = n;
+					t = value;
+					hit = true;
+				}
+				else if(base::intersectRaySphere(edge, -d, p, radius, value) && value>=0 && value<=t) {
+					normal = p + d * t - edge;
+					t = value;
+					hit = true;
+				}
+			}
+		}
+	}
+	return hit;
+}
+
+
+
 // Debug stuff
+bool Landscape::selectPatch(const vec3& start, const vec3& direction) {
+	float t;
+	vec3 normal;
+	if(const Patch* r = m_root->intersect(start, 0, direction.normalised(), t, normal)) {
+		m_selected = r;
+		return true;
+	}
+	return false;
+}
 const PatchGeometry* Landscape::getSelectedGeometry() const {
 	return m_selected? &m_selected->getGeometry(): 0;
 }
