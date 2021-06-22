@@ -18,6 +18,7 @@ MaterialEditor::MaterialEditor(gui::Root* gui, FileSystem* fs, bool stream): m_s
 	// Selector lists
 	m_textureSelector = new gui::ItemList();
 	m_textureSelector->addItem("Select colour", gui::Any(), -1);
+	//m_textureSelector->addItem("Clipped", gui::Any(), -2); // ?
 
 	// Set up gui callbacks
 	setupGui();

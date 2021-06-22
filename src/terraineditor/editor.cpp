@@ -1,4 +1,5 @@
 #include <base/opengl.h>
+#include <base/xml.h>
 #include "editor.h"
 #include <cstring>
 #include <cstdio>
@@ -41,7 +42,7 @@ inline float clamp(float f, float min=0, float max=1) {
 	return f;
 }
 
-TerrainEditor::TerrainEditor(TerrainEditorDataInterface* t) : m_target(t), m_tool(0), m_locked(false) {
+TerrainEditor::TerrainEditor(TerrainEditorDataInterface* t) : m_target(t), m_tool(0), m_locked(false), m_stroke(false) {
 	m_brush.radius = 10;
 	m_brush.falloff = 0.5;
 	m_brush.strength = 1;
@@ -65,7 +66,7 @@ void TerrainEditor::setBrush(const Brush& b) {
 	m_brush.falloff = b.falloff;
 }
 
-void TerrainEditor::update(const Mouse& mouse, const Ray& ray, int shift) {
+void TerrainEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, InputState& state) {
 	if(!m_tool || !m_target) return;
 
 	// update current brush
@@ -84,11 +85,12 @@ void TerrainEditor::update(const Mouse& mouse, const Ray& ray, int shift) {
 
 
 	// Change brush size
-	if(mouse.wheel && mouse.button!=4) {
-		if(shift==0)               m_brush.radius   = clamp( m_brush.radius * (1.0 + mouse.wheel * 0.1), 1, 100);
-		else if(shift==SHIFT_MASK) m_brush.strength = clamp( m_brush.strength + mouse.wheel * 0.01 );
-		else if(shift==CTRL_MASK)  m_brush.falloff  = clamp( m_brush.falloff + mouse.wheel * 0.01 );
+	if(mouse.wheel && !state.consumedMouseWheel) {
+		if(state.keyMask==0)               m_brush.radius   = clamp( m_brush.radius * (1.0 + mouse.wheel * 0.1), 1, 100);
+		else if(state.keyMask==SHIFT_MASK) m_brush.strength = clamp( m_brush.strength + mouse.wheel * 0.01 );
+		else if(state.keyMask==CTRL_MASK)  m_brush.falloff  = clamp( m_brush.falloff + mouse.wheel * 0.01 );
 		printf("radius: %g strength: %g falloff: %g\n", m_brush.radius, m_brush.strength, m_brush.falloff);
+		state.consumedMouseWheel = true;
 	}
 
 	// Update rings
@@ -103,25 +105,31 @@ void TerrainEditor::update(const Mouse& mouse, const Ray& ray, int shift) {
 		for(int i=0; i<mapCount; ++i) if(flags[i]==0) { m_locked = false; break; }
 	}
 
+	// Start/Stop brush stroke
+	if(!m_stroke && (mouse.pressed&1) && !state.consumedMouseDown) {
+		state.consumedMouseDown = true;
+		m_tool->tool->begin(m_brush);
+		m_last = position.xz();
+		m_stroke = true;
+	}
+	else if(m_stroke && (mouse.released&1)) {
+		m_tool->tool->end();
+		m_stroke = false;
+	}
+
 	// Paint
-	static vec2 lp;
-	if(mouse.button&1) {
-		// Start
-		if(mouse.pressed&1) {
-			m_tool->tool->begin(m_brush);
-			lp = position.xz();
-		}
-		// Paint
-		float distance = m_brush.position.distance(lp);
+	if(m_stroke) {
+		float distance = m_brush.position.distance(m_last);
+		m_last = position.xz();
 		if(distance > 40) {
-			printf("Warning: long brush stroke : (%g, %g) - (%g, %g)\n", lp.x, lp.y, m_brush.position.x, m_brush.position.y);
+			printf("Warning: long brush stroke : (%g, %g) - (%g, %g)\n", m_last.x, m_last.y, m_brush.position.x, m_brush.position.y);
 			return;
 		}
-		int toolFlags = shift&SHIFT_MASK? m_tool->shift: m_tool->flags;
+		int toolFlags = state.keyMask&SHIFT_MASK? m_tool->shift: m_tool->flags;
 		Tool* tool = m_tool->tool;
 		float spacing = fmin(m_brush.getRadius(0.8), m_brush.radius * 0.4) * 0.5;
 		int samples = (int) floor(distance / spacing) + 1;
-		vec2 step = (lp - m_brush.position) / distance * spacing;
+		vec2 step = (m_last - m_brush.position) / distance * spacing;
 		float resolution = 1; //m_tool->getResolution(); // should be from maps?
 		vec3 offsets[9];
 		EditableMap* maps[9];
@@ -174,10 +182,6 @@ void TerrainEditor::update(const Mouse& mouse, const Ray& ray, int shift) {
 				maps[k]->apply(local[k]);
 			}
 		}
-		lp = position.xz();
-	} else if(mouse.released&1) {
-		// End
-		m_tool->tool->end();
 	}
 }
 
@@ -218,3 +222,8 @@ void TerrainEditor::draw() {
 }
 
 
+base::XMLElement TerrainEditor::save(const TerrainMap* context) const {
+	return base::XMLElement();
+}
+void TerrainEditor::load(const base::XMLElement&, const TerrainMap* context) {
+}

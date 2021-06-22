@@ -176,7 +176,7 @@ void FoliageEditor::close() {
 	}
 }
 
-void FoliageEditor::update(const Mouse&, const Ray& ray, int keyMask, base::Camera*) {
+void FoliageEditor::update(const Mouse&, const Ray& ray, base::Camera*, InputState&) {
 	if(m_foliage) m_foliage->update(ray.start);
 }
 

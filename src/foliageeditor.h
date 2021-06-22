@@ -51,7 +51,7 @@ class FoliageEditor : public EditorPlugin {
 	void load(const base::XMLElement&, const TerrainMap* context) override;
 	base::XMLElement save(const TerrainMap* context) const override;
 	void setContext(const TerrainMap*) override;
-	void update(const Mouse&, const Ray&, int keyMask, base::Camera*) override;
+	void update(const Mouse&, const Ray&, base::Camera*, InputState&) override;
 	void clear() override;
 	void close() override;
 

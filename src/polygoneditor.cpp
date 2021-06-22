@@ -215,11 +215,11 @@ void PolygonEditor::clear() {
 #include <base/game.h>
 #include <base/input.h>
 
-void PolygonEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base::Camera*) {
+void PolygonEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, InputState& state) {
 	m_cameraPosition = ray.start;
 
 	// Detect mouse over
-	if(m_dragging==NONE && mouse.pressed==1) {
+	if(m_dragging==NONE && mouse.pressed==1 && !state.consumedMouseDown) {
 		float best = 4;
 		vec3 end = ray.point(1000);
 		float s, t;
@@ -236,7 +236,7 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base
 					float dist = polygon->points[i].distance(polygon->points[j]);
 					if(dist*t < 1 && t < 0.5) m_dragging = VERTEX;
 					else if(dist*(1-t)< 1 && t>0.5) m_dragging = VERTEX, m_vertex = j;
-					else if(keyMask&CTRL_MASK) m_dragging = ALL;
+					else if(state.keyMask&CTRL_MASK) m_dragging = ALL;
 					else m_dragging = EDGE;
 					m_offset = ray.point(s * 1000) - polygon->points[m_vertex];
 					best = r;
@@ -244,7 +244,7 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base
 			}
 		}
 		// Split edge
-		if(m_selected && m_dragging==EDGE && !(keyMask&SHIFT_MASK)) {
+		if(m_selected && m_dragging==EDGE && !(state.keyMask&SHIFT_MASK)) {
 			m_selected->points.insert(m_selected->points.begin()+m_vertex, m_selected->points[m_vertex]);
 			m_selected->edges.insert(m_selected->edges.begin()+m_vertex, m_selected->edges[m_vertex]);
 			++m_vertex;
@@ -263,6 +263,7 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base
 		}
 		// Flags
 		if(target) m_panel->getWidget<Spinbox>("flags")->setValue(m_selected->edges[m_vertex]);
+		if(target) state.consumedMouseDown = true;
 	}
 	// Move selected vertex
 	else if(m_dragging!=NONE && m_selected && (mouse.button==1 || m_dragging==INITIAL)) {

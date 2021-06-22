@@ -32,16 +32,19 @@ class TerrainEditorDataInterface {
 };
 
 /// Main editor class - handles all painting stuff
-class TerrainEditor {
+class TerrainEditor : public EditorPlugin {
 	public:
 	TerrainEditor(TerrainEditorDataInterface*);
 	~TerrainEditor();
+
+	base::XMLElement save(const TerrainMap* context) const override;
+	void load(const base::XMLElement&, const TerrainMap* context) override;
 
 	void setTool(ToolInstance*);
 	void setBrush(const Brush&);
 	const Brush& getBrush() const;
 
-	void update(const Mouse&, const Ray&, int);
+	void update(const Mouse&, const Ray&, base::Camera*, InputState& state) override;
 	void draw();
 
 	private:
@@ -55,6 +58,8 @@ class TerrainEditor {
 	Brush             m_brush;
 	BrushData         m_buffer;
 	bool              m_locked;
+	bool              m_stroke;
+	vec2              m_last;
 	
 	
 };

@@ -352,26 +352,21 @@ void WorldEditor::update() {
 		}
 	}
 
-	// Pretend mouse buttons released when over gui
-//	if(guiHasMouse) {
-//		mouse.released |= mouse.button;
-//		mouse.button = 0;
-//		mouse.pressed = 0;
-//		mouse.wheel = 0;
-//		lbutton = 0;
-//	}
+	InputState state { shift, guiHasMouse, false, false };
+	state.consumedMouseWheel = m_gui->getWheelEventConsumed();
+	state.consumedMouseDown = mouse.button && guiHasMouse;
 
-	// Update editor
+	// Update editors
 	if(m_editor) {
-		m_editor->update(mouse, mouseRay, shift);
+		m_editor->update(mouse, mouseRay, m_camera, state);
 		if(mouse.wheel) updateBrushSliders();
 
 		// update other editors
-		for(EditorPlugin* e: m_editors) e->update(mouse, mouseRay, shift, m_camera);
+		for(EditorPlugin* e: m_editors) e->update(mouse, mouseRay, m_camera, state);
 
 		// Right click menu
 		static bool moved = false;
-		if(mouse.pressed == 4) moved = false;
+		if(mouse.pressed == 4) moved = state.consumedMouseDown;
 		else if(mouse.moved.x || mouse.moved.y) moved = true;
 		else if(mouse.released==4 && !moved) {
 			float t;

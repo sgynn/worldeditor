@@ -185,20 +185,22 @@ void ObjectEditor::changePath(Textbox* t) {
 	setResourcePath(t->getText());
 }
 
-void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base::Camera* camera) {
+void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camera, InputState& state) {
 	if(!m_panel->isVisible()) return;
-	bool overGUI = m_panel->getRoot()->getWidgetUnderMouse();
 
 	// Placement update
 	if(m_placement) { 
 		float t;
 		
 		// Altitude
-		if(mouse.wheel) {
-			if(keyMask&ALT_MASK && m_mode==CHAIN) m_chainStart += m_placement->getOrientation()*m_chainStep.normalised()*0.1*mouse.wheel;
+		if(mouse.wheel && !state.consumedMouseWheel) {
+			state.consumedMouseWheel = true;
+			if(state.keyMask&ALT_MASK && m_mode==CHAIN) {
+				m_chainStart += m_placement->getOrientation()*m_chainStep.normalised()*0.1*mouse.wheel;
+			}
 			else {
 				m_altitude.y += mouse.wheel * 0.1;
-				if(keyMask&SHIFT_MASK) m_chainStart.y += mouse.wheel * 0.1;
+				if(state.keyMask&SHIFT_MASK) m_chainStart.y += mouse.wheel * 0.1;
 			}
 		}
 
@@ -215,7 +217,8 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 
 
 		// Rotation
-		if(m_mode==SINGLE && mouse.pressed==1 && !overGUI) {
+		if(m_mode==SINGLE && mouse.pressed==1 && !state.overGUI) {
+			state.consumedMouseDown = true;
 			m_pressed = mouse.position;
 			m_mode = ROTATE;
 			m_started = false;
@@ -241,7 +244,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 			if(!m_started) {
 				m_chainStart = ray.point(t) + m_altitude;
 				m_placement->setPosition(m_chainStart - m_placement->getOrientation() * m_chainStep * 0.5);
-				if(!overGUI && mouse.released==1) { m_started = true; return; }
+				if(!state.overGUI && mouse.released==1) { m_started = true; return; }
 			}
 			else {
 				vec3 end = ray.point(t) + m_altitude;
@@ -305,17 +308,17 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 				break;
 			
 			case SINGLE:
-				if(!overGUI) {
+				if(!state.overGUI) {
 					Object* object = m_placement;
 					placeObject(object, m_resource);
 					m_placement = 0;
-					if(keyMask&SHIFT_MASK) selectResource(0, m_resource);
+					if(state.keyMask&SHIFT_MASK) selectResource(0, m_resource);
 					else { cancelPlacement(); selectObject(object); }
 				}
 				break;
 
 			case CHAIN:
-				if(!overGUI) {
+				if(!state.overGUI) {
 					int count = 0;
 					float step = m_chainStep.length();
 					for(Object* o: m_selected) {
@@ -332,7 +335,12 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 			}
 		}
 
-		if(mouse.pressed&4) { cancelPlacement(); m_mode=SINGLE; m_altitude.set(0,0,0); }
+		if(mouse.pressed&4) {
+			state.consumedMouseDown = true;
+			cancelPlacement();
+			m_mode=SINGLE;
+			m_altitude.set(0,0,0);
+		}
 		return;
 	}
 
@@ -356,7 +364,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 		bool wasHeld = m_gizmo->isHeld();
 		editor::MouseRay mouseRay(camera, mouse.position.x, mouse.position.y, base::Game::width(), base::Game::height());
 		if(mouse.released&1) m_gizmo->onMouseUp();
-		if(mouse.pressed&1) m_gizmo->onMouseDown(mouseRay);
+		if((mouse.pressed&1) && m_gizmo->onMouseDown(mouseRay)) state.consumedMouseDown = true;
 		if(mouse.moved.x || mouse.moved.y) {
 			m_gizmo->onMouseMove(mouseRay);
 			if(m_gizmo->isHeld()) {
@@ -395,7 +403,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 
 	// Picking
 	if(!m_placement && !m_gizmo->isHeld()) {
-		if(mouse.pressed==1 && !overGUI) {
+		if(mouse.pressed==1 && !state.consumedMouseDown) {
 			printf("Start box\n");
 			m_box->start();
 		}
@@ -403,19 +411,19 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, int keyMask, base:
 			if(m_box->isValid()) {
 				printf("End box\n");
 				m_box->updatePlanes(camera);
-				if(~keyMask&SHIFT_MASK) clearSelection();
+				if(~state.keyMask&SHIFT_MASK) clearSelection();
 				for(SceneNode* node: m_node->children()) {
 					Object* object = static_cast<Object*>(node);
 					if(m_box->inside(object->getBounds())) selectObject(object, true);
 				}
 				m_box->clear();
 			}
-			else if(!overGUI) {
+			else if(!state.overGUI) {
 				printf("Point select\n");
 				float t = 1e4f;
 				m_terrain->castRay(ray.start, ray.direction, t);
 				Object* sel = pick(m_node, ray, false, t);
-				selectObject(sel, keyMask&SHIFT_MASK);
+				selectObject(sel, state.keyMask&SHIFT_MASK);
 			}
 		}
 	}

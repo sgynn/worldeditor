@@ -20,7 +20,7 @@ class ObjectEditor : public EditorPlugin {
 	void setup(gui::Widget* toolPanel) override;
 	void load(const base::XMLElement&, const TerrainMap* context) override;
 	base::XMLElement save(const TerrainMap* context) const override;
-	void update(const Mouse&, const Ray&, int, base::Camera*) override;
+	void update(const Mouse&, const Ray&, base::Camera*, InputState&) override;
 	void clear() override;
 	void close() override;
 
