@@ -114,9 +114,6 @@ class WorldEditor : public base::SceneState {
 	int   m_mapSize;					// Map size
 	float m_resolution;					// Map horizontal resolution
 
-	vec2 m_terrainOffset;
-	vec2 m_terrainSize;
-	float m_terrainScale;
 	gui::String m_terrainFile;
 	SaveFormat m_heightFormat;
 	Rangef m_heightRange;

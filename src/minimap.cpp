@@ -84,3 +84,10 @@ void MiniMap::update(const vec2& a, const vec2& b) {
 	m_texture.setPixels(w, h, Texture::RGB8, m_data);
 }
 
+
+vec2 MiniMap::getNormalisedPosition(const vec3& worldPos) const {
+	return (worldPos.xz() - m_worldOffset) / m_worldSize;
+}
+vec3 MiniMap::getWorldPosition(const vec2& normalised) const {
+	return (normalised * m_worldSize + m_worldOffset).xzy(0);
+}

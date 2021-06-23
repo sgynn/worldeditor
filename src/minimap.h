@@ -21,6 +21,10 @@ class MiniMap {
 	void build();
 	void update(const vec2& a, const vec2& b);
 
+
+	vec2 getNormalisedPosition(const vec3& world) const;
+	vec3 getWorldPosition(const vec2& normalised) const;
+
 	protected:
 	float getWorldHeight(int px, int py) const;
 

@@ -339,7 +339,7 @@ void WorldEditor::update() {
 
 	// Map marker
 	if(m_mapMarker) {
-		vec2 p = (m_camera->getPosition().xz() - m_terrainOffset) / m_terrainSize;
+		vec2 p = m_minimap->getNormalisedPosition(m_camera->getPosition());
 		const Point& ms = m_mapMarker->getParent()->getAbsoluteClientRect().size();
 		const Point& ps = m_mapMarker->getSize(); 
 		const vec3& dir = cam->getDirection();
@@ -804,8 +804,7 @@ void WorldEditor::moveWorldMap(Widget* w, const Point& p, int b) {
 		vec2 pos(p.x, p.y);
 		pos.x /= w->getAbsoluteClientRect().width;
 		pos.y /= w->getAbsoluteClientRect().height;
-		pos = pos * m_terrainSize + m_terrainOffset;
-		vec3 camPos(pos.x, 0, pos.y);
+		vec3 camPos = m_minimap->getWorldPosition(pos);
 		camPos.y = m_camera->getPosition().y;
 		m_camera->setPosition(camPos);
 	}
