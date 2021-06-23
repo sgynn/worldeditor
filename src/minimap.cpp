@@ -5,8 +5,8 @@
 using base::Texture;
 
 MiniMap::MiniMap(int size) : m_map(0) {
-	m_texture = Texture::create(size, size, Texture::R8);
-	m_data = new unsigned char[size*size];
+	m_texture = Texture::create(size, size, Texture::RGB8);
+	m_data = new unsigned char[size*size*3];
 }
 MiniMap::~MiniMap() {
 	delete [] m_data;
@@ -55,10 +55,11 @@ void MiniMap::build() {
 			float h = getWorldHeight(x, y);
 			if(h<min) min=h;
 			if(h>max) max=h;
-			m_data[x + y*w] = clampByte((h - m_base) * m_scale);
+			unsigned char* pixel = m_data + (x + y*w) * 3;
+			pixel[0] = pixel[1] = pixel[2] = clampByte((h - m_base) * m_scale);
 		}
 	}
-	m_texture.setPixels(w, h, Texture::R8, m_data);
+	m_texture.setPixels(w, h, Texture::RGB8, m_data);
 	setRange(max, min);
 }
 void MiniMap::update(const vec2& a, const vec2& b) {
@@ -76,9 +77,10 @@ void MiniMap::update(const vec2& a, const vec2& b) {
 	for(int x=x0; x<=x1; ++x) {
 		for(int y=y0; y<=y1; ++y) {
 			float h = getWorldHeight(x, y);
-			m_data[x + y*w] = clampByte((h - m_base) * m_scale);
+			unsigned char* pixel = m_data + (x + y*w) * 3;
+			pixel[0] = pixel[1] = pixel[2] = clampByte((h - m_base) * m_scale);
 		}
 	}
-	m_texture.setPixels(w, h, Texture::R8, m_data);
+	m_texture.setPixels(w, h, Texture::RGB8, m_data);
 }
 

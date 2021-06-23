@@ -286,7 +286,6 @@ void WorldEditor::update() {
 	if(Game::Key(KEY_LCTRL) || Game::Key(KEY_RCTRL)) shift |= CTRL_MASK;
 	if(Game::Key(KEY_ALT)) shift |= ALT_MASK;
 
-
 	// Update GUI
 	Point guiMouse(mouse.position.x, Game::height() - mouse.position.y);
 	m_gui->setKeyMask((gui::KeyMask)shift);
@@ -315,6 +314,10 @@ void WorldEditor::update() {
 		}
 		if(!closedSomething && m_options.escapeQuits) changeState(0);	// exit
 	}
+
+	InputState state { shift, guiHasMouse, false, false };
+	state.consumedMouseWheel = m_gui->getWheelEventConsumed();
+	state.consumedMouseDown = mouse.button && guiHasMouse;
 	
 
 	// Update camera
@@ -328,8 +331,10 @@ void WorldEditor::update() {
 
 	// Change speed with mouse wheel
 	if(mouse.wheel && mouse.button==4) {
+		state.consumedMouseWheel = true;
 		m_options.speed *= 1 + mouse.wheel * 0.1;
-		mouse.wheel = 0;
+		cam->setSpeed(m_options.speed, 0.004);
+		m_gui->getWidget<Scrollbar>("cameraspeed")->setValue(m_options.speed * 100);
 	}
 
 	// Map marker
@@ -351,10 +356,6 @@ void WorldEditor::update() {
 			m_camera->setPosition( p );
 		}
 	}
-
-	InputState state { shift, guiHasMouse, false, false };
-	state.consumedMouseWheel = m_gui->getWheelEventConsumed();
-	state.consumedMouseDown = mouse.button && guiHasMouse;
 
 	// Update editors
 	if(m_editor) {
@@ -492,7 +493,7 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	m_terrain->assign( Point(1,0), tile );
 	m_terrain->assign( Point(0,1), tile );
 	m_terrain->assign( Point(1,1), tile );
-	m_minimap->build();
+	refreshMap();
 }
 void WorldEditor::cancelNewTerrain(gui::Button*) {
 	Widget* w = m_gui->getWidget<Widget>("newdialog");
@@ -584,6 +585,7 @@ void WorldEditor::createNewTile(Button*) {
 	TerrainMap* map = createTile(name);
 	m_terrain->assign(m_currentTile, map);
 	m_contextMenu->hide();
+	refreshMap();
 }
 void WorldEditor::showTileList(Button*) {
 	// open dialogue
@@ -624,12 +626,14 @@ void WorldEditor::loadTile(::Button*) {
 void WorldEditor::unloadTile(::Button*) {
 	m_terrain->assign(m_currentTile, 0);
 	m_contextMenu->hide();
+	refreshMap();
 }
 
 void WorldEditor::assignTile(Listbox* list, int index) {
 	if(index<0) return;
 	m_terrain->assign(m_currentTile, m_maps[index]);
 	list->getParent()->setVisible(false);
+	refreshMap();
 }
 void WorldEditor::showRenameTile(Button*) {
 	TerrainMap* map = m_terrain->getMap(m_currentTile);
@@ -780,6 +784,12 @@ void WorldEditor::saveSettings(gui::Window*) {
 }
 
 // ----------------------------------------------------------- //
+
+void WorldEditor::refreshMap() {
+	m_minimap->setWorld(m_terrain);
+	Widget* w = m_gui->getWidget<Widget>("worldmap");
+	if(w && w->isVisible()) m_minimap->build();
+}
 
 void WorldEditor::showWorldMap(Button*) {
 	Widget* w = m_gui->getWidget<Widget>("worldmap");
@@ -1303,8 +1313,7 @@ void WorldEditor::loadWorld(const char* file) {
 	// Other editors
 	for(EditorPlugin* e: m_editors) e->load(xml.getRoot(), 0);
 
-
-	m_minimap->build();
+	refreshMap();
 }
 
 

@@ -97,6 +97,7 @@ class WorldEditor : public base::SceneState {
 	void textureListChanged();
 
 	protected:
+	void refreshMap();										// rebuild minimap
 	TerrainMap* createTile(const char* name);				// Create a new tile using existing settings
 	TerrainMap* loadTile(const base::XMLElement&);			// Load tile from xml
 	void saveTile(TerrainMap*, base::XMLElement&) const;	// Save tile data to xml
