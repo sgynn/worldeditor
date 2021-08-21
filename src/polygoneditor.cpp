@@ -163,9 +163,9 @@ void PolygonEditor::load(const XMLElement& e, const TerrainMap* context) {
 	for(const XMLElement& i: list) {
 		Polygon* p = new Polygon();
 		int size = i.attribute("size", 0);
-		for(auto a=i.attributesBegin(); a!=i.attributesEnd(); ++a) {
-			if(strcmp(a->value,"size")==0) continue;
-			p->properties.push_back( ItemProperty{a->key, (const char*)a->value});
+		for(auto a : i.attributes()) {
+			if(strcmp(a.value,"size")==0) continue;
+			p->properties.push_back( ItemProperty{a.key, (const char*)a.value});
 		}
 		// Parse values - assume well formed TODO
 		const char* s = i.child(0).text();

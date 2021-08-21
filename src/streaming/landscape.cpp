@@ -8,8 +8,6 @@
 #include <base/input.h>
 #include <base/collision.h>
 
-#define assert(x) if(!(x)) asm("int $3\nnop"); // Raise SIGTRAP rather than SIGABRT
-
 using base::Camera;
 
 float landscapeDefaultHeightFunc(const vec3&) { return 0; }

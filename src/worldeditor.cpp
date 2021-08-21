@@ -268,18 +268,8 @@ void WorldEditor::resized() {
 
 void WorldEditor::update() {
 	// Input structures
-	static Point lmouse;
-	static int lbutton = 0;
-	Mouse mouse;
-	mouse.wheel = Game::MouseWheel();
-	mouse.button = Game::Mouse(mouse.position.x, mouse.position.y);
-	mouse.pressed = mouse.button & ~lbutton;
-	mouse.released = lbutton & ~mouse.button;
-	mouse.moved = mouse.position - lmouse;
-	lmouse = mouse.position;
-	lbutton = mouse.button;
-
-	Ray mouseRay = m_camera->getMouseRay(mouse.position, Game::getSize());
+	const Mouse& mouse = Game::input()->mouse;
+	Ray mouseRay = m_camera->getMouseRay(mouse, Game::getSize());
 
 	int shift = 0;
 	if(Game::Key(KEY_LSHIFT) || Game::Key(KEY_RSHIFT)) shift |= SHIFT_MASK;
@@ -287,7 +277,7 @@ void WorldEditor::update() {
 	if(Game::Key(KEY_ALT)) shift |= ALT_MASK;
 
 	// Update GUI
-	Point guiMouse(mouse.position.x, Game::height() - mouse.position.y);
+	Point guiMouse(mouse.x, Game::height() - mouse.y);
 	m_gui->setKeyMask((gui::KeyMask)shift);
 	m_gui->mouseEvent(guiMouse, mouse.button, mouse.wheel);
 	if(Game::LastKey()) m_gui->keyEvent(Game::LastKey(), Game::LastChar());

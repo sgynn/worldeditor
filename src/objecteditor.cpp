@@ -219,7 +219,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 		// Rotation
 		if(m_mode==SINGLE && mouse.pressed==1 && !state.overGUI) {
 			state.consumedMouseDown = true;
-			m_pressed = mouse.position;
+			m_pressed = mouse;
 			m_mode = ROTATE;
 			m_started = false;
 			m_yawOffset = 0;
@@ -228,7 +228,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 			vec3 pt;
 			const vec3& ps = m_placement->getPosition();
 			if(base::intersectRayPlane(ray.start, ray.direction, vec3(0,1,0), ps.y, pt)) {
-				if(!m_started && abs(mouse.position.x-m_pressed.x)+abs(mouse.position.y-m_pressed.y)>5) {
+				if(!m_started && abs(mouse.x-m_pressed.x)+abs(mouse.y-m_pressed.y)>5) {
 					m_yawOffset = atan2(pt.x-ps.x, pt.z-ps.z) - m_placement->getOrientation().getAngle();
 					m_started = true;
 				}
@@ -362,7 +362,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 
 		// Gizmo update
 		bool wasHeld = m_gizmo->isHeld();
-		editor::MouseRay mouseRay(camera, mouse.position.x, mouse.position.y, base::Game::width(), base::Game::height());
+		editor::MouseRay mouseRay(camera, mouse.x, mouse.y, base::Game::width(), base::Game::height());
 		if(mouse.released&1) m_gizmo->onMouseUp();
 		if((mouse.pressed&1) && m_gizmo->onMouseDown(mouseRay)) state.consumedMouseDown = true;
 		if(mouse.moved.x || mouse.moved.y) {

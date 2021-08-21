@@ -7,18 +7,11 @@ class MapGrid;
 class TerrainMap;
 class FileSystem;
 namespace gui { class Widget; }
-namespace base { class XMLElement; class Camera; }
-
-struct Mouse {
-	Point position;
-	Point moved;
-	int   button;
-	int   pressed;
-	int   released;
-	int   wheel;
-};
+namespace base { class XMLElement; class Camera; struct Mouse; }
 
 enum KeyMask { CTRL_MASK=1, SHIFT_MASK=2, ALT_MASK=4 };
+
+using Mouse = base::Mouse;
 
 struct InputState {
 	const int keyMask;
@@ -32,7 +25,7 @@ class EditorPlugin {
 	public:
 	virtual ~EditorPlugin() {}
 	virtual void setup(gui::Widget* toolPanel) {}
-	virtual void update(const Mouse&, const Ray&, base::Camera*, InputState& state) {}
+	virtual void update(const base::Mouse&, const Ray&, base::Camera*, InputState& state) {}
 	virtual void setContext(const TerrainMap*) {}
 	virtual base::XMLElement save(const TerrainMap* context) const = 0;
 	virtual void load(const base::XMLElement&, const TerrainMap* context) = 0;

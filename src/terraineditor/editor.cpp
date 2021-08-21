@@ -5,6 +5,7 @@
 #include <cstdio>
 
 #include <base/game.h>
+#include <base/input.h>
 
 void BrushData::reset(const Brush& brush, float resolution, int channels) {
 	m_resolution = resolution;

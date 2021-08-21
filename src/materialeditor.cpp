@@ -187,7 +187,7 @@ void writeAutoParams(XMLElement& e, const char* name, AutoParams& p, AutoParams&
 	if(p.max != d.max) r.setAttribute("max", p.max);
 	if(p.blend != d.blend) r.setAttribute("blend", p.blend);
 	if(p.noise != d.noise) r.setAttribute("noise", p.noise);
-	if(r.attributesBegin() != r.attributesEnd()) e.add(r);
+	if(!r.attributes().empty()) e.add(r);
 }
 
 XMLElement MaterialEditor::serialiseMaterial(int index) {
