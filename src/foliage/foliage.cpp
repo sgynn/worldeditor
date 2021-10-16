@@ -51,6 +51,8 @@ float FoliageMap::getValue(float x, float y) const {
 // ===================================================================================================== //
 
 FoliageLayer::FoliageLayer(float cs, float r) : m_parent(0), m_material(0), m_chunkSize(cs), m_range(r), m_density(1), m_scaleRange(1), m_densityMap(0) {
+	m_heightRange.set(-1e8f, 1e8f);
+	m_slopeRange.set(-1e8f, 1e8f);
 }
 FoliageLayer::~FoliageLayer() {
 	deleteMap(m_densityMap);

@@ -35,6 +35,7 @@
 #include "foliageeditor.h"
 #include "polygoneditor.h"
 #include "objecteditor.h"
+#include "erosion.h"
 
 #include "scene/scene.h"
 #include "scene/shader.h"
@@ -543,6 +544,7 @@ void WorldEditor::createNewTerrain(int size) {
 	createEditor<FoliageEditor>();
 	createEditor<PolygonEditor>();
 	createEditor<ObjectEditor>();
+	createEditor<ErosionEditor>();
 
 	// Minimap
 	m_minimap->setWorld(m_terrain);
@@ -1006,6 +1008,7 @@ TerrainMap* WorldEditor::createTile(const char* name) {
 	}
 	map->heightMap->setMaterial(m_materials->getMaterial(), map->maps);
 	map->heightMap->setHeightRange(m_heightRange);
+	map->size = m_mapSize;
 	map->name = name;
 	map->locked = false;
 	m_maps.push_back(map);

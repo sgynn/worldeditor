@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<gui height="1024" width="1280">
+	<!--Templates-->
+	<template class="ProgressBar" rect="0 0 100 16" name="progressbar" skin="panel" category="Display">
+		<widget anchor="lrtb" rect="0 0 100 16" name="_progress" skin="button"/>
+	</template>
+	<!--Layout-->
+	<widget rect="312 420 265 336" template="dialogfixed" name="erosioneditor" caption="Erosion Tool" skin="default">
+		<widget max="10000" anchor="lr" rect="96 12 144 16" template="slider" min="1000" value="4000" name="radius"/>
+		<widget colour="#ffffff" template="label" caption="Radius" rect="12 12 60 20"/>
+		<widget anchor="lr" value="50" name="evaporation" template="slider" rect="96 36 144 16"/>
+		<widget colour="#ffffff" template="label" caption="Evaporation" rect="12 36 60 20"/>
+		<widget anchor="lr" value="100" name="erosion" template="slider" rect="96 60 144 16"/>
+		<widget colour="#ffffff" template="label" caption="Erosion" rect="12 60 60 20"/>
+		<widget anchor="lr" value="100" name="deposition" template="slider" rect="96 84 144 16"/>
+		<widget colour="#ffffff" template="label" caption="Deposition" rect="12 84 60 20"/>
+		<widget max="10000" anchor="lr" value="5000" name="capacity" template="slider" rect="96 108 144 16"/>
+		<widget colour="#ffffff" template="label" caption="Capacity" rect="12 108 60 20"/>
+		<widget anchor="lr" template="slider" name="minslope" rect="96 132 144 16"/>
+		<widget colour="#ffffff" template="label" caption="Min Slope" rect="12 132 60 20"/>
+		<widget anchor="lr" value="100" name="inertia" template="slider" rect="96 156 144 16"/>
+		<widget colour="#ffffff" template="label" caption="Inertia" rect="12 156 60 20"/>
+		<widget anchor="lr" value="1000" name="gravity" template="slider" rect="96 180 144 16"/>
+		<widget colour="#ffffff" template="label" caption="Gravity" rect="12 180 60 20"/>
+		<widget anchor="rb" rect="180 276 60 20" template="button" skin="" name="run" caption="Run" tangible="1"/>
+		<widget anchor="rb" rect="108 276 60 20" template="button" skin="" name="undo" caption="Clear" tangible="1"/>
+		<widget colour="#ffffff" template="label" caption="Particles" rect="12 204 38 19"/>
+		<widget max="100000" anchor="lr" rect="96 204 144 20" template="spinbox" skin="default" value="100000" name="particles"/>
+		<widget colour="#ffffff" template="label" caption="Iterations" rect="12 228 38 19"/>
+		<widget max="100000" anchor="lr" rect="96 228 144 20" template="spinbox" skin="default" value="1000" name="iterations"/>
+		<widget anchor="lrb" template="progressbar" name="progress" rect="12 256 228 8"/>
+	</widget>
+</gui>
