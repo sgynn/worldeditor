@@ -584,7 +584,7 @@ static const char* shaderSourceFS =
 "float l = dot(normal, normalize(lightDirection));\n"
 "float s = (l+1)/1.3*0.2+0.1;\n"
 "diff.rgb *= max(s, l);\n"
-"fragment = vec4(diff.rgb * max(s,l), 1.0); }";
+"fragment = vec4(diff.rgb, 1.0); }";
 static const char* shaderSourceSelectedFS = 
 "#version 150\nout vec4 fragment;\nvoid main() { fragment = vec4(1,1,1,1); }\n";
 
