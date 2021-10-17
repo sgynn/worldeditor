@@ -2,7 +2,6 @@
 #include "heightmap.h"
 #include "gui/widgets.h"
 #include <base/input.h>
-#include <base/thread.h>
 #include <cstdlib>
 
 using namespace gui;
@@ -29,6 +28,8 @@ ErosionEditor::ErosionEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scen
 }
 
 ErosionEditor::~ErosionEditor() {
+	m_toolButton->removeFromParent();
+	delete m_toolButton;
 	delete [] m_data;
 	delete [] m_backup;
 }
@@ -36,6 +37,7 @@ ErosionEditor::~ErosionEditor() {
 void ErosionEditor::setup(gui::Widget* toolPanel) {
 	toolPanel->add(m_toolButton, 1);
 }
+
 void ErosionEditor::update(const Mouse& mouse, const Ray& ray, Camera*, InputState& state) {
 	// Update progressbar and block other input when running
 	if(mouse.pressed) {
@@ -43,12 +45,19 @@ void ErosionEditor::update(const Mouse& mouse, const Ray& ray, Camera*, InputSta
 		if(m_terrain->castRay(ray.start, ray.direction, hit)) setContext(m_terrain->getMap(ray.point(hit)));
 	}
 	
-	if(m_particles > 0 && advance(100)) {
+	if(m_progress > 0) {
+		m_panel->getWidget<ProgressBar>("progress")->setValue(m_progress);
 		state.consumedMouseDown = true;
+		if(m_progress >= m_particles) {
+			bool done = true;
+			for(Thread& t:m_threads) if(t.running()) done = false;
+			if(done) finished(m_panel->isVisible());
+		}
 	}
 
 }
 void ErosionEditor::setContext(const TerrainMap* map) {
+	if(m_particles > 0) return;
 	if(m_context != map) {
 		m_size = 0;
 		m_panel->getWidget("undo")->setEnabled(false);
@@ -66,14 +75,20 @@ void ErosionEditor::toggleEditor(Button* b) {
 }
 
 void ErosionEditor::close() {
+	m_progress = m_particles; // cancel generation
 	m_toolButton->setSelected(false);
 	m_panel->setVisible(false);
-	m_panel->getWidget("undo")->setEnabled(false);
 	m_size = 0;
 }
 
 void ErosionEditor::execute(Button*) {
 	if(!m_context) return;
+
+	// Stop generation
+	if(m_particles > 0) {
+		m_progress = m_particles;
+		return;
+	}
 
 	auto getValue = [this](const char* name) { Scrollbar* s = m_panel->getWidget<Scrollbar>(name); return s?s->getValue()/1000.f:0.f; };
 	auto getInteger = [this](const char* name) { Spinbox* s = m_panel->getWidget<Spinbox>(name); return s?s->getValue():0; };
@@ -101,11 +116,16 @@ void ErosionEditor::execute(Button*) {
 	m_context->heightMap->getData(m_data);
 
 	m_panel->getWidget("undo")->setEnabled(false);
-	m_panel->getWidget("run")->setEnabled(false);
+	m_panel->getWidget<Button>("run")->setCaption("Stop");
 
 	ProgressBar* progress = m_panel->getWidget<ProgressBar>("progress");
 	progress->setRange(0, m_particles);
 	progress->setValue(m_progress);
+	
+	m_threads.resize(8);
+	for(size_t i=0; i<m_threads.size(); ++i) {
+		m_threads[i].begin(this, &ErosionEditor::runThread);
+	}
 }
 
 void ErosionEditor::undo(Button* b) {
@@ -113,23 +133,22 @@ void ErosionEditor::undo(Button* b) {
 	b->setEnabled(false);
 }
 
-// --------------------------------- //
+// ------------------------------------------------------------------------ //
 
-bool ErosionEditor::advance(int max) {
-	if(m_particles - m_progress < max) max = m_particles - m_progress;
-	while(--max>=0) {
+void ErosionEditor::runThread() {
+	while(m_progress < m_particles) {
 		simulateDrop(m_limit);
 		++m_progress;
 	}
-	m_panel->getWidget<ProgressBar>("progress")->setValue(m_progress);
-	if(m_progress < m_particles) return true;
-
-	m_context->heightMap->setData(m_data);
-	m_panel->getWidget("undo")->setEnabled(true);
-	m_panel->getWidget("run")->setEnabled(true);
-	m_particles = 0;
-	return false;
 }
+
+void ErosionEditor::finished(bool completed) {
+	if(completed) m_context->heightMap->setData(m_data);
+	m_panel->getWidget("undo")->setEnabled(true);
+	m_panel->getWidget<Button>("run")->setCaption("Run");
+	m_progress = m_particles = 0;
+}
+
 
 inline bool ErosionEditor::getData(const vec2& p, float& height, vec2& slope) const {
 	int ix = floor(p.x);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "editorplugin.h"
+#include <base/thread.h>
 
 namespace gui { class Root; class Button; }
 namespace scene { class SceneNode; }
@@ -17,8 +18,9 @@ class ErosionEditor : public EditorPlugin {
 	private:
 	void toggleEditor(gui::Button*);
 	void execute(gui::Button*);
+	void runThread();
+	void finished(bool completed);
 	void undo(gui::Button*);
-	bool advance(int max);
 	void simulateDrop(int limit);
 	bool getData(const vec2& p, float& height, vec2& slope) const;
 	void modHeight(const vec2& p, float amount, float radius);
@@ -42,6 +44,7 @@ class ErosionEditor : public EditorPlugin {
 	int m_particles=0;
 	int m_progress=0;
 	int m_limit=0;
+	std::vector<base::Thread> m_threads;
 };
 
 

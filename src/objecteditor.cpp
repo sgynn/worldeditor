@@ -78,6 +78,7 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 ObjectEditor::~ObjectEditor() {
 	m_toolButton->removeFromParent();
 	delete m_toolButton;
+	clear();
 }
 
 void ObjectEditor::setup(gui::Widget* toolPanel) {

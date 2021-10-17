@@ -40,7 +40,7 @@ PolygonEditor::PolygonEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scen
 }
 
 PolygonEditor::~PolygonEditor() {
-	polygonSelected(m_list, -1);
+	clear();
 	m_properties->add(m_propertyTemplate);
 	m_toolButton->removeFromParent();
 	delete m_toolButton;
@@ -208,6 +208,13 @@ XMLElement PolygonEditor::save(const TerrainMap* context) const {
 }
 
 void PolygonEditor::clear() {
+	for(uint i=0; i<m_list->getItemCount(); ++i) {
+		Polygon* poly = *m_list->getItemData(i).cast<Polygon*>();
+		destroyDrawable(poly);
+		delete poly;
+	}
+	m_list->clearItems();
+	polygonSelected(m_list, -1);
 }
 
 // ------------------------------------------------------------------------------ //
