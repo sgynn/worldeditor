@@ -10,9 +10,9 @@
 		<widget colour="#ffffff" template="label" caption="Radius" rect="12 12 60 20"/>
 		<widget anchor="lr" value="50" name="evaporation" template="slider" rect="96 36 144 16"/>
 		<widget colour="#ffffff" template="label" caption="Evaporation" rect="12 36 60 20"/>
-		<widget anchor="lr" value="100" name="erosion" template="slider" rect="96 60 144 16"/>
+		<widget anchor="lr" value="100" name="erosion" template="slider" rect="96 60 144 16" max="100"/>
 		<widget colour="#ffffff" template="label" caption="Erosion" rect="12 60 60 20"/>
-		<widget anchor="lr" value="100" name="deposition" template="slider" rect="96 84 144 16"/>
+		<widget anchor="lr" value="100" name="deposition" template="slider" rect="96 84 144 16" max="100"/>
 		<widget colour="#ffffff" template="label" caption="Deposition" rect="12 84 60 20"/>
 		<widget max="10000" anchor="lr" value="5000" name="capacity" template="slider" rect="96 108 144 16"/>
 		<widget colour="#ffffff" template="label" caption="Capacity" rect="12 108 60 20"/>

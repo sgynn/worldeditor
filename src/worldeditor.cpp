@@ -479,11 +479,8 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	m_materials->getMaterial()->setName("Default");
 	
 	// Create first tile
-	TerrainMap* tile = createTile( "Tile 0,0" );
+	TerrainMap* tile = createTile( "Terrain" );
 	m_terrain->assign( Point(0,0), tile );
-	m_terrain->assign( Point(1,0), tile );
-	m_terrain->assign( Point(0,1), tile );
-	m_terrain->assign( Point(1,1), tile );
 	refreshMap();
 }
 void WorldEditor::cancelNewTerrain(gui::Button*) {

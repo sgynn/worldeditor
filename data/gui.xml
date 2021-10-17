@@ -52,7 +52,6 @@
 	</skin>
 	<skin name="listitem">
 		<font name="helvetica" size="16"/>
-		<image file="data/gui.png"/>
 		<state name="normal"/>
 		<state name="selected normal" colour="#ffa040"/>
 	</skin>

@@ -24,7 +24,6 @@
 	</skin>
 	<skin name="clear">
 		<font name="helvetica" size="16"/>
-		<image file="data/gui.png"/>
 		<state name="normal"/>
 	</skin>
 	<skin name="listitem">
