@@ -47,10 +47,8 @@ class FoliageEditor : public EditorPlugin {
 	~FoliageEditor();
 	void setupGui(gui::Root*);
 
-	void setup(gui::Widget* toolPanel) override;
 	void load(const base::XMLElement&, const TerrainMap* context) override;
 	base::XMLElement save(const TerrainMap* context) const override;
-	void setContext(const TerrainMap*) override;
 	void update(const Mouse&, const Ray&, base::Camera*, InputState&) override;
 	void clear() override;
 	void close() override;
@@ -77,7 +75,6 @@ class FoliageEditor : public EditorPlugin {
 	scene::SceneNode* m_node;
 	FileDialog*   m_fileDialog;
 
-	gui::Window*  m_window;
 	gui::Listbox* m_layerList;
 	gui::Button*  m_removeButton;
 	gui::Button*  m_cloneButton;

@@ -30,7 +30,6 @@ class PolygonEditor : public EditorPlugin {
 	public:
 	PolygonEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scene::SceneNode* scene);
 	~PolygonEditor();
-	void setup(gui::Widget* toolPanel) override;
 	void load(const base::XMLElement&, const TerrainMap* context) override;
 	base::XMLElement save(const TerrainMap* context) const override;
 	void update(const Mouse&, const Ray&, base::Camera*, InputState&) override;
@@ -38,7 +37,6 @@ class PolygonEditor : public EditorPlugin {
 	void close() override;
 
 	protected:
-	void toggleEditor(gui::Button*);
 	void addPolygon(gui::Button*);
 	void removePolygon(gui::Button*);
 	void polygonSelected(gui::Listbox*, int);
@@ -56,8 +54,6 @@ class PolygonEditor : public EditorPlugin {
 	enum DragMode { NONE, VERTEX, EDGE, ALL, INITIAL };
 	MapGrid* m_terrain;
 	scene::SceneNode* m_node;
-	gui::Button* m_toolButton;
-	gui::Widget* m_panel;
 	gui::Listbox* m_list;
 	gui::Widget* m_properties;
 	gui::Widget* m_propertyTemplate;

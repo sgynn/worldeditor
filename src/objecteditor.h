@@ -17,7 +17,6 @@ class ObjectEditor : public EditorPlugin {
 	public:
 	ObjectEditor(gui::Root*, FileSystem*, MapGrid*, scene::SceneNode*);
 	~ObjectEditor();
-	void setup(gui::Widget* toolPanel) override;
 	void load(const base::XMLElement&, const TerrainMap* context) override;
 	base::XMLElement save(const TerrainMap* context) const override;
 	void update(const Mouse&, const Ray&, base::Camera*, InputState&) override;
@@ -30,7 +29,6 @@ class ObjectEditor : public EditorPlugin {
 	static bool pickMesh(const Ray& ray, const base::bmodel::Mesh* mesh, const Matrix& transform, float& t);
 
 	protected:
-	void toggleEditor(gui::Button*);
 	void changePath(gui::Textbox*);
 	void selectResource(gui::TreeView*, gui::TreeNode*);
 	void selectObject(gui::TreeView*, gui::TreeNode*);
@@ -72,8 +70,6 @@ class ObjectEditor : public EditorPlugin {
 
 	base::HashMap<scene::Material*> m_materials;
 
-	gui::Widget*   m_panel;
-	gui::Button*   m_toolButton;
 	gui::TreeView* m_resourceList;
 	gui::TreeView* m_sceneTree;
 	gui::TreeNode* m_resource;

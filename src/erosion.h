@@ -10,9 +10,9 @@ class ErosionEditor : public EditorPlugin {
 	public:
 	ErosionEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scene::SceneNode* scene);
 	~ErosionEditor();
-	void setup(gui::Widget* toolPanel) override;
 	void update(const base::Mouse&, const Ray&, base::Camera*, InputState& state) override;
 	void setContext(const TerrainMap*) override;
+	void activate() override;
 	void close() override;
 
 	private:
@@ -26,8 +26,6 @@ class ErosionEditor : public EditorPlugin {
 	void modHeight(const vec2& p, float amount, float radius);
 
 	private:
-	gui::Widget* m_panel;
-	gui::Button* m_toolButton;
 	MapGrid* m_terrain;
 	const TerrainMap* m_context;
 	float m_radius; // droplet radius

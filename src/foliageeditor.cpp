@@ -145,7 +145,9 @@ FoliageEditor::~FoliageEditor() {
 }
 
 void FoliageEditor::setupGui(gui::Root* gui) {
-	m_window = gui->getWidget<gui::Window>("foliage");
+	createPanel(gui, "foliage", "foliage.xml");
+	createToolButton(gui, "Foliage");
+
 	m_layerList = gui->getWidget<Listbox>("foliagelist");
 	m_fileDialog = gui->getWidget<FileDialog>("filedialog");
 
@@ -161,15 +163,7 @@ void FoliageEditor::setupGui(gui::Root* gui) {
 	m_spriteList = new ItemList;
 }
 
-void FoliageEditor::setup(gui::Widget* tools) {
-	// Add the button
-}
-
-void FoliageEditor::setContext(const TerrainMap*) {
-}
-
 void FoliageEditor::close() {
-	m_window->setVisible(false);
 	for(uint i=0; i<m_layerList->getItemCount(); ++i) {
 		FoliageLayerEditor* editor = m_layerList->getItemData(i).getValue<FoliageLayerEditor*>(0);
 		if(editor) editor->getPanel()->setVisible(false);
@@ -197,10 +191,10 @@ FoliageLayerEditor* FoliageEditor::addLayer(FoliageType type) {
 	case FoliageType::Grass:     layer = new GrassLayer(5, 20); break;
 	}
 	
-	Widget* widget = m_window->getRoot()->getWidget<Widget>("foliagelayer");
+	Widget* widget = m_panel->getRoot()->getWidget<Widget>("foliagelayer");
 	widget = widget->clone();
 	widget->setName("");
-	m_window->getParent()->add(widget);
+	m_panel->getParent()->add(widget);
 
 	FoliageLayerEditor* editor = new FoliageLayerEditor(this, widget, layer, type);
 	m_layerList->addItem(editor->getName(), editor, type==FoliageType::Instanced? 16: 18);

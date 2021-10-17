@@ -16,10 +16,9 @@ extern gui::String appPath;
 PolygonEditor::PolygonEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scene::SceneNode* scene)
 	: m_terrain(terrain), m_selected(0), m_dragging(DragMode::NONE), m_vertex(0)
 {
-	m_panel = gui->getWidget("polygoneditor");
-	if(!m_panel) gui->load(appPath + "data/polygons.xml");
-	m_panel = gui->getWidget("polygoneditor");
-	m_panel->setVisible(false);
+	
+	createPanel(gui, "polygoneditor", "polygons.xml");
+	createToolButton(gui, "Polygon");
 
 	m_node = scene->createChild("Polygons");
 	m_list = m_panel->getWidget<Listbox>("polygonlist");
@@ -27,10 +26,6 @@ PolygonEditor::PolygonEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scen
 	m_propertyTemplate = m_properties->getWidget<Widget>("property");
 	m_propertyTemplate->removeFromParent();
 	polygonSelected(m_list,-1);
-
-	m_toolButton = gui->createWidget<Button>("iconbuttondark");
-	m_toolButton->setIcon("Polygon");
-	m_toolButton->eventPressed.bind(this, &PolygonEditor::toggleEditor);
 
 	CONNECT(Button,  "add", eventPressed, addPolygon);
 	CONNECT(Button,  "remove", eventPressed, removePolygon);
@@ -42,23 +37,12 @@ PolygonEditor::PolygonEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scen
 PolygonEditor::~PolygonEditor() {
 	clear();
 	m_properties->add(m_propertyTemplate);
-	m_toolButton->removeFromParent();
-	delete m_toolButton;
-}
-
-void PolygonEditor::setup(gui::Widget* toolPanel) {
-	toolPanel->add(m_toolButton, 1);
 }
 
 void PolygonEditor::close() {
-	m_toolButton->setSelected(false);
 	m_panel->setVisible(false);
 }
 
-void PolygonEditor::toggleEditor(gui::Button*) {
-	m_panel->setVisible(!m_panel->isVisible());
-	m_toolButton->setSelected(m_panel->isVisible());
-}
 // ------------------------------------------------------------------------------ //
 
 void PolygonEditor::addPolygon(Button*) {

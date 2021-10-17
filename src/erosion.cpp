@@ -12,30 +12,16 @@ extern String appPath;
 
 ErosionEditor::ErosionEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scene::SceneNode*) {
 	m_terrain = terrain;
-	m_panel = gui->getWidget("erosioneditor");
-	if(!m_panel) gui->load(appPath + "data/erosion.xml");
-	m_panel = gui->getWidget("erosioneditor");
-	m_panel->setVisible(false);
-
-	m_toolButton = gui->createWidget<Button>("iconbuttondark");
-	m_toolButton->setIcon("noise");
-	m_toolButton->eventPressed.bind(this, &ErosionEditor::toggleEditor);
+	createPanel(gui, "erosioneditor", "erosion.xml");
+	createToolButton(gui, "noise");
 
 	m_panel->getWidget<Button>("run")->eventPressed.bind(this, &ErosionEditor::execute);
 	m_panel->getWidget<Button>("undo")->eventPressed.bind(this, &ErosionEditor::undo);
-
-	setContext(terrain->getMap(Point(0,0)));
 }
 
 ErosionEditor::~ErosionEditor() {
-	m_toolButton->removeFromParent();
-	delete m_toolButton;
 	delete [] m_data;
 	delete [] m_backup;
-}
-
-void ErosionEditor::setup(gui::Widget* toolPanel) {
-	toolPanel->add(m_toolButton, 1);
 }
 
 void ErosionEditor::update(const Mouse& mouse, const Ray& ray, Camera*, InputState& state) {
@@ -66,18 +52,12 @@ void ErosionEditor::setContext(const TerrainMap* map) {
 	m_panel->getWidget("run")->setEnabled(map);
 }
 
-void ErosionEditor::toggleEditor(Button* b) {
-	if(m_panel->isVisible()) close();
-	else {
-		m_panel->setVisible(true);
-		m_toolButton->setSelected(true);
-	}
+void ErosionEditor::activate() {
+	if(!m_context) setContext(m_terrain->getMap(Point(0,0)));
 }
 
 void ErosionEditor::close() {
 	m_progress = m_particles; // cancel generation
-	m_toolButton->setSelected(false);
-	m_panel->setVisible(false);
 	m_size = 0;
 }
 

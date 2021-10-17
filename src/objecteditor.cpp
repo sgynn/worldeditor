@@ -41,21 +41,13 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 	: m_fileSystem(fs), m_terrain(terrain), m_placement(0), m_mode(SINGLE), m_collideObjects(true), m_gizmo(0)
 	, m_resource(0)
 {
-	m_panel = gui->getWidget("objecteditor");
-	if(!m_panel) {
-		gui->load(appPath + "data/objects.xml");
-		m_panel = gui->getWidget("objecteditor");
-	}
-	m_panel->setVisible(false);
+	createPanel(gui, "objecteditor", "objects.xml");
+	createToolButton(gui, "Objects");
 
 	m_node = scene->createChild("Objects");
 	m_sceneTree = m_panel->getWidget<TreeView>("tree");
 	m_resourceList = m_panel->getWidget<TreeView>("resources");
 	
-	m_toolButton = gui->createWidget<Button>("iconbuttondark");
-	m_toolButton->eventPressed.bind(this, &ObjectEditor::toggleEditor);
-	m_toolButton->setIcon("Objects");
-
 	CONNECT(Textbox,  "path", eventSubmit, changePath);
 	CONNECT(TreeView, "tree", eventSelected, selectObject);
 	CONNECT(TreeView, "resources", eventSelected, selectResource);
@@ -76,25 +68,12 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 }
 
 ObjectEditor::~ObjectEditor() {
-	m_toolButton->removeFromParent();
-	delete m_toolButton;
 	clear();
 }
 
-void ObjectEditor::setup(gui::Widget* toolPanel) {
-	toolPanel->add(m_toolButton, 1);
-}
-
 void ObjectEditor::close() {
-	m_toolButton->setSelected(false);
-	m_panel->setVisible(false);
 	cancelPlacement();
 	selectObject(0);
-}
-
-void ObjectEditor::toggleEditor(gui::Button*) {
-	m_panel->setVisible(!m_panel->isVisible());
-	m_toolButton->setSelected(m_panel->isVisible());
 }
 
 // ------------------------------------------------------------------------------ //

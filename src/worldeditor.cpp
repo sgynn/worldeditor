@@ -519,7 +519,7 @@ void WorldEditor::setTerrainSource(const char* file) {
 
 template<class Editor> void WorldEditor::createEditor() {
 	EditorPlugin* e = new Editor(m_gui, m_fileSystem, m_terrain, m_scene->getRootNode());
-	e->setup(m_gui->getWidget("toolshelf"));
+	e->registerPlugin(m_gui->getWidget("toolshelf"));
 	m_editors.push_back(e);
 }
 
@@ -541,10 +541,10 @@ void WorldEditor::createNewTerrain(int size) {
 	m_materials->setTerrainSize( vec2(size,size) );
 
 	// Additional Editors
+	createEditor<ErosionEditor>();
 	createEditor<FoliageEditor>();
 	createEditor<PolygonEditor>();
 	createEditor<ObjectEditor>();
-	createEditor<ErosionEditor>();
 
 	// Minimap
 	m_minimap->setWorld(m_terrain);

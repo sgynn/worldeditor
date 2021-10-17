@@ -7,8 +7,9 @@
 class MapGrid;
 class TerrainMap;
 class FileSystem;
-namespace gui { class Widget; }
+namespace gui { class Root; class Widget; class Button; class Window; }
 namespace base { class Camera; struct Mouse; }
+namespace scene { class SceneNode; }
 
 enum KeyMask { CTRL_MASK=1, SHIFT_MASK=2, ALT_MASK=4 };
 
@@ -26,14 +27,25 @@ class EditorPlugin {
 	protected:
 	EditorPlugin() {}
 	public:
-	virtual ~EditorPlugin() {}
-	virtual void setup(gui::Widget* toolPanel) {}	// initialisation
+	virtual ~EditorPlugin();
 	virtual void update(const base::Mouse&, const Ray&, base::Camera*, InputState& state) {}		// frame update
 	virtual void setContext(const TerrainMap*) {}													// Set active terrain data
 	virtual base::XMLElement save(const TerrainMap* context) const { return base::XMLElement(); }	// Save data to file
 	virtual void load(const base::XMLElement&, const TerrainMap* context) {};						// Load data from file
 	virtual void clear() {}		// ?
-	virtual void close() {}		// Close all assodiated gui elements
+	virtual void close() {}		// Close all associated gui elements
+	virtual void activate() {}	// Make plugin active - open panel etc.
+
+	void registerPlugin(gui::Widget* toolPanel);
+	protected:
+	bool createPanel(gui::Root*, const char* name, const char* file=0);
+	void createToolButton(gui::Root*, const char* icon);
+	private:
+	void panelClosed(gui::Window*);
+	void toggleEditor(gui::Button*);
+	gui::Widget* m_toolButton = 0;
+	protected:
+	gui::Widget* m_panel = 0;
 };
 
 
