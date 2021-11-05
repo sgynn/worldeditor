@@ -303,6 +303,7 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 		w->getWidget<Combobox>("mesh")->shareList(editor->m_meshList);
 		m_name = "New Instanced Layer";
 		m_densityMax = 0.5;
+		m_density = 0.01;
 
 		align = w->getWidget<Combobox>("alignment");
 		align->addItem("Vertical");
@@ -319,12 +320,12 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 		w->getWidget<Combobox>("sprite")->shareList(editor->m_spriteList);
 		m_name = "New Grass Layer";
 		m_densityMax = 16;
+		m_density = 1;
 		break;
 	}
 
 	// Defaults
 	m_range = 100;
-	m_density = m_densityMax * 0.5;
 	m_scale.set(1,1);
 	m_slope.set(0,1);
 	m_angle.set(0,0);
@@ -341,7 +342,7 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 void FoliageLayerEditor::updateSliders() {
 	m_panel->getWidget<Textbox>("name")->setText(m_name);
 	SET_SLIDER("range", m_range, 1000);
-	SET_SLIDER("density", m_density, m_densityMax);
+	SET_SLIDER("density", powf(m_density/m_densityMax,0.5), 1);
 	SET_SLIDER("minheight", m_height.min, 500);
 	SET_SLIDER("maxheight", m_height.max, 500);
 	SET_SLIDER("minslope", m_slope.min, 1);
@@ -365,7 +366,7 @@ void FoliageLayerEditor::renameLayer(gui::Textbox* t) {
 }
 
 void FoliageLayerEditor::setDensityMap(gui::Combobox*, int) {}
-void FoliageLayerEditor::setDensity(gui::Scrollbar*, int v) { m_density=v*0.001*m_densityMax; refresh(); }
+void FoliageLayerEditor::setDensity(gui::Scrollbar*, int v) { m_density=powf(v*0.001,2)*m_densityMax; refresh(); }
 void FoliageLayerEditor::setRange(gui::Scrollbar*, int v)   { m_range=v; m_layer->setViewRange(m_range); }
 
 void FoliageLayerEditor::setMinHeight(gui::Scrollbar*, int v) { m_height.min = v*0.5; refresh(); }
