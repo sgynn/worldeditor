@@ -53,7 +53,7 @@
 	<skin name="listitem">
 		<font name="helvetica" size="16"/>
 		<state name="normal"/>
-		<state name="selected normal" colour="#ffa040"/>
+		<state name="selected normal" colour="#ffffa040"/>
 	</skin>
 
 	<!--============= ICONS ====================-->

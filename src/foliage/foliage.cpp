@@ -149,8 +149,13 @@ int FoliageLayer::generatePoints(const Index& index, int count, vec3* corners, c
 int FoliageLayer::generatePoints(const Index& index, PointList& points, vec3& up) const {
 	vec3 corners[4];
 	float amount = m_density * m_chunkSize * m_chunkSize;
+
+	RNG rng(m_parent->getSeed(index, m_chunkSize));
+	if(rng.randf() < amount-floor(amount)) ++amount;
+	if(amount < 1) return 0;
+	
 	m_parent->getCorners(index, m_chunkSize, corners, up);
-	return generatePoints(index, amount, corners, up, points);
+	return generatePoints(index, (int)amount, corners, up, points);
 }
 
 // ----------------------------------------------------------------------------------------------------- //
