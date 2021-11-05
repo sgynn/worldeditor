@@ -506,7 +506,7 @@ XMLElement FoliageLayerEditor::save() const {
 		FoliageSprite* sprite = list->getSelectedData().cast<FoliageSprite>();
 		if(sprite) {
 			XMLElement& f = e.add("sprite");
-			f.setAttribute("file", sprite->file);
+			f.setAttribute("file", m_editor->m_fileSystem->getRelative(sprite->file));
 		}
 	}
 	if(m_type==FoliageType::Instanced) {
