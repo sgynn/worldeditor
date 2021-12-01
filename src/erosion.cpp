@@ -206,6 +206,8 @@ void ErosionEditor::simulateDrop(int limit) {
 		speed = fmax(0, speed - diff * m_gravity); // sqrt(speed*speed + diff * m_gravity);
 		water *= 1 - m_evaporation;
 		lastHeight = height;
+
+		speed = fmin(speed, 10); // Things explode if this gets too high
 		
 		if(--limit<=0) water = 0;
 		if(sediment >= capacity) {

@@ -10,6 +10,10 @@
 #include <vector>
 #include <map>
 
+// Windows being infuriating again. ToDo: perhaps use an enum class.
+#undef ABSOLUTE
+#undef RELATIVE
+
 namespace scene { class Material; class DrawableMesh; }
 namespace base { namespace bmodel { class Mesh; } class HardwareVertexBuffer; }
 class FoliageSystem;

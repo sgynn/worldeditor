@@ -12,6 +12,12 @@
 
 #include "scene/debuggeometry.h"
 
+#ifdef WIN32
+extern PFNGLBINDVERTEXARRAYPROC glBindVertexArray;
+extern PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArrays;
+#endif
+
+
 class DynamicHeightmapDrawable : public scene::Drawable {
 	Landscape* m_land;
 	struct PatchTag {
