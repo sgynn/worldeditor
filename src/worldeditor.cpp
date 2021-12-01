@@ -381,6 +381,7 @@ void WorldEditor::update() {
 	}
 	if(Game::Pressed(KEY_O) && shift==1) showOpenDialog(0);
 	if(Game::Pressed(KEY_S) && shift==1) showSaveDialog(0);
+	if(Game::Pressed(KEY_N) && shift==1) showNewDialog(0);
 
 	// Update any objects
 	for(base::HashMap<Object*>::iterator i=m_objects.begin(); i!=m_objects.end(); ++i) {
@@ -427,8 +428,11 @@ void showDialog(Widget* w) {
 }
 
 void WorldEditor::showNewDialog(Button*) {
-	Widget* w = m_gui->getWidget<Widget>("newdialog");
-	showDialog(w);
+	Widget* panel = m_gui->getWidget<Widget>("newdialog");
+	Combobox* modes = panel->getWidget<Combobox>("mode");
+	modes->selectItem(1); // TIFF
+	changeTerrainMode(modes, 1);
+	showDialog(panel);
 }
 void WorldEditor::showOpenDialog(Button*) {
 	FileDialog* d = m_gui->getWidget<FileDialog>("filedialog");
@@ -497,7 +501,7 @@ void WorldEditor::changeTerrainMode(gui::Combobox* list, int index) {
 		sprintf(buffer, "%dx%d", size, size);
 		sizes->addItem(buffer, size);
 	}
-	sizes->selectItem(0);
+	sizes->selectItem(3);
 	list->getParent()->getWidget<gui::Button>("create")->setEnabled( true );
 }
 void WorldEditor::browseTerrainSource(gui::Button*) {
