@@ -61,7 +61,7 @@ gui::String appPath;
 #define main _main
 int main(int argc, char* argv[]);
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine,int nCmdShow) {
-	freopen("editor.log", "w", stdout);
+	//freopen("editor.log", "w", stdout);
 	return main(0,0);
 }
 #endif
@@ -69,10 +69,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 // Application entry point
 int main(int argc, char* argv[]) {
 	// Get application path
-	const char* p = strrchr(argv[0], '/');
-	if(p) argv[0][p-argv[0]+1] = 0;
-	appPath = argv[0];
-	printf("App path: %s\n", appPath.str());
+	if(argc) {
+		const char* p = strrchr(argv[0], '/');
+		if(p) argv[0][p-argv[0]+1] = 0;
+		appPath = argv[0];
+		printf("App path: %s\n", appPath.str());
+	}
 
 	// System options
 	base::INIFile cfg = base::INIFile::load(appPath + INIFILE);
@@ -83,7 +85,7 @@ int main(int argc, char* argv[]) {
 	bool fs = wnd.get("fullscreen", false);
 
 	// Initialise
-	base::Game* game = base::Game::create(w,h,32,fs,aa);
+	base::Game* game = base::Game::create(w,h,32,fs, 60, aa);
 	scene::Shader::getSupportedVersion();
 	WorldEditor* editor = new WorldEditor(cfg);
 	if(argc>1) editor->loadWorld(argv[1]);
@@ -392,7 +394,7 @@ void WorldEditor::update() {
 	m_scene->updateSceneGraph();
 }
 
-void WorldEditor::drawScene() {
+void WorldEditor::draw() {
 	scene::DebugGeometryManager::getInstance()->update();
 	// Render scene
 	m_renderer->clear();
@@ -406,9 +408,7 @@ void WorldEditor::drawScene() {
 
 	// Draw editor stuff
 	if(m_editor) m_editor->draw();
-}
 
-void WorldEditor::drawHUD() {
 	m_gui->draw();
 }
 

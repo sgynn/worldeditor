@@ -1,7 +1,7 @@
 #ifndef _WORLD_
 #define _WORLD_
 
-#include <base/scene.h>
+#include <base/state.h>
 #include <base/hashmap.h>
 #include "gui/gui.h"
 #include "object.h"
@@ -23,15 +23,13 @@ namespace base { class INIFile; class XMLElement; }
 
 enum class SaveFormat { RAW, TIF16, PNG16 };
 
-class WorldEditor : public base::SceneState {
+class WorldEditor : public base::GameState {
 	public:
 	WorldEditor(const base::INIFile&);
 	~WorldEditor();
 
-	void update();
-	void drawScene();
-	void drawHUD();
-
+	void update() override;
+	void draw() override;
 
 	void resized();
 	void clear();
@@ -106,6 +104,7 @@ class WorldEditor : public base::SceneState {
 	private:
 	scene::Scene*    m_scene;
 	scene::Renderer* m_renderer;
+	base::Camera*    m_camera;
 	FileSystem*      m_fileSystem;
 	gui::String      m_root;
 

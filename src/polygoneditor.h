@@ -5,6 +5,8 @@
 #include <base/vec.h>
 #include <vector>
 
+#define Polygon Polygon1
+
 namespace gui { class Button; class Listbox; class Textbox; class Spinbox; }
 namespace base { class XMLElement; }
 namespace scene { class SceneNode; class DrawableMesh; }
