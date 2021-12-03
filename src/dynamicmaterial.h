@@ -14,7 +14,7 @@ class MaterialEditor;
 enum LayerType { LAYER_AUTO, LAYER_WEIGHT, LAYER_COLOUR, LAYER_INDEXED, LAYER_GRADIENT };
 enum BlendMode { BLEND_NORMAL, BLEND_HEIGHT, BLEND_MULTIPLY, BLEND_ADD };
 enum TexProjection { PROJECTION_FLAT, PROJECTION_TRIPLANAR, PROJECTION_VERTICAL };
-enum MaterialMode { COMPOSITE, DIFFUSE, NORMAL };
+enum MaterialMode { COMPOSITE, DIFFUSE, NORMALS, LIGHTING };
 
 struct AutoParams { float min, max, blend, noise; };
 

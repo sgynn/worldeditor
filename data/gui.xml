@@ -299,7 +299,8 @@
 		<widget template="droplist" name="materialmodes" rect="72 32 310 20" anchor="tlr">
 			<item>Composite</item>
 			<item>Diffuse</item>
-			<item>Normal</item>
+			<item>Normals</item>
+			<item>Lighting</item>
 		</widget>
 
 		<widget template="scrollpane" name="layerlist" rect="0 56 390 378" fullsize="1" anchor="tlrb"/>

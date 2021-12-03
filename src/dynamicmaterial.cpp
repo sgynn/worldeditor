@@ -156,7 +156,8 @@ void DynamicMaterial::update(int index) {
 
 	// Auto parameters
 	if(layer->type == LAYER_AUTO) {
-		vec3 min(layer->height.min, layer->slope.min, layer->concavity.min);
+		float minHeight = layer->height.min==0? -9999: layer->height.min; // height min special case
+		vec3 min(minHeight, layer->slope.min, layer->concavity.min);
 		vec3 max(layer->height.max, layer->slope.max, layer->concavity.max);
 		vec3 blend(layer->height.blend, layer->slope.blend, layer->concavity.blend);
 		for(int i=0; i<3; ++i) if(blend[i]<=0) blend[i] = 0.001; // avoid div0
@@ -345,6 +346,7 @@ bool DynamicMaterial::compile() {
 	"	return vec4(result, nX.w*weights.x + nY.w*weights.y + nZ.w*weights.z);\n"
 	"}\n";
 
+
 	source +=
 	"float getAutoWeight(vec3 value, vec3 vmin, vec3 vmax, vec3 vblend) {\n"
 //	"	vec3 ctr = (vmin + vmax) * 0.5;\n"
@@ -511,8 +513,8 @@ bool DynamicMaterial::compile() {
 
 	// Vertical projection data
 	source +=
-	"	vec3 vertical = vec3(triplanar.x, 0, triplanar.z);\n"
-	"	vertical /= triplanar.y>0.99? 1: dot(vertical, vec3(1,1,1));\n\n";
+	"	vec3 vertical = vec3(triplanar.x, 0.0, triplanar.z);\n"
+;//	"	vertical /= max(0.001, dot(vertical, vec3(1,1,1)));\n\n";
 	
 
 
@@ -584,7 +586,8 @@ bool DynamicMaterial::compile() {
 				"	norm = vec4(0, 0, 1, 0);\n";
 			else if(layer->projection == PROJECTION_VERTICAL) source +=
 				"	diff = sampleTriplanar("+str(layer->texture)+".0, worldPos * scale"+index+", vertical);\n"
-				"	norm = sampleTriplanerNormal("+str(layer->texture)+".0, worldPos * scale"+index+", worldNormal, vertical);\n";
+				"	norm = sampleTriplanerNormal("+str(layer->texture)+".0, worldPos * scale"+index+", worldNormal, vertical);\n"
+				"	if(triplanar.y > 0.999) norm = vec4(0,1,0,0);\n";
 			else if(layer->projection == PROJECTION_TRIPLANAR) source +=
 				"	diff = sampleTriplanar("+str(layer->texture)+".0, worldPos * scale"+index+", triplanar);\n"
 				"	norm = sampleTriplanerNormal("+str(layer->texture)+".0, worldPos * scale"+index+", worldNormal, triplanar);\n";
@@ -631,11 +634,20 @@ bool DynamicMaterial::compile() {
 		"	fragment = diffuse;\n"
 		"}\n";
 		break;
-	case NORMAL:
+	case NORMALS:
 		source +=
 		"	// Normal output\n"
 		"	vec3 output = normalize(worldNormal + normal.xyz) * 0.5 + 0.5;"
 		"	fragment = vec4(output, 1);\n"
+		"}\n";
+		break;
+	case LIGHTING:
+		source +=
+		"	// Lighting\n"
+		"	float l = dot( normalize(worldNormal + normal.xyz), normalize(lightDirection) );\n"
+		"	float s = (l+1)/1.3 * 0.2 + 0.1;\n"
+		"	l = max(l, s);\n"
+		"	fragment = vec4(l,l,l,1);\n"
 		"}\n";
 		break;
 	}
