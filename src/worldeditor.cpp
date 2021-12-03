@@ -518,7 +518,15 @@ void WorldEditor::setTerrainSource(const char* file) {
 template<class Editor> void WorldEditor::createEditor() {
 	EditorPlugin* e = new Editor(m_gui, m_fileSystem, m_terrain, m_scene->getRootNode());
 	e->registerPlugin(m_gui->getWidget("toolshelf"));
+	e->eventActivated.bind(this, &WorldEditor::editorActivated);
 	m_editors.push_back(e);
+}
+
+void WorldEditor::editorActivated(EditorPlugin* editor) {
+	m_editor->closeEditor();
+	for(EditorPlugin* e : m_editors) {
+		if(e!=editor) e->closeEditor();
+	}
 }
 
 

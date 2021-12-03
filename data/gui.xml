@@ -261,8 +261,8 @@
 	</widget>
 	
 	<widget name="toolshelf" rect="174 0 800 36" anchor="tlr" layout="HorizontalLayout" margin="2" spacing="1">
-		<widget name="materialbutton" template="iconbuttondark" rect="36 2 32 32" icon="material"/>
 		<widget name="texturebutton" template="iconbuttondark" rect="70 2 32 32" icon="texture"/>
+		<widget name="materialbutton" template="iconbuttondark" rect="36 2 32 32" icon="material"/>
 		<widget name="toollist" template="toolgrouplist" rect="108 2 160 32"/>
 		<!-- Other tools here -->
 	</widget>

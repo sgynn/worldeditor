@@ -3,6 +3,7 @@
 #include <base/vec.h>
 #include <base/point.h>
 #include <base/xml.h>
+#include "gui/delegate.h"
 
 class MapGrid;
 class TerrainMap;
@@ -37,6 +38,8 @@ class EditorPlugin {
 	virtual void activate() {}	// Make plugin active - open panel etc.
 
 	void registerPlugin(gui::Widget* toolPanel);
+	Delegate<void(EditorPlugin*)> eventActivated;
+	void closeEditor();
 	protected:
 	bool createPanel(gui::Root*, const char* name, const char* file=0);
 	void createToolButton(gui::Root*, const char* icon);

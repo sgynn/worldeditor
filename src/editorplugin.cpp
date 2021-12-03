@@ -43,8 +43,16 @@ void EditorPlugin::panelClosed(Window*) {
 void EditorPlugin::toggleEditor(Button* b) {
 	b->setSelected(!b->isSelected());
 	if(m_panel) m_panel->setVisible(b->isSelected());
-	if(b->isSelected()) activate();
+	if(b->isSelected()) {
+		activate();
+		if(eventActivated) eventActivated(this);
+	}
 	else close();
-	// Ideally deactivate other plugins
+}
+
+void EditorPlugin::closeEditor() {
+	if(m_panel) m_panel->setVisible(false);
+	if(m_toolButton) m_toolButton->setSelected(false);
+	close();
 }
 

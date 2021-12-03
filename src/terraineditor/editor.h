@@ -37,6 +37,7 @@ class TerrainEditor : public EditorPlugin {
 	public:
 	TerrainEditor(TerrainEditorDataInterface*);
 	~TerrainEditor();
+	void close() override;
 
 	base::XMLElement save(const TerrainMap* context) const override;
 	void load(const base::XMLElement&, const TerrainMap* context) override;

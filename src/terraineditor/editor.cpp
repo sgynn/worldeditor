@@ -64,6 +64,10 @@ TerrainEditor::~TerrainEditor() {
 	delete m_brushNode;
 }
 
+void TerrainEditor::close() {
+	setTool(0);
+}
+
 void TerrainEditor::setTool(ToolInstance* t) {
 	m_brushNode->setVisible(false);
 	m_tool = t;
@@ -72,6 +76,7 @@ void TerrainEditor::setTool(ToolInstance* t) {
 const Brush& TerrainEditor::getBrush() const {
 	return m_brush;
 }
+
 void TerrainEditor::setBrush(const Brush& b) {
 	m_brush.radius = b.radius;
 	m_brush.strength = b.strength;
@@ -92,6 +97,8 @@ void TerrainEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 		position = ray.point(t);
 		hit = t > 0;
 	}
+
+	if(!m_stroke && state.overGUI) hit = false;
 
 	// Change brush size
 	if(mouse.wheel && !state.consumedMouseWheel) {
@@ -236,5 +243,7 @@ void TerrainEditor::updateBrushRings(const vec3& centre, float r1, float r2) {
 base::XMLElement TerrainEditor::save(const TerrainMap* context) const {
 	return base::XMLElement();
 }
+
 void TerrainEditor::load(const base::XMLElement&, const TerrainMap* context) {
 }
+

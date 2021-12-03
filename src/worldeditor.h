@@ -94,6 +94,8 @@ class WorldEditor : public base::GameState {
 	void setTerrainMaterial(DynamicMaterial*);
 	void textureListChanged();
 
+	void editorActivated(EditorPlugin* editor);
+
 	protected:
 	void refreshMap();										// rebuild minimap
 	TerrainMap* createTile(const char* name);				// Create a new tile using existing settings
