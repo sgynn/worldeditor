@@ -406,9 +406,6 @@ void WorldEditor::draw() {
 	m_renderer->render(12,12);
 	m_renderer->getState().reset();
 
-	// Draw editor stuff
-	if(m_editor) m_editor->draw();
-
 	m_gui->draw();
 }
 
@@ -553,6 +550,7 @@ void WorldEditor::createNewTerrain(int size) {
 
 	// Setup editor
 	m_editor = new TerrainEditor(m_terrain);
+	m_scene->add(m_editor->getBrushNode());
 	setupHeightTools(m_resolution);
 
 	// Buttons

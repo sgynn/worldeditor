@@ -7,6 +7,11 @@
 #include <base/game.h>
 #include <base/input.h>
 
+#include "scene/debuggeometry.h"
+#include "scene/scene.h"
+#include "scene/mesh.h"
+#include "model/mesh.h"
+
 void BrushData::reset(const Brush& brush, float resolution, int channels) {
 	m_resolution = resolution;
 	vec2 min = ceil ((brush.position - brush.radius) / resolution);
@@ -44,17 +49,23 @@ inline float clamp(float f, float min=0, float max=1) {
 }
 
 TerrainEditor::TerrainEditor(TerrainEditorDataInterface* t) : m_target(t), m_tool(0), m_locked(false), m_stroke(false) {
+	m_brushNode = new scene::SceneNode("Brush");
 	m_brush.radius = 10;
 	m_brush.falloff = 0.5;
 	m_brush.strength = 1;
 }
 
 TerrainEditor::~TerrainEditor() {
+	scene::DrawableMesh* drawable = static_cast<scene::DrawableMesh*>(m_brushNode->getAttachment(0));
+	if(drawable) {
+		delete drawable->getMesh();
+		delete drawable;
+	}
+	delete m_brushNode;
 }
 
 void TerrainEditor::setTool(ToolInstance* t) {
-	m_ring0.clear();
-	m_ring1.clear();
+	m_brushNode->setVisible(false);
 	m_tool = t;
 }
 
@@ -72,18 +83,15 @@ void TerrainEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 
 	// update current brush
 	float hitDistance = 0;
-	int r = m_target->castRay(ray.start, ray.direction, hitDistance);
+	int hit = m_target->castRay(ray.start, ray.direction, hitDistance);
 	vec3 position = ray.point(hitDistance);
-	if(r) m_brush.position = position.xz();
+	if(hit) m_brush.position = position.xz();
 	else {
-		// y=0 plane outside
+		// y=0 plane outside map bounds
 		float t = -ray.start.y / ray.direction.y;
 		position = ray.point(t);
-		if(t<0) m_ring0.clear(), m_ring1.clear();
-		else r = true; // Perhaps limit to heightmap bounds + brush radius ?
+		hit = t > 0;
 	}
-
-
 
 	// Change brush size
 	if(mouse.wheel && !state.consumedMouseWheel) {
@@ -95,9 +103,9 @@ void TerrainEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 	}
 
 	// Update rings
-	if(r) {
-		updateRing(m_ring0, position, m_brush.radius);
-		updateRing(m_ring1, position, m_brush.getRadius(0.5));
+	m_brushNode->setVisible(hit);
+	if(hit) {
+		updateBrushRings(position, m_brush.radius, m_brush.getRadius(0.5));
 
 		m_locked = true;
 		m_brush.position = position.xz();
@@ -186,42 +194,44 @@ void TerrainEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 	}
 }
 
-void TerrainEditor::updateRing(std::vector<vec3>& v, const vec3& c, float r) const {
-	v.clear();
-	if(r <= 0) return;
-	int sides = TWOPI * r * 2;
-	if(sides<32) sides = 32;
-
-	vec3 p;
-	float step = TWOPI / sides;
-	for(int i=0; i<=sides; ++i) {
-		p.x = c.x + r*sin(i*step);
-		p.z = c.z + r*cos(i*step);
-		p.y = m_target->getHeight(p);
-		v.push_back(p);
+void TerrainEditor::updateBrushRings(const vec3& centre, float r1, float r2) {
+	scene::DrawableMesh* drawable = static_cast<scene::DrawableMesh*>(m_brushNode->getAttachment(0));
+	if(!drawable) {
+		drawable = new scene::DrawableMesh();
+		base::HardwareVertexBuffer* buffer = new base::HardwareVertexBuffer();
+		base::bmodel::Mesh* mesh = new base::bmodel::Mesh();
+		buffer->attributes.add(base::VA_VERTEX, base::VA_FLOAT3);
+		buffer->attributes.add(base::VA_COLOUR, base::VA_ARGB);
+		buffer->createBuffer();
+		mesh->setVertexBuffer(buffer);
+		mesh->setPolygonMode(base::bmodel::LINE_STRIP);
+		drawable->setMesh(mesh);
+		drawable->setMaterial(scene::DebugGeometryManager::getInstance()->getDefaultMaterial());
+		m_brushNode->attach(drawable);
 	}
+
+	struct Vertex { vec3 pos; uint colour; };
+	static std::vector<Vertex> data(70, Vertex{centre, 0xffffff00});
+	int k = 0;
+
+	auto addRing = [this](const vec3& centre, float r, std::vector<Vertex>& data, int& k) {
+		int sides = TWOPI * r * 2;
+		if(sides > 32) sides = 32;
+		float step = TWOPI / sides;
+		for(int i=0; i<=sides; ++i) {
+			Vertex& vx = data[k++];
+			vx.pos.x = centre.x + r * sin(i*step);
+			vx.pos.z = centre.z + r * cos(i*step);
+			vx.pos.y = m_target->getHeight(vx.pos) + 0.1;
+			data.push_back(vx);
+		}
+	};
+	addRing(centre, r1, data, k);
+	data[k++].pos.y = INFINITY;
+	addRing(centre, r2, data, k);
+
+	drawable->getMesh()->getVertexBuffer()->copyData(&data[0], k, sizeof(Vertex));
 }
-
-void TerrainEditor::draw() {
-	if(m_ring0.empty()) return;
-
-	// Draw brush rings
-	if(m_locked) glColor4f(1,0.3,0,1);
-	else glColor4f(0, 1, 1, 1);
-	glDisable(GL_TEXTURE_2D);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glDisable(GL_DEPTH_TEST);
-
-	glVertexPointer(3, GL_FLOAT, 0, m_ring0[0]);
-	glDrawArrays(GL_LINE_STRIP, 0, m_ring0.size());
-
-	glVertexPointer(3, GL_FLOAT, 0, m_ring1[0]);
-	glDrawArrays(GL_LINE_STRIP, 0, m_ring1.size());
-	
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glEnable(GL_DEPTH_TEST);
-}
-
 
 base::XMLElement TerrainEditor::save(const TerrainMap* context) const {
 	return base::XMLElement();

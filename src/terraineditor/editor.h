@@ -7,6 +7,7 @@
 #include <vector>
 
 namespace base { class Texture; }
+namespace scene { class SceneNode; }
 
 /// Interface for maps that can be painted on
 class EditableMap {
@@ -45,23 +46,22 @@ class TerrainEditor : public EditorPlugin {
 	const Brush& getBrush() const;
 
 	void update(const Mouse&, const Ray&, base::Camera*, InputState& state) override;
-	void draw();
+
+	scene::SceneNode* getBrushNode() const { return m_brushNode; }
 
 	private:
-	void updateRing(std::vector<vec3>&, const vec3& centre, float radius) const;
+	void updateBrushRings(const vec3& centre, float outerRadius, float innerRadius);
 	
 	private:
 	TerrainEditorDataInterface*   m_target;		// Editable data access
 	ToolInstance*                 m_tool;		// Active tool
-	std::vector<vec3> m_ring0;
-	std::vector<vec3> m_ring1;
+	scene::SceneNode* m_brushNode;
 	Brush             m_brush;
 	BrushData         m_buffer;
 	bool              m_locked;
 	bool              m_stroke;
 	vec2              m_last;
-	
-	
+
 };
 
 #endif
