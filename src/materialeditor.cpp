@@ -36,6 +36,7 @@ MaterialEditor::MaterialEditor(gui::Root* gui, FileSystem* fs, bool stream): m_s
 	//m_diffuseMaps.createBlankTexture(0xffffffff, 4);	// Dont work properly
 	//m_normalMaps.createBlankTexture(0xff8080ff, 4);
 }
+
 MaterialEditor::~MaterialEditor() {
 	// Clear persistant gui lists
 	m_materialList->clearItems();
@@ -356,6 +357,7 @@ void MaterialEditor::setupGui() {
 	m_textureList = m_gui->getWidget<gui::Scrollpane>("texturelist");
 	m_layerList = m_gui->getWidget<gui::Scrollpane>("layerlist");
 	m_materialList = m_gui->getWidget<gui::Combobox>("materiallist");
+	m_materialModes = m_gui->getWidget<gui::Combobox>("materialmodes");
 
 	// setup main callbacks
 	m_gui->getWidget<gui::Button>("addtexture")->eventPressed.bind(this, &MaterialEditor::addTexture);
@@ -370,6 +372,7 @@ void MaterialEditor::setupGui() {
 	m_gui->getWidget<gui::Combobox>("addlayer")->setText("Add Layer");
 	m_materialList->eventSelected.bind(this, &MaterialEditor::selectMaterial);
 	m_materialList->eventSubmit.bind(this, &MaterialEditor::renameMaterial);
+	m_materialModes->eventSelected.bind(this, &MaterialEditor::changeMode);
 
 	m_selectedTexture = -1;
 	m_selectedLayer = -1;
@@ -642,6 +645,8 @@ void MaterialEditor::selectMaterial(gui::Combobox*, int index) {
 		delete w;
 	}
 
+	m_materialModes->selectItem((int)m_materials[index]->getMode());
+
 	// Build gui for this material
 	DynamicMaterial* m = m_materials[index];
 	for(size_t i=0; i<m->size(); ++i) {
@@ -660,6 +665,10 @@ void MaterialEditor::renameMaterial(gui::Combobox* c) {
 	m_materials[m_selectedMaterial]->setName( c->getText() );
 	m_materialList->setItemName( m_selectedMaterial, c->getText() );
 	m_layerList->setFocus();
+}
+void MaterialEditor::changeMode(gui::Combobox*, int mode) {
+	m_materials[m_selectedMaterial]->setMode((MaterialMode)mode);
+	rebuildMaterial();
 }
 void MaterialEditor::addLayer(gui::Combobox* c, int i) {
 	c->setText("Add");	// Hacking Combobox into a dropdown menu

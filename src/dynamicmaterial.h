@@ -14,6 +14,7 @@ class MaterialEditor;
 enum LayerType { LAYER_AUTO, LAYER_WEIGHT, LAYER_COLOUR, LAYER_INDEXED, LAYER_GRADIENT };
 enum BlendMode { BLEND_NORMAL, BLEND_HEIGHT, BLEND_MULTIPLY, BLEND_ADD };
 enum TexProjection { PROJECTION_FLAT, PROJECTION_TRIPLANAR, PROJECTION_VERTICAL };
+enum MaterialMode { COMPOSITE, DIFFUSE, NORMAL };
 
 struct AutoParams { float min, max, blend, noise; };
 
@@ -47,6 +48,9 @@ class DynamicMaterial {
 
 	void setName(const char*);
 	const char* getName() const;
+	void setMode(MaterialMode mode);
+	MaterialMode getMode() const { return m_mode; } 
+
 	void setCoordinates(const vec2& size, const vec2& offset) const;
 	void setTilingData(float*);
 
@@ -73,6 +77,7 @@ class DynamicMaterial {
 
 	protected:
 	String m_name;
+	MaterialMode m_mode = COMPOSITE;
 	std::vector<MaterialLayer*> m_layers;
 	scene::Material*   m_material;
 	scene::ShaderVars* m_vars;

@@ -4,5 +4,6 @@ shader_cache.glsl
 src/gui
 src/model
 src/scene
+src/resource
 tmp.tiff
 todo

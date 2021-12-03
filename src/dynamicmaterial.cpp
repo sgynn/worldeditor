@@ -49,6 +49,11 @@ const char* DynamicMaterial::getName() const {
 	return m_name;
 }
 
+void DynamicMaterial::setMode(MaterialMode mode) {
+	m_mode = mode;
+	m_needsCompile = true;
+}
+
 void DynamicMaterial::setTilingData(float* data) {
 	m_vars->set("textureTiling", 1, 32, data);
 }
@@ -611,12 +616,29 @@ bool DynamicMaterial::compile() {
 	}
 
 	// Lighting (basic diffuse);
-	source +=
-	"	// Lighting\n"
-	"	float l = dot( normalize(worldNormal + normal.xyz), normalize(lightDirection) );\n"
-	"	float s = (l+1)/1.3 * 0.2 + 0.1;\n"
-	"	fragment = diffuse * max(l, s);\n"
-	"}\n";
+	switch(m_mode) {
+	case COMPOSITE:
+		source +=
+		"	// Lighting\n"
+		"	float l = dot( normalize(worldNormal + normal.xyz), normalize(lightDirection) );\n"
+		"	float s = (l+1)/1.3 * 0.2 + 0.1;\n"
+		"	fragment = diffuse * max(l, s);\n"
+		"}\n";
+		break;
+	case DIFFUSE:
+		source +=
+		"	// Diffuse output\n"
+		"	fragment = diffuse;\n"
+		"}\n";
+		break;
+	case NORMAL:
+		source +=
+		"	// Normal output\n"
+		"	vec3 output = normalize(worldNormal + normal.xyz) * 0.5 + 0.5;"
+		"	fragment = vec4(output, 1);\n"
+		"}\n";
+		break;
+	}
 
 	// Vertex shader - todo: add concavity attribute
 	static const char* vertexShader = 

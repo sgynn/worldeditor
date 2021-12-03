@@ -295,7 +295,14 @@
 	<widget caption="Materials" template="dialog" name="materials" rect="400 100 400 500" visible="0">
 		<widget class="Label" rect="8 8 64 20" caption="Material"/>
 		<widget template="combobox" name="materiallist" rect="72 8 310 20" anchor="tlr"/>
-		<widget template="scrollpane" name="layerlist" rect="0 32 390 412" fullsize="1" anchor="tlrb"/>
+		<widget class="Label" rect="16 32 64 20" caption="Mode"/>
+		<widget template="droplist" name="materialmodes" rect="72 32 310 20" anchor="tlr">
+			<item>Composite</item>
+			<item>Diffuse</item>
+			<item>Normal</item>
+		</widget>
+
+		<widget template="scrollpane" name="layerlist" rect="0 56 390 378" fullsize="1" anchor="tlrb"/>
 		<widget caption="New Material" class="Button" name="newmaterial" rect="5 448 100 20" skin="button" anchor="bl"/>
 		<widget caption="Export" class="Button" name="exportmaterial" rect="110 448 60 20" skin="button" anchor="bl"/>
 		<widget caption="Add Layer" template="droplist" name="addlayer" rect="200 448 80 20" skin="button" anchor="br">

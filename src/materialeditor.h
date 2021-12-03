@@ -78,6 +78,7 @@ class MaterialEditor {
 	void selectMaterial(gui::Combobox*, int);
 	void renameMaterial(gui::Combobox*);
 	void exportMaterial(gui::Button*);
+	void changeMode(gui::Combobox*, int);
 	void addLayer(gui::Combobox*, int);
 	void removeLayer(gui::Button*);
 	void toggleLayer(gui::Button*);
@@ -105,6 +106,7 @@ class MaterialEditor {
 	gui::Scrollpane* m_textureList;
 	gui::Scrollpane* m_layerList;
 	gui::Combobox*   m_materialList;
+	gui::Combobox*   m_materialModes;
 	gui::ItemList*   m_textureSelector;
 
 	int m_selectedLayer;
