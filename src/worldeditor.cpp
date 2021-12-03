@@ -369,7 +369,7 @@ void WorldEditor::update() {
 			m_currentTile = m_terrain->getTile(p);
 			TerrainMap* map = m_terrain->getMap(m_currentTile);
 			for(int i=3; i<m_contextMenu->getWidgetCount(); ++i) m_contextMenu->getWidget(i)->setEnabled(map);
-			m_editor->setTool(0);
+			if(m_activeGroup) m_activeGroup->deselect();
 			m_contextMenu->popup(m_gui, guiMouse);
 		}
 	}
@@ -523,7 +523,7 @@ template<class Editor> void WorldEditor::createEditor() {
 }
 
 void WorldEditor::editorActivated(EditorPlugin* editor) {
-	m_editor->closeEditor();
+	if(m_activeGroup) m_activeGroup->deselect();
 	for(EditorPlugin* e : m_editors) {
 		if(e!=editor) e->closeEditor();
 	}
@@ -848,9 +848,11 @@ void WorldEditor::showFoliageList(Button*) {
 void WorldEditor::selectToolGroup(Combobox* c, int index) {
 	ToolGroup* group = 0;
 	c->getItemData(index).read(group);
-	m_editor->setTool(0);
 	Widget* p = c->getParent();
-	if(m_activeGroup) p->remove( m_activeGroup->getPanel() );
+	if(m_activeGroup) {
+		m_activeGroup->deselect();
+		p->remove( m_activeGroup->getPanel() );
+	}
 	// Set up toolbar for editor
 	if(group) {
 		p->add( group->getPanel() );

@@ -1,6 +1,7 @@
 #include "toolgroup.h"
 #include "gui/skin.h"
 #include "gui/widgets.h"
+#include "gui/layouts.h"
 #include "widgets/colourpicker.h"
 #include "toolgroup.h"
 
@@ -23,6 +24,8 @@ ToolGroup::~ToolGroup() {
 void ToolGroup::setup(Root* root) {
 	m_root = root;
 	m_panel = root->createWidget<Widget>( Rect(0,0,64,36), "default" );
+	m_panel->setLayout(new HorizontalLayout());
+	m_panel->setAutosize(true);
 }
 
 ToolInstance* ToolGroup::getTool() const {
@@ -46,22 +49,16 @@ void ToolGroup::deselect() {
 }
 
 Button* ToolGroup::addButton(const char* icon) {
-	// Create gui button
-	int index = m_panel->getWidgetCount();
 	Button* button = m_root->createWidget<Button>("menuoption");
-	button->setPosition( index * 34, 0);
 	if(icon) button->setIcon(icon);
 	button->eventPressed.bind(this, &ToolGroup::selectTool);
 	m_panel->add(button);
-	m_panel->setSize(index * 34 + 36, 36);
 	return button;
 }
 
 void ToolGroup::selectTool(Button* b) {
-	// Assume buttons are in order
-	for(m_currentTool=0; m_currentTool<m_tools.size(); ++m_currentTool) {
-		if(m_panel->getWidget(m_currentTool) == b) break;
-	}
+	m_currentTool = b->getIndex();
+	for(Widget* w: *m_panel) w->setSelected(w==b);
 	if(eventToolSelected) eventToolSelected( getTool() );
 }
 
