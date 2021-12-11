@@ -300,6 +300,9 @@ void WorldEditor::update() {
 		for(int i=m_gui->getRootWidget()->getWidgetCount()-1; i>0; --i) {
 			Widget* w = m_gui->getRootWidget()->getWidget(i);
 			if(w->isVisible() && w->cast<gui::Window>()) {
+				for(EditorPlugin* e: m_editors) {
+					if(w == e->getPanel()) e->closeEditor();
+				}
 				w->setVisible(false);
 				closedSomething = true;
 				break;
@@ -307,6 +310,24 @@ void WorldEditor::update() {
 		}
 		if(!closedSomething && m_options.escapeQuits) changeState(0);	// exit
 	}
+	// Hack in a default button system
+	if(Game::Pressed(KEY_RETURN)) {
+		static const char* names[] = { "ok", "confirm", "create", "button", "editorcreate" };
+		for(int i=m_gui->getRootWidget()->getWidgetCount()-1; i>0; --i) {
+			Widget* w = m_gui->getRootWidget()->getWidget(i);
+			if(w->isVisible() && w->cast<gui::Window>()) {
+				for(const char* s: names) {
+					Button* b = w->getWidget<Button>(s);
+					if(b && b->isEnabled()) {
+						b->eventPressed(b);
+						break;
+					}
+				}
+				break;
+			}
+		}
+	}
+	
 
 	InputState state { shift, guiHasMouse, false, false };
 	state.consumedMouseWheel = m_gui->getWheelEventConsumed();
