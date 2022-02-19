@@ -3,7 +3,7 @@
 
 #include "object.h"
 #include "bufferedstream.h"
-#include "scene/drawable.h"
+#include <base/drawable.h>
 #include <base/texture.h>
 #include <base/thread.h>
 
@@ -17,12 +17,12 @@ class PatchGeometry;
 class DynamicMaterial;
 
 /** Interface between scene and landscape */
-class StreamerDrawable : public scene::Drawable {
+class StreamerDrawable : public base::Drawable {
 	friend class Streamer;
 	Landscape* m_land;
 	public:
 	StreamerDrawable(Landscape*);
-	virtual void draw( scene::RenderState& );
+	virtual void draw( base::RenderState& );
 	void updateStreamedMaterials(const vec3&, float threshold);
 };
 

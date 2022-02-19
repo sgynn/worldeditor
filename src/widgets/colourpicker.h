@@ -1,7 +1,7 @@
 #ifndef _COLOUR_PICKER_
 #define _COLOUR_PICKER_
 
-#include "gui/widgets.h"
+#include <base/gui/widgets.h>
 #include <base/math.h>
 #include <base/colour.h>
 

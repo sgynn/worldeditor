@@ -3,14 +3,14 @@
 #include <base/vec.h>
 #include <base/point.h>
 #include <base/xml.h>
-#include "gui/delegate.h"
+#include <base/gui/delegate.h>
 
 class MapGrid;
 class TerrainMap;
 class FileSystem;
 namespace gui { class Root; class Widget; class Button; class Window; }
 namespace base { class Camera; struct Mouse; }
-namespace scene { class SceneNode; }
+namespace base { class SceneNode; }
 
 enum KeyMask { CTRL_MASK=1, SHIFT_MASK=2, ALT_MASK=4 };
 

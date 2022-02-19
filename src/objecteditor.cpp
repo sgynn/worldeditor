@@ -3,21 +3,22 @@
 #include "filesystem.h"
 #include "gizmo.h"
 #include "boxselect.h"
-#include "gui/widgets.h"
-#include "gui/lists.h"
-#include "gui/tree.h"
-#include "scene/scene.h"
-#include "scene/mesh.h"
+#include <base/gui/widgets.h>
+#include <base/gui/lists.h>
+#include <base/gui/tree.h>
+#include <base/scene.h>
+#include <base/drawablemesh.h>
+#include <base/hardwarebuffer.h>
 #include <base/xml.h>
 #include <base/collision.h>
 #include <base/directory.h>
 
 #include "extensions.h"
-#include "model/model.h"
-#include "model/bmloader.h"
-#include "scene/shader.h"
-#include "scene/material.h"
-#include "scene/autovariables.h"
+#include <base/model.h>
+#include <base/bmloader.h>
+#include <base/shader.h>
+#include <base/material.h>
+#include <base/autovariables.h>
 #include <base/texture.h>
 #include <base/game.h>
 #include <base/input.h>
@@ -27,11 +28,11 @@
 
 using base::XMLElement;
 using namespace gui;
-using base::bmodel::Model;
-using base::bmodel::Mesh;
-using scene::SceneNode;
-using scene::Drawable;
-using scene::DrawableMesh;
+using base::Model;
+using base::Mesh;
+using base::SceneNode;
+using base::Drawable;
+using base::DrawableMesh;
 
 extern gui::String appPath;
 
@@ -61,7 +62,7 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 	m_box = new BoxSelect();
 	m_panel->getParent()->add(m_box);
 
-	base::bmodel::BMLoader::registerExtension("layout", LayoutExtension::construct);
+	base::BMLoader::registerExtension("layout", LayoutExtension::construct);
 
 	setupMaterials();
 	setResourcePath(fs->getRootPath());
@@ -92,7 +93,7 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 			sscanf(i.attribute("orientation"), "%g %g %g %g", &rot.w, &rot.x, &rot.y, &rot.z);
 			
 			String f = m_fileSystem->getFile(file);
-			Model* model = base::bmodel::BMLoader::load(f);
+			Model* model = base::BMLoader::load(f);
 			if(model && meshIndex < model->getMeshCount()) {
 				Object* object;
 				if(meshIndex<0) object = createObject(name, model, 0, 0); // Full model
@@ -614,19 +615,19 @@ void ObjectEditor::setupMaterials() {
 	base::Texture* flat =  new base::Texture(base::Texture::create(1, 1, base::Texture::RGB8, &dataN));
 	char log[2048];
 
-	scene::ShaderPart* vs = new scene::ShaderPart(scene::VERTEX_SHADER, shaderSourceVS);
+	base::ShaderPart* vs = new base::ShaderPart(base::VERTEX_SHADER, shaderSourceVS);
 	
 	// Selected material
-	scene::ShaderPart* fs = new scene::ShaderPart(scene::FRAGMENT_SHADER, shaderSourceSelectedFS);
-	scene::Shader* selectShader = new scene::Shader();
+	base::ShaderPart* fs = new base::ShaderPart(base::FRAGMENT_SHADER, shaderSourceSelectedFS);
+	base::Shader* selectShader = new base::Shader();
 	selectShader->attach(vs);
 	selectShader->attach(fs);
 
 	for(int i=0; i<4; ++i) {
-		scene::ShaderPart* fs = new scene::ShaderPart(scene::FRAGMENT_SHADER, shaderSourceFS);
+		base::ShaderPart* fs = new base::ShaderPart(base::FRAGMENT_SHADER, shaderSourceFS);
 		if(i&1) fs->define("NORMALMAP");
 		if(i&2) fs->define("COLOUR");
-		scene::Shader* shader = new scene::Shader();
+		base::Shader* shader = new base::Shader();
 		shader->attach(vs);
 		shader->attach(fs);
 		shader->bindAttributeLocation("vertex",  0);
@@ -635,12 +636,12 @@ void ObjectEditor::setupMaterials() {
 		shader->bindAttributeLocation("texCoord",3);
 		shader->bindAttributeLocation("vcolour", 4);
 
-		scene::Material* material = new scene::Material;
-		scene::Pass* pass = material->addPass("default");
+		base::Material* material = new base::Material;
+		base::Pass* pass = material->addPass("default");
 		pass->setShader(shader);
 		pass->getParameters().set("lightDirection", vec3(1,1,1));
-		pass->getParameters().setAuto("transform", scene::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
-		pass->getParameters().setAuto("modelMatrix", scene::AUTO_MODEL_MATRIX);
+		pass->getParameters().setAuto("transform", base::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
+		pass->getParameters().setAuto("modelMatrix", base::AUTO_MODEL_MATRIX);
 		pass->setTexture("diffusemap", white);
 		if(i&1) pass->setTexture("normalmap", flat);
 
@@ -650,9 +651,9 @@ void ObjectEditor::setupMaterials() {
 
 		pass = material->addPass("selected");
 		pass->setShader(selectShader);
-		pass->getParameters().setAuto("transform", scene::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
+		pass->getParameters().setAuto("transform", base::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
 		pass->state.wireframe = true;
-		pass->state.cullMode = scene::CULL_FRONT;
+		pass->state.cullMode = base::CULL_FRONT;
 		pass->compile();
 		if(pass->getShader()->getLog(log, sizeof(log)))	printf(log);
 
@@ -675,11 +676,11 @@ base::Texture* ObjectEditor::findTexture(const char* name, const char* suffix, i
 	return 0;
 }
 
-scene::Material* ObjectEditor::getMaterial(const char* name, bool nmap, bool col) {
+base::Material* ObjectEditor::getMaterial(const char* name, bool nmap, bool col) {
 	int code = (nmap?1:0) | (col?2:0);
 	char key[256];
 	sprintf(key, "%s|%d", name&&*name?name: "default", code);
-	scene::Material* material = m_materials.get(key, 0);
+	base::Material* material = m_materials.get(key, 0);
 	if(material) return material;
 
 	material = getMaterial(0, nmap, col);
@@ -772,7 +773,7 @@ void ObjectEditor::selectResource(TreeView*, TreeNode* resource) {
 }
 
 TreeNode* ObjectEditor::addModel(const char* path, const char* name) {
-	Model* model = base::bmodel::BMLoader::load(path);
+	Model* model = base::BMLoader::load(path);
 	if(!model || model->getMeshCount()==0) return 0;
 	TreeNode* node = new TreeNode(name);
 	node->setData(1, model);

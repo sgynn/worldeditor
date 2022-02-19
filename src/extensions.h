@@ -1,21 +1,21 @@
 #pragma once
 
-#include "model/model.h"
-#include "model/animationcontroller.h"
+#include <base/model.h>
+#include <base/animationcontroller.h>
 #include <base/xml.h>
 #include <cstdio>
 
 /// Model extension for storing animationbanks
-class AnimationBankExtension : public base::bmodel::ModelExtension {
-	MODEL_EXTENSION;
-	base::bmodel::AnimationBank* animations;
-	AnimationBankExtension(base::bmodel::AnimationBank* a) : animations(a) {}
+class AnimationBankExtension : public base::ModelExtension {
+	BASE_MODEL_EXTENSION;
+	base::AnimationBank* animations;
+	AnimationBankExtension(base::AnimationBank* a) : animations(a) {}
 	~AnimationBankExtension() { delete animations; }
 };
 
 /// Model extension for layout heirachy
-class LayoutExtension : public base::bmodel::ModelExtension {
-	MODEL_EXTENSION;
+class LayoutExtension : public base::ModelExtension {
+	BASE_MODEL_EXTENSION;
 	struct Node {
 		const char* mesh = 0;
 		const char* name = 0;

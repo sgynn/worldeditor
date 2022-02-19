@@ -1,7 +1,7 @@
 #ifndef _TOOL_BUTTON_
 #define _TOOL_BUTTON_
 
-#include "gui/widgets.h"
+#include <base/gui/widgets.h>
 
 /** Tool button - only one selected */
 class ToolButton : public gui::Button {

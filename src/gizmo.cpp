@@ -1,9 +1,9 @@
 #include "gizmo.h"
-#include "model/hardwarebuffer.h"
-#include "scene/autovariables.h"
-#include "scene/renderer.h"
-#include "scene/material.h"
-#include "scene/shader.h"
+#include <base/hardwarebuffer.h>
+#include <base/autovariables.h>
+#include <base/renderer.h>
+#include <base/material.h>
+#include <base/shader.h>
 #include <base/camera.h>
 #include <base/opengl.h>
 #include <cstdio>
@@ -381,8 +381,8 @@ void Gizmo::createGeometry() {
 	m_binding = 0;
 }
 
-scene::Material* getGizmoMaterial() {
-	static scene::Material* mat = 0;
+base::Material* getGizmoMaterial() {
+	static base::Material* mat = 0;
 	if(!mat) {
 		// Create new default material
 		static const char* vs_src =
@@ -395,20 +395,20 @@ scene::Material* getGizmoMaterial() {
 		"uniform vec4 colour;\n"
 		"out vec4 fragment;\n"
 		"void main() { fragment = colour; }\n";
-		scene::ShaderPart* vs = new scene::ShaderPart(scene::VERTEX_SHADER, vs_src);
-		scene::ShaderPart* fs = new scene::ShaderPart(scene::FRAGMENT_SHADER, fs_src);
-		scene::Shader* shader = new scene::Shader();
+		base::ShaderPart* vs = new base::ShaderPart(base::VERTEX_SHADER, vs_src);
+		base::ShaderPart* fs = new base::ShaderPart(base::FRAGMENT_SHADER, fs_src);
+		base::Shader* shader = new base::Shader();
 		shader->attach(vs);
 		shader->attach(fs);
 		shader->bindAttributeLocation("vertex", 0);
 
-		mat = new scene::Material();
-		scene::Pass* pass = mat->addPass("default");
+		mat = new base::Material();
+		base::Pass* pass = mat->addPass("default");
 		pass->setShader(shader);
-		pass->getParameters().setAuto("transform", scene::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
+		pass->getParameters().setAuto("transform", base::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
 		pass->getParameters().set("colour", 1,1,1,1);
-		pass->state.depthTest = scene::DEPTH_ALWAYS;
-		pass->blend = scene::BLEND_ALPHA;
+		pass->state.depthTest = base::DEPTH_ALWAYS;
+		pass->blend = base::BLEND_ALPHA;
 		pass->compile();
 	}
 	return mat;
@@ -435,7 +435,7 @@ inline void setColour(float* out, int axis, bool highlight) {
 	}
 }
 
-void Gizmo::draw(scene::RenderState& state) {
+void Gizmo::draw(base::RenderState& state) {
 	const vec3& pos = state.getCamera()->getPosition();
 	const vec3& dir = state.getCamera()->getDirection();
 	
@@ -446,7 +446,7 @@ void Gizmo::draw(scene::RenderState& state) {
 	}
 
 	state.setMaterial(m_material);
-	scene::Pass* pass = m_material->getPass(0);
+	base::Pass* pass = m_material->getPass(0);
 	float* colour = pass->getParameters().getFloatPointer("colour");
 	float& alpha = colour[3];
 	glLineWidth(1.5);

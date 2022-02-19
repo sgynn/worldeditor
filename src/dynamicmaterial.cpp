@@ -2,9 +2,9 @@
 #include "materialeditor.h"
 #include "streaming/texturestream.h"
 #include "terraineditor/editabletexture.h"
-#include "scene/material.h"
-#include "scene/shader.h"
-#include "scene/autovariables.h"
+#include <base/material.h>
+#include <base/shader.h>
+#include <base/autovariables.h>
 #include <base/colour.h>
 
 #include <base/opengl.h>
@@ -14,18 +14,18 @@
 #include <set>
 
 using base::Texture;
-using scene::ShaderPart;
-using scene::Material;
-using scene::Shader;
-using scene::Pass;
+using base::ShaderPart;
+using base::Material;
+using base::Shader;
+using base::Pass;
 
 DynamicMaterial::DynamicMaterial(bool stream) : m_material(0), m_stream(0), m_streaming(stream), m_needsCompile(true) {
 	Shader* shader = new Shader();
-	m_vertexShader = new ShaderPart(scene::VERTEX_SHADER);
-	m_fragmentShader = new ShaderPart(scene::FRAGMENT_SHADER);
+	m_vertexShader = new ShaderPart(base::VERTEX_SHADER);
+	m_fragmentShader = new ShaderPart(base::FRAGMENT_SHADER);
 	shader->attach(m_vertexShader);
 	shader->attach(m_fragmentShader);
-	m_vars = new scene::ShaderVars();
+	m_vars = new base::ShaderVars();
 	m_material = new Material();
 	m_material->addPass()->setShader(shader);
 	m_material->getPass(0)->addShared(m_vars);
@@ -673,7 +673,7 @@ bool DynamicMaterial::compile() {
 	shader->bindAttributeLocation("vertex", 0);
 	shader->bindAttributeLocation("normal", 1);
 	m_vars->set("lightDirection", 1,1,1);
-	m_vars->setAuto("transform", scene::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
+	m_vars->setAuto("transform", base::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
 	m_material->getPass(0)->compile();
 
 	char buffer[2048]; buffer[0] = 0;
@@ -716,8 +716,8 @@ void DynamicMaterial::exportMaterial() const {
 	const char* vs = "";
 	const char* fs = "";
 	for(ShaderPart* s: pass->getShader()->getParts()) {
-		if(s->getType() == scene::VERTEX_SHADER) vs = s->getSource() + 12;
-		if(s->getType() == scene::FRAGMENT_SHADER) fs = s->getSource() + 12;
+		if(s->getType() == base::VERTEX_SHADER) vs = s->getSource() + 12;
+		if(s->getType() == base::FRAGMENT_SHADER) fs = s->getSource() + 12;
 	}
 
 	char shaderFile[128];

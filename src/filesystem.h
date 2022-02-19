@@ -1,7 +1,7 @@
 #ifndef _FILESYSTEM_
 #define _FILESYSTEM_
 
-#include "gui/gui.h"
+#include <base/gui/gui.h>
 using gui::String;
 
 

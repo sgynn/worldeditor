@@ -1,7 +1,7 @@
 #ifndef _ORDERABLE_ITEM_
 #define _ORDERABLE_ITEM_
 
-#include "gui/gui.h"
+#include <base/gui/gui.h>
 
 /** Reorderable items for textures and material layers */
 class OrderableItem : public gui::Widget {

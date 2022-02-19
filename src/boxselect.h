@@ -1,7 +1,7 @@
 #pragma once
 
-#include "gui/gui.h"
-#include "gui/renderer.h"
+#include <base/gui/gui.h>
+#include <base/gui/renderer.h>
 #include "base/camera.h"
 #include <cstdio>
 

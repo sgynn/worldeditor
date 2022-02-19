@@ -3,8 +3,8 @@
 
 #include "arraytexture.h"
 #include "dynamicmaterial.h"
-#include "gui/widgets.h"
-#include "gui/lists.h"
+#include <base/gui/widgets.h>
+#include <base/gui/lists.h>
 
 namespace base { class XMLElement; class Texture; }
 class FileSystem;

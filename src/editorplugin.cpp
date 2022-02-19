@@ -1,5 +1,5 @@
 #include "editorplugin.h"
-#include "gui/widgets.h"
+#include <base/gui/widgets.h>
 
 using namespace gui;
 

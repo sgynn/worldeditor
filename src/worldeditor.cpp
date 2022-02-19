@@ -17,11 +17,11 @@
 #include "streaming/tiff.h"
 
 
-#include "gui/skin.h"
-#include "gui/font.h"
-#include "gui/widgets.h"
-#include "gui/renderer.h"
-#include "gui/lists.h"
+#include <base/gui/skin.h>
+#include <base/gui/font.h>
+#include <base/gui/widgets.h>
+#include <base/gui/renderer.h>
+#include <base/gui/lists.h>
 #include "widgets/filedialog.h"
 #include "widgets/toolbutton.h"
 #include "widgets/orderableitem.h"
@@ -37,10 +37,10 @@
 #include "objecteditor.h"
 #include "erosion.h"
 
-#include "scene/scene.h"
-#include "scene/shader.h"
-#include "scene/renderer.h"
-#include "scene/debuggeometry.h"
+#include <base/scene.h>
+#include <base/shader.h>
+#include <base/renderer.h>
+#include <base/debuggeometry.h>
 #include "dynamicmaterial.h"
 #include "materialeditor.h"
 #include "minimap.h"
@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
 
 	// Initialise
 	base::Game* game = base::Game::create(w,h,32,fs, 60, aa);
-	scene::Shader::getSupportedVersion();
+	base::Shader::getSupportedVersion();
 	WorldEditor* editor = new WorldEditor(cfg);
 	if(argc>1) editor->loadWorld(argv[1]);
 	game->setInitialState(editor);
@@ -100,11 +100,11 @@ int main(int argc, char* argv[]) {
 //// Make a world - this file will be a complete mess while I test stuff ////
 
 WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_activeGroup(0), m_terrain(0) {
-	m_scene = new scene::Scene;
-	m_renderer = new scene::Renderer;
+	m_scene = new base::Scene;
+	m_renderer = new base::Renderer;
 	m_fileSystem = new FileSystem;
 
-	scene::DebugGeometryManager::initialise(m_scene);
+	base::DebugGeometryManager::initialise(m_scene);
 
 	// Load editor options
 	INIFile::Section options = ini["settings"];
@@ -416,7 +416,7 @@ void WorldEditor::update() {
 }
 
 void WorldEditor::draw() {
-	scene::DebugGeometryManager::getInstance()->update();
+	base::DebugGeometryManager::getInstance()->update();
 	// Render scene
 	m_renderer->clear();
 	m_renderer->getState().setCamera(m_camera);

@@ -1,8 +1,8 @@
 #include "polygoneditor.h"
 #include "heightmap.h"
-#include "gui/widgets.h"
-#include "gui/lists.h"
-#include "scene/scene.h"
+#include <base/gui/widgets.h>
+#include <base/gui/lists.h>
+#include <base/scene.h>
 #include <base/xml.h>
 #include <base/collision.h>
 
@@ -13,7 +13,7 @@ extern gui::String appPath;
 
 #define CONNECT(Type, name, event, callback) { Type* t=m_panel->getWidget<Type>(name); if(t) t->event.bind(this, &PolygonEditor::callback); else printf("Missing widget: %s\n", name); }
 
-PolygonEditor::PolygonEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scene::SceneNode* scene)
+PolygonEditor::PolygonEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, base::SceneNode* scene)
 	: m_terrain(terrain), m_selected(0), m_dragging(DragMode::NONE), m_vertex(0)
 {
 	
@@ -302,12 +302,12 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 }
 
 
-#include "model/mesh.h"
-#include "model/hardwarebuffer.h"
-#include "scene/mesh.h"
-#include "scene/material.h"
-#include "scene/shader.h"
-#include "scene/autovariables.h"
+#include <base/mesh.h>
+#include <base/hardwarebuffer.h>
+#include <base/drawablemesh.h>
+#include <base/material.h>
+#include <base/shader.h>
+#include <base/autovariables.h>
 
 static const char* polygonVS = 
 "#version 150\nin vec4 vertex;\nin vec4 colour;\nuniform mat4 transform;\nout vec4 col;\nvoid main() { gl_Position=transform*vertex; col=colour; }";
@@ -317,31 +317,31 @@ static const char* polygonFS =
 void PolygonEditor::updateDrawable(Polygon* poly) {
 	// Create drawable
 	if(!poly->drawable) {
-		base::bmodel::Mesh* mesh = new base::bmodel::Mesh();
-		mesh->setPolygonMode(base::bmodel::TRIANGLE_STRIP);
+		base::Mesh* mesh = new base::Mesh();
+		mesh->setPolygonMode(base::PolygonMode::TRIANGLE_STRIP);
 		base::HardwareVertexBuffer* buffer = new base::HardwareVertexBuffer();
 		buffer->attributes.add(base::VA_VERTEX, base::VA_FLOAT3);
 		buffer->attributes.add(base::VA_COLOUR, base::VA_ARGB);
 		buffer->createBuffer();
 		mesh->setVertexBuffer(buffer);
-		poly->drawable = new scene::DrawableMesh(mesh);
+		poly->drawable = new base::DrawableMesh(mesh);
 		m_node->attach(poly->drawable);
 
 		// Create material
-		static scene::Material* material = 0;
+		static base::Material* material = 0;
 		if(!material) {
-			scene::ShaderPart* vs = new scene::ShaderPart(scene::VERTEX_SHADER, polygonVS);
-			scene::ShaderPart* fs = new scene::ShaderPart(scene::FRAGMENT_SHADER, polygonFS);
-			scene::Shader* shader = new scene::Shader();
+			base::ShaderPart* vs = new base::ShaderPart(base::VERTEX_SHADER, polygonVS);
+			base::ShaderPart* fs = new base::ShaderPart(base::FRAGMENT_SHADER, polygonFS);
+			base::Shader* shader = new base::Shader();
 			shader->attach(vs);
 			shader->attach(fs);
 			shader->bindAttributeLocation("vertex", 0);
 			shader->bindAttributeLocation("colour", 4);
-			material = new scene::Material();
-			scene::Pass* pass = material->addPass("default");
-			pass->getParameters().setAuto("transform", scene::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
+			material = new base::Material();
+			base::Pass* pass = material->addPass("default");
+			pass->getParameters().setAuto("transform", base::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
 			pass->setShader(shader);
-			pass->state.cullMode = scene::CULL_NONE;
+			pass->state.cullMode = base::CULL_NONE;
 			pass->compile();
 		}
 		poly->drawable->setMaterial(material);

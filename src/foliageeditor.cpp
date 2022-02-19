@@ -1,11 +1,12 @@
 #include "foliageeditor.h"
 #include "filesystem.h"
 #include "heightmap.h"
-#include "scene/material.h"
-#include "scene/shader.h"
-#include "scene/autovariables.h"
-#include "model/bmloader.h"
-#include "model/model.h"
+#include <base/material.h>
+#include <base/shader.h>
+#include <base/autovariables.h>
+#include <base/hardwarebuffer.h>
+#include <base/bmloader.h>
+#include <base/model.h>
 #include "widgets/filedialog.h"
 #include <base/xml.h>
 #include <base/png.h>
@@ -89,18 +90,18 @@ static const char* shaderSourceFS =
 "fragment = vec4(diff.rgb * max(s,l), 1.0); }";
 
 
-scene::Material* FoliageEditor::createMaterial(FoliageType type, const char* diffuse) {
-	static scene::Shader* shaders[2] = {0,0};
+base::Material* FoliageEditor::createMaterial(FoliageType type, const char* diffuse) {
+	static base::Shader* shaders[2] = {0,0};
 	if(!shaders[0]) {
-		scene::ShaderPart* instancedVS = new scene::ShaderPart(scene::VERTEX_SHADER, shaderSourceInstVS);
-		scene::ShaderPart* grassVS     = new scene::ShaderPart(scene::VERTEX_SHADER, shaderSourceVS);
-		scene::ShaderPart* sharedFS    = new scene::ShaderPart(scene::FRAGMENT_SHADER, shaderSourceFS);
+		base::ShaderPart* instancedVS = new base::ShaderPart(base::VERTEX_SHADER, shaderSourceInstVS);
+		base::ShaderPart* grassVS     = new base::ShaderPart(base::VERTEX_SHADER, shaderSourceVS);
+		base::ShaderPart* sharedFS    = new base::ShaderPart(base::FRAGMENT_SHADER, shaderSourceFS);
 
-		shaders[0] = new scene::Shader();
-		shaders[1] = new scene::Shader();
+		shaders[0] = new base::Shader();
+		shaders[1] = new base::Shader();
 		shaders[0]->attach( instancedVS );
 		shaders[1]->attach( grassVS );
-		for(scene::Shader* shader: shaders) {
+		for(base::Shader* shader: shaders) {
 			shader->attach( sharedFS );
 			shader->bindAttributeLocation("vertex",  0);
 			shader->bindAttributeLocation("normal",  1);
@@ -108,13 +109,13 @@ scene::Material* FoliageEditor::createMaterial(FoliageType type, const char* dif
 		}
 	}
 
-	scene::Material* material = new scene::Material;
-	scene::Pass* pass = material->addPass("default");
-	pass->state.cullMode = scene::CULL_NONE;
+	base::Material* material = new base::Material;
+	base::Pass* pass = material->addPass("default");
+	pass->state.cullMode = base::CULL_NONE;
 	pass->setShader( shaders[(int)type] );
 	pass->getParameters().set("lightDirection", vec3(1,1,1));
-	pass->getParameters().setAuto("transform", scene::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
-	pass->getParameters().setAuto("modelMatrix", scene::AUTO_MODEL_MATRIX);
+	pass->getParameters().setAuto("transform", base::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
+	pass->getParameters().setAuto("modelMatrix", base::AUTO_MODEL_MATRIX);
 	
 	if(diffuse) {
 		base::PNG png = base::PNG::load(diffuse);
@@ -134,7 +135,7 @@ scene::Material* FoliageEditor::createMaterial(FoliageType type, const char* dif
 
 // ======================================================================== //
 
-FoliageEditor:: FoliageEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, scene::SceneNode* node) : m_foliage(0), m_fileSystem(fs), m_terrain(terrain), m_node(node) {
+FoliageEditor:: FoliageEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, base::SceneNode* node) : m_foliage(0), m_fileSystem(fs), m_terrain(terrain), m_node(node) {
 	setupGui(gui);
 }
 FoliageEditor::~FoliageEditor() {
@@ -395,7 +396,7 @@ void FoliageLayerEditor::loadMeshFile(const char* file) {
 	if(index<0) {
 		FoliageMesh mesh { file, 0,0,0,0 };
 		mesh.material = m_editor->createMaterial(m_type, "./maps/white.png");
-		base::bmodel::Model* model = base::bmodel::BMLoader::load(file);
+		base::Model* model = base::BMLoader::load(file);
 		if(model && model->getMeshCount()) {
 			mesh.mesh = model->getMesh(0);
 			mesh.mesh->getVertexBuffer()->createBuffer();

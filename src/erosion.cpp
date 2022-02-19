@@ -1,6 +1,6 @@
 #include "erosion.h"
 #include "heightmap.h"
-#include "gui/widgets.h"
+#include <base/gui/widgets.h>
 #include <base/input.h>
 #include <cstdlib>
 
@@ -10,7 +10,7 @@ using namespace base;
 extern String appPath;
 
 
-ErosionEditor::ErosionEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scene::SceneNode*) {
+ErosionEditor::ErosionEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, base::SceneNode*) {
 	m_terrain = terrain;
 	createPanel(gui, "erosioneditor", "erosion.xml");
 	createToolButton(gui, "noise");

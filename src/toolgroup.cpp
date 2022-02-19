@@ -1,7 +1,7 @@
 #include "toolgroup.h"
-#include "gui/skin.h"
-#include "gui/widgets.h"
-#include "gui/layouts.h"
+#include <base/gui/skin.h>
+#include <base/gui/widgets.h>
+#include <base/gui/layouts.h>
 #include "widgets/colourpicker.h"
 #include "toolgroup.h"
 

@@ -6,7 +6,7 @@
 #include <base/bounds.h>
 #include <base/point.h>
 #include <base/thread.h>
-#include "scene/scene.h"
+#include <base/scene.h>
 #include <vector>
 #include <map>
 
@@ -14,8 +14,8 @@
 #undef ABSOLUTE
 #undef RELATIVE
 
-namespace scene { class Material; class DrawableMesh; }
-namespace base { namespace bmodel { class Mesh; } class HardwareVertexBuffer; }
+namespace base { class Material; class DrawableMesh; }
+namespace base {  class Mesh;  class HardwareVertexBuffer; }
 class FoliageSystem;
 
 class FoliageMap {
@@ -35,7 +35,7 @@ class FoliageMap {
 
 // -------------------------------------------------------------------------------------- //
 
-class FoliageLayer : protected scene::SceneNode {
+class FoliageLayer : protected base::SceneNode {
 	public:
 	FoliageLayer(float chunkSize, float range);
 	virtual ~FoliageLayer();
@@ -46,7 +46,7 @@ class FoliageLayer : protected scene::SceneNode {
 	void setSlopeRange(float, float);
 	void setScaleRange(float, float);
 	void setDensity(float);
-	void setMaterial(scene::Material*);
+	void setMaterial(base::Material*);
 	void setMapBounds(const BoundingBox2D& bounds);
 	void setDensityMap(FoliageMap*);
 	void clear();
@@ -57,7 +57,7 @@ class FoliageLayer : protected scene::SceneNode {
 	protected:
 	friend class FoliageSystem;
 	FoliageSystem*   m_parent;
-	scene::Material* m_material;
+	base::Material* m_material;
 	float            m_chunkSize;
 	float            m_range;
 	float            m_density;
@@ -71,8 +71,8 @@ class FoliageLayer : protected scene::SceneNode {
 	typedef Point Index;
 	typedef std::vector<Index> IndexList;
 	enum ChunkState { EMPTY, GENERATING, GENERATED, COMPLETE };
-	struct Geometry { base::bmodel::Mesh* mesh; base::HardwareVertexBuffer* instances; size_t count; };
-	struct Chunk { scene::DrawableMesh* drawable; Geometry geometry; ChunkState state; bool active; };
+	struct Geometry { base::Mesh* mesh; base::HardwareVertexBuffer* instances; size_t count; };
+	struct Chunk { base::DrawableMesh* drawable; Geometry geometry; ChunkState state; bool active; };
 	std::map<Index, Chunk*> m_chunks;
 
 	protected:
@@ -94,12 +94,12 @@ class FoliageInstanceLayer : public FoliageLayer {
 	public:
 	enum OrientaionMode { VERTICAL, NORMAL, ABSOLUTE, RELATIVE };
 	FoliageInstanceLayer(float chunkSize, float range);
-	void setMesh(base::bmodel::Mesh*);
+	void setMesh(base::Mesh*);
 	void setAlignment(OrientaionMode mode, const Rangef& range=0);
 	protected:
 	virtual Geometry generateGeometry(const Index& page) const override;
 	protected:
-	base::bmodel::Mesh* m_mesh;
+	base::Mesh* m_mesh;
 	Rangef              m_alignRange; // RELATIVE: lerp range between normal and up vector, ABSOLUTE: lerp between sideways and up.
 	OrientaionMode      m_alignMode;
 };
@@ -126,7 +126,7 @@ class GrassLayer : public FoliageLayer {
 
 
 
-class FoliageSystem : public scene::SceneNode {
+class FoliageSystem : public base::SceneNode {
 public:
 	friend class FoliageLayer;
 	typedef FoliageLayer::Index Index;

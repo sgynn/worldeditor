@@ -1,12 +1,12 @@
 #ifndef _WORLD_
 #define _WORLD_
 
-#include <base/state.h>
+#include <base/gamestate.h>
 #include <base/hashmap.h>
-#include "gui/gui.h"
+#include <base/gui/gui.h>
 #include "object.h"
 #include "heightmap.h"
-#include "scene/scene.h"
+#include <base/scene.h>
 #include "terraineditor/editor.h"
 #include "editorplugin.h"
 #include "toolgroup.h"
@@ -104,8 +104,8 @@ class WorldEditor : public base::GameState {
 
 
 	private:
-	scene::Scene*    m_scene;
-	scene::Renderer* m_renderer;
+	base::Scene*    m_scene;
+	base::Renderer* m_renderer;
 	base::Camera*    m_camera;
 	FileSystem*      m_fileSystem;
 	gui::String      m_root;

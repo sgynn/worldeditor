@@ -1,7 +1,7 @@
 #pragma once
 
 #include "editorplugin.h"
-#include "gui/gui.h"
+#include <base/gui/gui.h>
 #include <base/vec.h>
 #include <vector>
 
@@ -9,7 +9,7 @@
 
 namespace gui { class Button; class Listbox; class Textbox; class Spinbox; }
 namespace base { class XMLElement; }
-namespace scene { class SceneNode; class DrawableMesh; }
+namespace base { class SceneNode; class DrawableMesh; }
 
 class PolygonDrawable;
 
@@ -24,13 +24,13 @@ struct Polygon {
 	std::vector<vec3> points;
 	std::vector<int>  edges;
 	std::vector<ItemProperty> properties;
-	scene::DrawableMesh*  drawable;
+	base::DrawableMesh*  drawable;
 };
 
 /// Editor class
 class PolygonEditor : public EditorPlugin {
 	public:
-	PolygonEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scene::SceneNode* scene);
+	PolygonEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, base::SceneNode* scene);
 	~PolygonEditor();
 	void load(const base::XMLElement&, const TerrainMap* context) override;
 	base::XMLElement save(const TerrainMap* context) const override;
@@ -55,7 +55,7 @@ class PolygonEditor : public EditorPlugin {
 	protected:
 	enum DragMode { NONE, VERTEX, EDGE, ALL, INITIAL };
 	MapGrid* m_terrain;
-	scene::SceneNode* m_node;
+	base::SceneNode* m_node;
 	gui::Listbox* m_list;
 	gui::Widget* m_properties;
 	gui::Widget* m_propertyTemplate;

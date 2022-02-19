@@ -6,7 +6,7 @@
 #include <vector>
 
 #ifdef LANDSCAPE_DELEGATE
-#include "gui/delegate.h"
+#include <base/gui/delegate.h>
 #endif
 
 namespace base { class Material; class Camera; }

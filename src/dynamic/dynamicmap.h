@@ -2,7 +2,7 @@
 #define _DYNAMIC_HEIGHTMAP_
 
 #include "terraineditor/editor.h"
-#include "scene/material.h"
+#include <base/material.h>
 #include "heightmap.h"
 
 
@@ -14,7 +14,7 @@ class DynamicHeightmap : public HeightmapInterface {
 	~DynamicHeightmap();
 	
 	void setDetail(float) override;
-	scene::Drawable* createDrawable() override;
+	base::Drawable* createDrawable() override;
 	int castRay(const vec3& start, const vec3& direction, float& out) const override;
 	float getHeight(const vec3& point) const override;
 	void setMaterial(class DynamicMaterial*, const MapList&) override;
@@ -30,7 +30,7 @@ class DynamicHeightmap : public HeightmapInterface {
 	void create(int w, int h, float res, const float* data);
 	void create(int w, int h, float res, float height);
 
-	void setMaterial(scene::Material*);
+	void setMaterial(base::Material*);
 
 	float height( float x, float z ) const;
 	float height( float x, float z, vec3& normal) const;
@@ -45,8 +45,8 @@ class DynamicHeightmap : public HeightmapInterface {
 	float  m_resolution;
 	float* m_heightData;
 	class Landscape* m_land;
-	std::vector<scene::Drawable*> m_drawables;
-	scene::Material* m_material;
+	std::vector<base::Drawable*> m_drawables;
+	base::Material* m_material;
 };
 
 // Heightmap editor interface

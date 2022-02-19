@@ -2,11 +2,11 @@
 #define _FOLIAGE_EDITOR_
 
 #include "editorplugin.h"
-#include "gui/widgets.h"
-#include "gui/lists.h"
+#include <base/gui/widgets.h>
+#include <base/gui/lists.h>
 #include "foliage/foliage.h"
 
-namespace base { class XMLElement; class Texture; namespace bmodel { class Mesh; } }
+namespace base { class XMLElement; class Texture;  class Mesh;  }
 class FileSystem;
 class FileDialog;
 class MapGrid;
@@ -28,22 +28,22 @@ class Foliage : public FoliageSystem {
 
 struct FoliageSprite {
 	gui::String file;
-	scene::Material* material;
+	base::Material* material;
 	bool operator==(const FoliageSprite& other) const { return file==other.file; } // For gui::Any
 };
 struct FoliageMesh {
 	gui::String file;
 	gui::String diffuseMap;
 	gui::String normalMap;
-	base::bmodel::Mesh* mesh;
-	scene::Material* material;
+	base::Mesh* mesh;
+	base::Material* material;
 	bool operator==(const FoliageMesh& other) const { return file==other.file; } // For gui::Any
 };
 
 
 class FoliageEditor : public EditorPlugin {
 	public:
-	FoliageEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, scene::SceneNode*);
+	FoliageEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, base::SceneNode*);
 	~FoliageEditor();
 	void setupGui(gui::Root*);
 
@@ -54,7 +54,7 @@ class FoliageEditor : public EditorPlugin {
 	void close() override;
 
 	void showFoliage(bool);
-	scene::Material* createMaterial(FoliageType type, const char* diffuse);
+	base::Material* createMaterial(FoliageType type, const char* diffuse);
 	FoliageLayerEditor* addLayer(FoliageType type);
 	void showEditor(FoliageLayerEditor* layer);
 	
@@ -72,7 +72,7 @@ class FoliageEditor : public EditorPlugin {
 	Foliage*      m_foliage;
 	FileSystem*   m_fileSystem;
 	MapGrid*      m_terrain;
-	scene::SceneNode* m_node;
+	base::SceneNode* m_node;
 	FileDialog*   m_fileDialog;
 
 	gui::Listbox* m_layerList;

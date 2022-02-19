@@ -4,7 +4,7 @@
 #include "terraineditor/tool.h"
 #include "terraineditor/editabletexture.h"
 #include "terraineditor/texturetools.h"
-#include "gui/delegate.h"
+#include <base/gui/delegate.h>
 #include <vector>
 
 namespace gui { class Widget; class Button; class Root; }

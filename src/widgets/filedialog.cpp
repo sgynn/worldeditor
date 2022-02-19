@@ -1,6 +1,6 @@
 #include "filedialog.h"
-#include "gui/lists.h"
-#include "gui/skin.h"
+#include <base/gui/lists.h>
+#include <base/gui/skin.h>
 
 #include <base/game.h>
 #include <base/input.h>

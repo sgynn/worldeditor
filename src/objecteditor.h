@@ -2,12 +2,12 @@
 
 
 #include "editorplugin.h"
-#include "gui/gui.h"
+#include <base/gui/gui.h>
 #include "object.h"
 #include <vector>
 
-namespace scene { class Material; }
-namespace base { class Texture; namespace bmodel { class Model; class Mesh; } }
+namespace base { class Material; }
+namespace base { class Texture;  class Model; class Mesh;  }
 namespace gui { class Button; class Listbox; class Textbox; class Spinbox; class TreeView; class TreeNode; }
 
 namespace editor { class Gizmo; }
@@ -15,7 +15,7 @@ class BoxSelect;
 
 class ObjectEditor : public EditorPlugin {
 	public:
-	ObjectEditor(gui::Root*, FileSystem*, MapGrid*, scene::SceneNode*);
+	ObjectEditor(gui::Root*, FileSystem*, MapGrid*, base::SceneNode*);
 	~ObjectEditor();
 	void load(const base::XMLElement&, const TerrainMap* context) override;
 	base::XMLElement save(const TerrainMap* context) const override;
@@ -25,8 +25,8 @@ class ObjectEditor : public EditorPlugin {
 
 	void setResourcePath(const char* path);
 	void selectObject(Object*, bool append=false);
-	Object* pick(scene::SceneNode* node, const Ray& ray, bool ignoreSelection, float& t) const;
-	static bool pickMesh(const Ray& ray, const base::bmodel::Mesh* mesh, const Matrix& transform, float& t);
+	Object* pick(base::SceneNode* node, const Ray& ray, bool ignoreSelection, float& t) const;
+	static bool pickMesh(const Ray& ray, const base::Mesh* mesh, const Matrix& transform, float& t);
 
 	protected:
 	void changePath(gui::Textbox*);
@@ -36,13 +36,13 @@ class ObjectEditor : public EditorPlugin {
 	protected:
 	void setupMaterials();
 	base::Texture* findTexture(const char* name, const char* suffix, int limit=3);
-	scene::Material* getMaterial(const char* name, bool normalMap, bool coloured);
+	base::Material* getMaterial(const char* name, bool normalMap, bool coloured);
 	gui::TreeNode* addModel(const char* path, const char* name);
 	gui::TreeNode* addFolder(const char* path, const char* name);
 	void cancelPlacement();
-	bool isSelected(scene::SceneNode* obj) const;
+	bool isSelected(base::SceneNode* obj) const;
 	void clearSelection();
-	Object* createObject(const char* name, base::bmodel::Model*, base::bmodel::Mesh*, const char* material);
+	Object* createObject(const char* name, base::Model*, base::Mesh*, const char* material);
 	void placeObject(Object* object, gui::TreeNode* data);
 	void applySelectTransform();
 	void selectionChanged();
@@ -50,7 +50,7 @@ class ObjectEditor : public EditorPlugin {
 
 	protected:
 	enum PlaceMode { SINGLE, ROTATE, CHAIN };
-	scene::SceneNode* m_node;
+	base::SceneNode* m_node;
 	FileSystem*    m_fileSystem;
 	MapGrid*       m_terrain;
 	Object*        m_placement;
@@ -66,9 +66,9 @@ class ObjectEditor : public EditorPlugin {
 	BoxSelect*     m_box;
 
 	std::vector<Object*> m_selected;
-	scene::SceneNode* m_selectGroup;
+	base::SceneNode* m_selectGroup;
 
-	base::HashMap<scene::Material*> m_materials;
+	base::HashMap<base::Material*> m_materials;
 
 	gui::TreeView* m_resourceList;
 	gui::TreeView* m_sceneTree;

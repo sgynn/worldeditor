@@ -3,7 +3,7 @@
 
 // Some additional gui dialogs //
 
-#include "gui/widgets.h"
+#include <base/gui/widgets.h>
 
 namespace gui {
 	class Listbox;

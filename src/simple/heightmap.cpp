@@ -1,9 +1,9 @@
 #if 0
 #include "heightmap.h"
 #include "dynamicmaterial.h"
-#include "scene/scene.h"
-#include "scene/mesh.h"
-#include "model/mesh.h"
+#include <base/scene.h>
+#include <base/drawablemesh.h>
+#include <base/mesh.h>
 #include <base/collision.h>
 
 
@@ -99,8 +99,8 @@ void SimpleHeightmap::createMesh(float* vx) {
 
 
 	// Create mesh
-	if(!m_mesh) m_mesh = new base::bmodel::Mesh();
-	m_mesh->setPolygonMode(base::bmodel::TRIANGLE_STRIP);
+	if(!m_mesh) m_mesh = new base::Mesh();
+	m_mesh->setPolygonMode(base::TRIANGLE_STRIP);
 	base::HardwareVertexBuffer* vbuf = new base::HardwareVertexBuffer();
 	vbuf->setData(vx, w*h, 6*sizeof(float), true);
 	vbuf->setAttribute(base::VA_VERTEX, base::VA_FLOAT3, 0);
@@ -129,11 +129,11 @@ void SimpleHeightmap::createMesh(float* vx) {
 
 	// Drawable
 	if(m_drawable) asm("int $3"); // already exists
-	m_drawable = new scene::DrawableMesh(m_mesh);
+	m_drawable = new base::DrawableMesh(m_mesh);
 	attach(m_drawable);
 }
 
-void SimpleHeightmap::setMaterial(scene::Material* m) {
+void SimpleHeightmap::setMaterial(base::Material* m) {
 	if(!m_drawable) return;
 	m_drawable->setMaterial(m);
 }

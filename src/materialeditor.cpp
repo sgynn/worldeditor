@@ -8,8 +8,8 @@
 #include <base/xml.h>
 #include <base/dds.h>
 #include <base/png.h>
-#include "gui/renderer.h"
-#include "gui/skin.h"
+#include <base/gui/renderer.h>
+#include <base/gui/skin.h>
 
 using namespace base;
 

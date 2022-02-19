@@ -4,7 +4,7 @@
 
 #include "object.h"
 #include "terraineditor/editor.h"
-#include "scene/mesh.h"
+#include <base/drawablemesh.h>
 
 
 class SimpleHeightmap : public Object {
@@ -18,7 +18,7 @@ class SimpleHeightmap : public Object {
 	void create(int w, int h, float res, const float* data);
 	void create(int w, int h, float res, float height);
 
-	void setMaterial(scene::Material*);
+	void setMaterial(base::Material*);
 
 	float height( float x, float z ) const;
 	float height( float x, float z, vec3& normal) const;
@@ -34,8 +34,8 @@ class SimpleHeightmap : public Object {
 
 	int m_width, m_height;
 	float m_resolution;
-	scene::DrawableMesh* m_drawable;
-	base::bmodel::Mesh* m_mesh;
+	base::DrawableMesh* m_drawable;
+	base::Mesh* m_mesh;
 
 };
 

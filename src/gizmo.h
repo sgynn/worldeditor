@@ -2,7 +2,7 @@
 #define _GIZMO_
 
 #include <base/math.h>
-#include "scene/drawable.h"
+#include <base/drawable.h>
 
 namespace base { class HardwareVertexBuffer; class Camera; }
 
@@ -23,7 +23,7 @@ class MouseRay {
 
 /// Transformation gizmo
 
-class Gizmo : public scene::Drawable {
+class Gizmo : public base::Drawable {
 	public:
 	Gizmo();
 	~Gizmo();
@@ -54,7 +54,7 @@ class Gizmo : public scene::Drawable {
 	bool isLocal() const;						/// Are we in local mode
 
 	void render(const vec3&, const vec3&) const;
-	void draw(scene::RenderState&);
+	void draw(base::RenderState&);
 	
 	private:
 

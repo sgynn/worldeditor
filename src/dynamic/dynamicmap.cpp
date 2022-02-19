@@ -1,16 +1,16 @@
 #include "dynamicmap.h"
 #include "dynamicmaterial.h"
 #include "streaming/landscape.h"
-#include "model/hardwarebuffer.h"
-#include "scene/renderer.h"
-#include "scene/scene.h"
-#include "scene/shader.h"
-#include "scene/drawable.h"
+#include <base/hardwarebuffer.h>
+#include <base/renderer.h>
+#include <base/scene.h>
+#include <base/shader.h>
+#include <base/drawable.h>
 #include <base/collision.h>
 #include <base/opengl.h>
 #include <base/camera.h>
 
-#include "scene/debuggeometry.h"
+#include <base/debuggeometry.h>
 
 #ifdef WIN32
 extern PFNGLBINDVERTEXARRAYPROC glBindVertexArray;
@@ -18,7 +18,7 @@ extern PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArrays;
 #endif
 
 
-class DynamicHeightmapDrawable : public scene::Drawable {
+class DynamicHeightmapDrawable : public base::Drawable {
 	Landscape* m_land;
 	struct PatchTag {
 		base::HardwareVertexBuffer* vertexBuffer;
@@ -31,7 +31,7 @@ class DynamicHeightmapDrawable : public scene::Drawable {
 		                           ::bind(this, &DynamicHeightmapDrawable::patchDetroyed),
 								   ::bind(this, &DynamicHeightmapDrawable::patchUpdated));
 	}
-	void draw(scene::RenderState& r) {
+	void draw(base::RenderState& r) {
 		base::Camera cam = *r.getCamera();
 		cam.setPosition( cam.getPosition() - vec3(&getTransform()[12]));
 		cam.updateFrustum();
@@ -95,7 +95,7 @@ DynamicHeightmap::DynamicHeightmap() : m_width(0), m_height(0), m_resolution(0),
 DynamicHeightmap::~DynamicHeightmap() {
 	delete m_land;
 	delete [] m_heightData;
-	for(scene::Drawable* d: m_drawables) delete d;
+	for(base::Drawable* d: m_drawables) delete d;
 	delete m_material;
 }
 
@@ -154,15 +154,15 @@ void DynamicHeightmap::setMaterial(DynamicMaterial* dyn, const MapList& maps) {
 	setMaterial( m_material );
 	m_material->getPass(0)->compile();
 }
-void DynamicHeightmap::setMaterial(scene::Material* m) {
-	for(scene::Drawable* d: m_drawables) d->setMaterial(m);
+void DynamicHeightmap::setMaterial(base::Material* m) {
+	for(base::Drawable* d: m_drawables) d->setMaterial(m);
 }
 
 void DynamicHeightmap::setDetail(float value) {
 	if(m_land) m_land->setThreshold(value);
 }
 
-scene::Drawable* DynamicHeightmap::createDrawable() {
+base::Drawable* DynamicHeightmap::createDrawable() {
 	if(!m_land) return 0;
 	DynamicHeightmapDrawable* d = new DynamicHeightmapDrawable(m_land);
 	m_drawables.push_back(d);

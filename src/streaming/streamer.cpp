@@ -1,14 +1,14 @@
 #include "streamer.h"
 #include "landscape.h"
 #include "tiff.h"
-#include "scene/scene.h"
-#include "scene/renderer.h"
+#include <base/scene.h>
+#include <base/renderer.h>
 #include "base/camera.h"
 #include "texturestream.h"
 #include "dynamicmaterial.h"
-#include "model/hardwarebuffer.h"
+#include <base/hardwarebuffer.h>
 
-#include "scene/shader.h"
+#include <base/shader.h>
 #include <base/opengl.h>
 #include <cstdio>
 
@@ -132,7 +132,7 @@ void Streamer::updatePatchMaterial(PatchGeometry* g) {
 // ========================================================================================= //
 
 StreamerDrawable::StreamerDrawable(Landscape* land) : m_land(land) {}
-void StreamerDrawable::draw( scene::RenderState& r) {
+void StreamerDrawable::draw( base::RenderState& r) {
 	// Update terrain lod stuff - Note: only needs to be called one per frame
 	lodCameraPosition = r.getCamera()->getPosition();
 	m_land->update( r.getCamera() );
@@ -148,14 +148,13 @@ void StreamerDrawable::draw( scene::RenderState& r) {
 	tv.bind();
 
 	const int stride = 10 * sizeof(float);
-	r.setAttributeArrays(3); // VERTEX|NORMAL
 	for(uint i=0; i<m_land->getGeometry().size(); ++i) {
 		const PatchGeometry* g = m_land->getGeometry()[i];
 		const PatchTag* tag = static_cast<const PatchTag*>(g->tag);
 
 		r.setMaterial( tag->material );
-		scene::Shader::current().setAttributePointer(0, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices);
-		scene::Shader::current().setAttributePointer(1, 3, GL_FLOAT, stride, scene::SA_FLOAT, g->vertices+3);
+		base::Shader::current().setAttributePointer(0, 3, GL_FLOAT, stride, base::SA_FLOAT, g->vertices);
+		base::Shader::current().setAttributePointer(1, 3, GL_FLOAT, stride, base::SA_FLOAT, g->vertices+3);
 		glDrawElements(GL_TRIANGLE_STRIP, g->indexCount, GL_UNSIGNED_SHORT, g->indices);
 	}
 }

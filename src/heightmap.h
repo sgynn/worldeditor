@@ -2,8 +2,8 @@
 #define _HEIGHTMAP_INTERFACE_
 
 #include "terraineditor/editor.h"
-#include "scene/scene.h"
-#include "gui/gui.h"
+#include <base/scene.h>
+#include <base/gui/gui.h>
 #include <vector>
 #include <map>
 
@@ -15,7 +15,7 @@ class HeightmapInterface {
 	public:
 	virtual ~HeightmapInterface() {}
 	virtual void setDetail(float) {}
-	virtual scene::Drawable* createDrawable() = 0;
+	virtual base::Drawable* createDrawable() = 0;
 	virtual int castRay(const vec3& start, const vec3& direction, float& out) const = 0;
 	virtual float getHeight(const vec3& point) const = 0;
 	virtual void setMaterial(class DynamicMaterial*, const MapList&) = 0;
@@ -39,7 +39,7 @@ struct TerrainMap {
 
 
 // Grid of heightmaps
-class MapGrid : public TerrainEditorDataInterface, public scene::SceneNode {
+class MapGrid : public TerrainEditorDataInterface, public base::SceneNode {
 	public:
 	MapGrid(float size, const Range& range);
 	~MapGrid();
@@ -73,7 +73,7 @@ class MapGrid : public TerrainEditorDataInterface, public scene::SceneNode {
 
 	protected:
 	struct MapDef { int size, channels, flags; };
-	struct Slot { TerrainMap* map; scene::SceneNode* node; };
+	struct Slot { TerrainMap* map; base::SceneNode* node; };
 	std::map<Point, Slot> m_slots;
 	std::vector<MapDef> m_mapDefinitions;
 	BoundingBox m_bounds;

@@ -2,12 +2,12 @@
 #define _TEXTURE_STREAM_
 
 #include "bufferedstream.h"
-#include <scene/material.h>
+#include <base/material.h>
 #include <base/texture.h>
 #include <vector>
 
 using base::Texture;
-using scene::Material;
+using base::Material;
 
 
 class TextureStream : public BufferedStream {

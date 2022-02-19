@@ -7,10 +7,11 @@
 #include <base/game.h>
 #include <base/input.h>
 
-#include "scene/debuggeometry.h"
-#include "scene/scene.h"
-#include "scene/mesh.h"
-#include "model/mesh.h"
+#include <base/hardwarebuffer.h>
+#include <base/debuggeometry.h>
+#include <base/drawablemesh.h>
+#include <base/scene.h>
+#include <base/mesh.h>
 
 void BrushData::reset(const Brush& brush, float resolution, int channels) {
 	m_resolution = resolution;
@@ -49,14 +50,14 @@ inline float clamp(float f, float min=0, float max=1) {
 }
 
 TerrainEditor::TerrainEditor(TerrainEditorDataInterface* t) : m_target(t), m_tool(0), m_locked(false), m_stroke(false) {
-	m_brushNode = new scene::SceneNode("Brush");
+	m_brushNode = new base::SceneNode("Brush");
 	m_brush.radius = 10;
 	m_brush.falloff = 0.5;
 	m_brush.strength = 1;
 }
 
 TerrainEditor::~TerrainEditor() {
-	scene::DrawableMesh* drawable = static_cast<scene::DrawableMesh*>(m_brushNode->getAttachment(0));
+	base::DrawableMesh* drawable = static_cast<base::DrawableMesh*>(m_brushNode->getAttachment(0));
 	if(drawable) {
 		delete drawable->getMesh();
 		delete drawable;
@@ -202,18 +203,18 @@ void TerrainEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 }
 
 void TerrainEditor::updateBrushRings(const vec3& centre, float r1, float r2) {
-	scene::DrawableMesh* drawable = static_cast<scene::DrawableMesh*>(m_brushNode->getAttachment(0));
+	base::DrawableMesh* drawable = static_cast<base::DrawableMesh*>(m_brushNode->getAttachment(0));
 	if(!drawable) {
-		drawable = new scene::DrawableMesh();
+		drawable = new base::DrawableMesh();
 		base::HardwareVertexBuffer* buffer = new base::HardwareVertexBuffer();
-		base::bmodel::Mesh* mesh = new base::bmodel::Mesh();
+		base::Mesh* mesh = new base::Mesh();
 		buffer->attributes.add(base::VA_VERTEX, base::VA_FLOAT3);
 		buffer->attributes.add(base::VA_COLOUR, base::VA_ARGB);
 		buffer->createBuffer();
 		mesh->setVertexBuffer(buffer);
-		mesh->setPolygonMode(base::bmodel::LINE_STRIP);
+		mesh->setPolygonMode(base::PolygonMode::LINE_STRIP);
 		drawable->setMesh(mesh);
-		drawable->setMaterial(scene::DebugGeometryManager::getInstance()->getDefaultMaterial());
+		drawable->setMaterial(base::DebugGeometryManager::getInstance()->getDefaultMaterial());
 		m_brushNode->attach(drawable);
 	}
 

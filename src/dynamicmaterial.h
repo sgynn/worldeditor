@@ -3,9 +3,9 @@
 
 #include <base/math.h>
 #include <vector>
-#include "gui/gui.h"
+#include <base/gui/gui.h>
 
-namespace scene { class Material; class ShaderPart; class ShaderVars; }
+namespace base { class Material; class ShaderPart; class ShaderVars; }
 using gui::String;
 class MaterialStream;
 class MaterialEditor;
@@ -66,7 +66,7 @@ class DynamicMaterial {
 	bool			needsCompiling() const;	// do we need to recompile
 	void			flagRecompile();		// Flag material to be compiled when activated
 
-	scene::Material* getMaterial() const;	// Get material pointer
+	base::Material* getMaterial() const;	// Get material pointer
 	MaterialStream* getStream() const;		// Get material stream ( not here )
 
 	void exportMaterial() const;
@@ -79,10 +79,10 @@ class DynamicMaterial {
 	String m_name;
 	MaterialMode m_mode = COMPOSITE;
 	std::vector<MaterialLayer*> m_layers;
-	scene::Material*   m_material;
-	scene::ShaderVars* m_vars;
-	scene::ShaderPart* m_vertexShader;
-	scene::ShaderPart* m_fragmentShader;
+	base::Material*   m_material;
+	base::ShaderVars* m_vars;
+	base::ShaderPart* m_vertexShader;
+	base::ShaderPart* m_fragmentShader;
 	MaterialStream* m_stream;
 	bool            m_streaming;
 	bool            m_needsCompile;

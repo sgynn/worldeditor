@@ -4,11 +4,11 @@
 #include <base/thread.h>
 
 namespace gui { class Root; class Button; }
-namespace scene { class SceneNode; }
+namespace base { class SceneNode; }
 
 class ErosionEditor : public EditorPlugin {
 	public:
-	ErosionEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, scene::SceneNode* scene);
+	ErosionEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, base::SceneNode* scene);
 	~ErosionEditor();
 	void update(const base::Mouse&, const Ray&, base::Camera*, InputState& state) override;
 	void setContext(const TerrainMap*) override;

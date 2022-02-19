@@ -1,13 +1,13 @@
 #ifndef _OBJECT_
 #define _OBJECT_
 
-#include "scene/scene.h"
+#include <base/scene.h>
 
 /** Object base class
  * This is for all game objects
  * An object may have one or more drawables
  * */
-class Object : public scene::SceneNode {
+class Object : public base::SceneNode {
 	public:
 	Object() {}
 	virtual ~Object() {}

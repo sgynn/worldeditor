@@ -1,12 +1,12 @@
 #include "foliage.h"
-#include "scene/mesh.h"
-#include "model/mesh.h"
-#include "model/hardwarebuffer.h"
+#include <base/drawablemesh.h>
+#include <base/mesh.h>
+#include <base/hardwarebuffer.h>
 #include <cstdio>
 
-using base::bmodel::Mesh;
-using scene::DrawableMesh;
-using scene::Material;
+using base::Mesh;
+using base::DrawableMesh;
+using base::Material;
 using namespace base;
 
 class RNG {
@@ -343,7 +343,7 @@ FoliageLayer::Geometry GrassLayer::generateGeometry(const Index& index) const {
 
 	// Drawable
 	Mesh* mesh = new Mesh();
-	mesh->setPolygonMode(base::bmodel::TRIANGLES);
+	mesh->setPolygonMode(base::PolygonMode::TRIANGLES);
 	mesh->setVertexBuffer(vbuffer);
 	mesh->setIndexBuffer(ibuffer);
 	return Geometry{ mesh, nullptr, 0 };
