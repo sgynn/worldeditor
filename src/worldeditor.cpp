@@ -134,6 +134,14 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_ac
 	m_gui->load(appPath + "data/foliage.xml");
 	m_mapMarker = 0;
 
+	// Input
+	Input& in = *Game::input();
+	in.bind(0, KEY_W); in.bind(0, KEY_UP);
+	in.bind(1, KEY_S); in.bind(1, KEY_DOWN);
+	in.bind(2, KEY_A); in.bind(2, KEY_LEFT);
+	in.bind(3, KEY_D); in.bind(3, KEY_RIGHT);
+	
+
 	// Setup event callbacks
 	BIND(Button, "newmap",  eventPressed, showNewDialog);
 	BIND(Button, "openmap", eventPressed, showOpenDialog);
