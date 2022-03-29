@@ -12,6 +12,7 @@ extern String appPath;
 
 ErosionEditor::ErosionEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, base::SceneNode*) {
 	m_terrain = terrain;
+	m_context = 0;
 	createPanel(gui, "erosioneditor", "erosion.xml");
 	createToolButton(gui, "noise");
 

@@ -10,6 +10,7 @@
 #include <cstring>
 #include <map>
 #include <unordered_map>
+#include <assert.h>
 
 class TextureStream;
 class BufferedStream;
@@ -86,8 +87,11 @@ class PaintBuffer {
 		for(auto i : m_paintBuffer) delete [] i.second;
 		m_paintBuffer.clear();
 	}
+	// Standard integer division truncates which is bad for negative values
+	inline static int divFloor(int v, int div) { return v / div - (v<0 && v % div != 0); }
+
 	T* value(int x, int y) {
-		Point b(x/m_size-(x<0?1:0), y/m_size-(y<0?1:0));
+		Point b(divFloor(x, m_size), divFloor(y, m_size));
 		auto it = m_paintBuffer.find(b);
 		T* buffer = it!=m_paintBuffer.end()? it->second: createPaintBuffer(b);
 		return buffer + (x-(b.x*m_size) + (y-(b.y*m_size))*m_size);

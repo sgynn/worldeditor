@@ -8,7 +8,6 @@ headers = $(wildcard src/*.h src/*/*.h)
 sources = $(wildcard src/*.cpp src/*/*.cpp)
 objects = $(addprefix $(OBJDIR)/, $(sources:.cpp=.o))
 dirs    = $(dir $(objects))
-
 baselib = /usr/lib64/libbase.a
 
 # Colour coding of g++ output - highlights errors and warnings
