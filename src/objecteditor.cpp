@@ -107,6 +107,7 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 				node->setData(1, object);
 				node->setData(2, f);
 				node->setData(3, meshIndex);
+				node->setData(4, true);
 				m_sceneTree->getRootNode()->add(node);
 			}
 		}
@@ -383,6 +384,28 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 		}
 	}
 
+	// Toggle visibility
+	if(base::Game::Pressed(base::KEY_H) && base::Game::input()->getKeyModifier()&base::MODIFIER_ALT) {
+		findTreeNode(m_sceneTree->getRootNode(), [](TreeNode* n) {
+			Object* o = n->getData(1).getValue<Object*>(0);
+			if(o && !o->isVisible()) {
+				o->setVisible(true);
+				n->setData(4, true);
+			}
+			return false;
+		});
+		m_sceneTree->refresh();
+	}
+	else if(base::Game::Pressed(base::KEY_H)) {
+		for(Object* obj: m_selected) {
+			obj->setVisible(false);
+			TreeNode* node = findTreeNode(m_sceneTree->getRootNode(), [obj](TreeNode* n){return n->getData(1)==obj;});
+			if(node) node->setData(4, false);
+		}
+		m_sceneTree->refresh();
+		clearSelection();
+	}
+
 	// Picking
 	if(!m_placement && !m_gizmo->isHeld()) {
 		if(mouse.pressed==1 && !state.consumedMouseDown) {
@@ -396,7 +419,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 				if(~state.keyMask&SHIFT_MASK) clearSelection();
 				for(SceneNode* node: m_node->children()) {
 					Object* object = static_cast<Object*>(node);
-					if(m_box->inside(object->getBounds())) selectObject(object, true);
+					if(object->isVisible() && m_box->inside(object->getBounds())) selectObject(object, true);
 				}
 				m_box->clear();
 			}
@@ -439,6 +462,7 @@ void ObjectEditor::placeObject(Object* object, TreeNode* data) {
 void ObjectEditor::changeVisible(TreeView*, TreeNode* node, Widget*) {
 	Object* obj = node->getData(1).getValue<Object*>(0);
 	obj->setVisible(node->getData(4).getValue(true));
+	if(isSelected(obj)) clearSelection();
 }
 
 void ObjectEditor::selectObject(TreeView*, TreeNode* node) {
@@ -454,7 +478,10 @@ void ObjectEditor::selectObject(Object* obj, bool append) {
 
 	// select tree node
 	TreeNode* node = findTreeNode(m_sceneTree->getRootNode(), [obj](TreeNode* n){return n->getData(1)==obj;});
-	if(node) node->select();
+	if(node) {
+		node->select();
+		m_sceneTree->scrollToItem(node);
+	}
 
 	selectionChanged();
 }
@@ -462,7 +489,7 @@ void ObjectEditor::selectObject(Object* obj, bool append) {
 void setRenderQueue(SceneNode* node, int queue) {
 	for(Drawable* d: node->attachments()) d->setRenderQueue(queue);
 	for(SceneNode* n: node->children()) setRenderQueue(n, queue);
-};
+}
 
 void ObjectEditor::selectionChanged() {
 	// Apply group transforms
@@ -518,6 +545,7 @@ void ObjectEditor::clearSelection() {
 
 Object* ObjectEditor::pick(SceneNode* node, const Ray& ray, bool ignoreSelection, float& t) const {
 	if(ignoreSelection && isSelected(node)) return 0;
+	if(!node->isVisible()) return 0;
 
 	Object* obj = dynamic_cast<Object*>(node);
 	if(obj) {
