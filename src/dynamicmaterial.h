@@ -15,6 +15,7 @@ enum LayerType { LAYER_AUTO, LAYER_WEIGHT, LAYER_COLOUR, LAYER_INDEXED, LAYER_GR
 enum BlendMode { BLEND_NORMAL, BLEND_HEIGHT, BLEND_MULTIPLY, BLEND_ADD };
 enum TexProjection { PROJECTION_FLAT, PROJECTION_TRIPLANAR, PROJECTION_VERTICAL };
 enum MaterialMode { COMPOSITE, DIFFUSE, NORMALS, LIGHTING };
+enum SpecialTexture { TEXTURE_CLIP=-2, TEXTURE_COLOUR=-1 };
 
 struct AutoParams { float min, max, blend, noise; };
 
@@ -26,7 +27,7 @@ struct MaterialLayer {
 	float blendScale;	// Used for height blend
 	float opacity;		// Multiplier
 
-	int  texture;		// Texture unit to use. set -1 to use colour
+	int  texture;		// Texture unit to use. set -1 to use colour, -2 for clip
 	int  colour;		// Colour to use instead of a texture
 	vec3 scale;			// Texture scaling. Use z for triplanar maps
 	TexProjection projection;	// Texture projection mode
@@ -38,7 +39,7 @@ struct MaterialLayer {
 
 	// Maps
 	uint mapIndex;	 // Map index in TerrainMap maps list
-	uint mapData;	 // IndexOffset or Channel, plus flag for two textures
+	uint mapData;	 // IndexOffset or Channel, plus flag for two textures (0x100)
 };
 
 class DynamicMaterial {

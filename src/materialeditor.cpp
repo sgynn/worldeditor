@@ -17,8 +17,8 @@ using namespace base;
 MaterialEditor::MaterialEditor(gui::Root* gui, FileSystem* fs, bool stream): m_streaming(stream), m_fileSystem(fs), m_gui(gui) {
 	// Selector lists
 	m_textureSelector = new gui::ItemList();
+	m_textureSelector->addItem("Clipped", gui::Any(), -2);
 	m_textureSelector->addItem("Select colour", gui::Any(), -1);
-	//m_textureSelector->addItem("Clipped", gui::Any(), -2); // ?
 
 	// Set up gui callbacks
 	setupGui();
@@ -255,7 +255,7 @@ TerrainTexture* MaterialEditor::createTexture(const char* name) {
 	t->name = name;
 	t->tiling = 1.0;
 	m_textures.push_back(t);
-	m_textureSelector->addItem(name, gui::Any(), m_textures.size()-1); // ToDo: set icon
+	m_textureSelector->addItem(name, gui::Any(), m_textures.size()-2); // ToDo: set icon
 	return t;
 }
 
@@ -473,7 +473,7 @@ void MaterialEditor::removeTexture(gui::Button*) {
 		w->setPosition( w->getPosition().x, w->getPosition().y - old->getSize().y);
 	}
 	m_textureList->remove( old );
-	m_textureSelector->removeItem( m_selectedTexture + 1 );
+	m_textureSelector->removeItem( m_selectedTexture + 2 );
 	m_selectedTexture = -1;
 	delete old;
 
@@ -776,7 +776,6 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 	w->setPosition(0, top);
 	w->setSize( m_layerList->getPaneSize().x, 10);
 
-
 	// Setup
 	const char* icons[] = { "layer_a", "layer_w", "layer_c", "layer_i", "layer_g" };
 	w->getTemplateWidget<gui::Icon>("typeicon")->setIcon( icons[layer->type] );
@@ -787,20 +786,28 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 	w->getTemplateWidget<gui::Button>("expand")->eventPressed.bind(this, &MaterialEditor::expandLayer);
 	w->cast<OrderableItem>()->eventReordered.bind(this, &MaterialEditor::moveLayer);
 
+	setupLayerWidgets(layer, w);
+}
+
+void MaterialEditor::setupLayerWidgets(MaterialLayer* layer, gui::Widget* w) {
+	bool clipLayer = (layer->type == LAYER_AUTO || layer->type == LAYER_WEIGHT) && layer->texture==TEXTURE_CLIP;
+
 	// Blend mode
-	gui::Combobox* blend = addLayerWidget<gui::Combobox>(m_gui, w, "Blend", "droplist");
-	blend->addItem("normal");
-	blend->addItem("height");
-	blend->addItem("multiply");
-	blend->addItem("add");
-	blend->selectItem( (int) layer->blend );
-	blend->eventSelected.bind(this, &MaterialEditor::changeBlendMode);
+	if(!clipLayer) {
+		gui::Combobox* blend = addLayerWidget<gui::Combobox>(m_gui, w, "Blend", "droplist");
+		blend->addItem("normal");
+		blend->addItem("height");
+		blend->addItem("multiply");
+		blend->addItem("add");
+		blend->selectItem( (int) layer->blend );
+		blend->eventSelected.bind(this, &MaterialEditor::changeBlendMode);
 	
-	// Opacity
-	gui::Scrollbar* opacity = addLayerWidget<gui::Scrollbar>(m_gui, w, "Opacity", "slider");
-	opacity->setRange(0, 1000);
-	opacity->setValue( layer->opacity * 1000 );
-	opacity->eventChanged.bind(this, &MaterialEditor::changeOpacity);
+		// Opacity
+		gui::Scrollbar* opacity = addLayerWidget<gui::Scrollbar>(m_gui, w, "Opacity", "slider");
+		opacity->setRange(0, 1000);
+		opacity->setValue( layer->opacity * 1000 );
+		opacity->eventChanged.bind(this, &MaterialEditor::changeOpacity);
+	}
 	
 	if(layer->type == LAYER_AUTO || layer->type == LAYER_WEIGHT) {
 		// Texture picker
@@ -808,22 +815,24 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 		tex->eventSelected.bind(this, &MaterialEditor::changeTexture);
 		tex->setIconList(m_textureIcons);
 		tex->shareList(m_textureSelector);
-		tex->selectItem(layer->texture+1);
+		tex->selectItem(layer->texture+2);
 		tex->setSize( tex->getSize().x, 30 );
 
-		if(layer->texture<0) {
+		if(layer->texture == TEXTURE_COLOUR) {
 			char hexColour[12];
 			sprintf(hexColour, "#%06x", layer->colour);
 			tex->setText(hexColour);
 		}
 
-		// Triplanar option
-		gui::Combobox* triplanar = addLayerWidget<gui::Combobox>(m_gui, w, "Projection", "droplist");
-		triplanar->addItem("Flat");
-		triplanar->addItem("Triplanar");
-		triplanar->addItem("Vertical");
-		triplanar->selectItem( (int)layer->projection );
-		triplanar->eventSelected.bind(this, &MaterialEditor::changeProjection);
+		// Projection modes
+		if(layer->texture >= 0) {
+			gui::Combobox* triplanar = addLayerWidget<gui::Combobox>(m_gui, w, "Projection", "droplist");
+			triplanar->addItem("Flat");
+			triplanar->addItem("Triplanar");
+			triplanar->addItem("Vertical");
+			triplanar->selectItem( (int)layer->projection );
+			triplanar->eventSelected.bind(this, &MaterialEditor::changeProjection);
+		}
 	}
 
 	// Maps
@@ -848,7 +857,7 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 	}
 
 	// Texture tiling
-	if(layer->type != LAYER_COLOUR) {
+	if(layer->type != LAYER_COLOUR && layer->texture>=0) {
 		gui::Scrollbar* scaleX = addLayerWidget<gui::Scrollbar>(m_gui, w, "Tiling", "slider");
 		gui::Scrollbar* scaleY = addLayerWidget<gui::Scrollbar>(m_gui, w, 0,        "slider");
 		scaleX->setRange(1, 1000);
@@ -880,17 +889,6 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 			slider[i]->setValue((&layer->slope.min)[i] * 1000);
 			slider[i]->eventChanged.bind(this, &MaterialEditor::changeSlopeParam);
 		}
-
-		/*
-		slider[0] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Concave Min", "slider");
-		slider[1] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Concave Max", "slider");
-		slider[2] = addLayerWidget<gui::Scrollbar>(m_gui, w, "Concave Blend", "slider");
-		for(int i=0; i<3; ++i) {
-			slider[i]->setRange(-1000, 1000);
-			slider[i]->setValue((&layer->concavity.min)[i] * 1000);
-			slider[i]->eventChanged.bind(this, &MaterialEditor::changeConvexParam);
-		}
-		*/
 	}
 
 	// Gradient
@@ -931,10 +929,8 @@ void MaterialEditor::rebuildMaterial(bool bindMaps) {
 }
 
 void MaterialEditor::changeMap(gui::Combobox* w, int i) {
-	int index;
-	w->getItemData(i).getValue(index);
 	MaterialLayer* layer = getLayer(w);
-	layer->mapIndex = index;
+	layer->mapIndex = w->getItemData(i).getValue(0u);
 	rebuildMaterial(true);
 	eventChangeMaterial( getMaterial() );	// Reapply material to all terrain patches
 }
@@ -943,17 +939,29 @@ void MaterialEditor::changeChannel(gui::Combobox* w, int i) {
 	rebuildMaterial(true);
 }
 void MaterialEditor::changeTexture(gui::Combobox* w, int i) {
-	getLayer(w)->texture = i - 1;
-	if(i==0) {
-		// Open colour picker
+	MaterialLayer* layer = getLayer(w);
+	int texture = i - 2; // Should use item data ?
+	bool typeChanged = layer->texture!=texture && (layer->texture<0 || texture<0);
+	layer->texture = texture;
+
+	gui::Widget* panel = w->getParent();
+	if(typeChanged) {
+		panel->deleteChildWidgets();
+		setupLayerWidgets(layer, panel);
+		expandLayer(panel->getTemplateWidget<gui::Button>("expand"));
+	}
+
+	// Open colour picker
+	if(texture == TEXTURE_COLOUR) {
 		ColourPicker* picker = m_gui->getWidget<ColourPicker>("picker");
 		if(picker) {
 			picker->setColour( getLayer(w)->colour );
 			picker->setVisible(true);
 			picker->raise();
 
-			m_layerForColourPicker = getLayer(w);
+			m_layerForColourPicker = layer;
 			m_boxForColourPicker = w;
+			if(typeChanged) m_boxForColourPicker = panel->getWidget<gui::Combobox>("Texture");
 			picker->eventChanged.bind(this, &MaterialEditor::colourPicked);
 			picker->eventSubmit.bind(this, &MaterialEditor::colourFinish);
 			picker->eventCancel.bind(this, &MaterialEditor::colourFinish);
@@ -971,6 +979,7 @@ void MaterialEditor::colourPicked(const Colour& c) {
 void MaterialEditor::colourFinish(const Colour& c) {
 	ColourPicker* picker = m_gui->getWidget<ColourPicker>("picker");
 	picker->eventChanged.unbind();
+	m_boxForColourPicker = 0;
 }
 void MaterialEditor::changeBlendMode(gui::Combobox* w, int i) {
 	getLayer(w)->blend = (BlendMode)i;

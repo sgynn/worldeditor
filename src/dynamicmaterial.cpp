@@ -146,10 +146,12 @@ void DynamicMaterial::update(int index) {
 
 	// Set all the variables
 	MaterialLayer* layer = m_layers[index];
-	m_vars->set( addIndex("opacity",index), layer->visible? layer->opacity: 0);
+	if(layer->texture!=TEXTURE_CLIP) {
+		m_vars->set( addIndex("opacity",index), layer->visible? layer->opacity: 0);
+	}
 
 	// Splat texture scaling
-	if(layer->type != LAYER_COLOUR) {
+	if(layer->type != LAYER_COLOUR && layer->texture>=0) {
 		if(layer->projection == PROJECTION_FLAT) m_vars->set( addIndex("scale",index), 1.0 / layer->scale.xy());
 		else m_vars->set( addIndex("scale",index), 1.0 / layer->scale);
 	}
@@ -270,8 +272,8 @@ bool DynamicMaterial::compile() {
 	bool hasTriplanar = false;
 	for(MaterialLayer* layer: m_layers) {
 		if(layer->type==LAYER_WEIGHT || layer->type == LAYER_AUTO) hasTextureArray=true;
-		if(layer->mapIndex > 0) hasMaps = true;
-		if(layer->type == LAYER_INDEXED) hasIndexed = hasTextureArray = true;
+		if(layer->type==LAYER_WEIGHT || layer->type == LAYER_COLOUR) hasMaps = true; 
+		if(layer->type == LAYER_INDEXED) hasIndexed = hasTextureArray = hasMaps = true;
 		if(layer->projection != PROJECTION_FLAT) hasTriplanar = true;
 	}
 
@@ -293,28 +295,32 @@ bool DynamicMaterial::compile() {
 
 	// Image map samplers
 	uint64 mapMask = 0;
+	uint64 doubleMapMask = 0;
 	for(MaterialLayer* layer: m_layers) {
-		if(layer->mapIndex && !(mapMask&(1<<layer->mapIndex))) {
+		if(~mapMask & 1<<layer->mapIndex) {
 			mapMask |= 1<<layer->mapIndex;
 			source += format("uniform sampler2D map{1};\n", layer->mapIndex);
 			if(layer->mapData&0x100) {
+				doubleMapMask |= 1<<layer->mapIndex;
 				source += format("uniform sampler2D map{1}W;\n", layer->mapIndex);
 			}
 		}
 	}
-	for(int i=1; mapMask>>i; ++i) {
-		if(mapMask&(1<<i)) {
-			source += format("uniform vec2 map{}Size;\n", i);
-		}
+	for(int i=0; mapMask>>i; ++i) {
+		if(mapMask&(1<<i)) source += format("uniform vec2 map{}Size;\n", i);
 	}
 	source += "\n\n";
 
 	// Variables
 	for(size_t i=0; i<m_layers.size(); ++i) {
 		std::string index = str(i);
-		if(m_layers[i]->projection == PROJECTION_FLAT) source += format("uniform vec2 scale{};\n", i);
-		else source += format("uniform vec3 scale{};\n", i);
-		source += format("uniform float opacity{};\n", i);
+		if(m_layers[i]->texture>=0) {
+			if(m_layers[i]->projection == PROJECTION_FLAT) source += format("uniform vec2 scale{};\n", i);
+			else source += format("uniform vec3 scale{};\n", i);
+		}
+		if(m_layers[i]->texture!=TEXTURE_CLIP) {
+			source += format("uniform float opacity{};\n", i);
+		}
 		if(m_layers[i]->type == LAYER_AUTO) source +=
 			"uniform vec3 autoMin" + index + ";\n"
 			"uniform vec3 autoMax" + index + ";\n"
@@ -522,11 +528,11 @@ bool DynamicMaterial::compile() {
 	std::string id;
 	if(hasMaps) {
 		source +=  "	// Sample maps\n";
-		for(MaterialLayer* layer : m_layers) {
-			if(layer->mapIndex) {
-				source +=  format("	vec4 map{}Sample = sampleMap(map{}, mapBounds, worldPos.xz);\n", layer->mapIndex);
-				if(layer->mapData&0x100) {
-					source +=  format("	vec4 map{}WSample = sampleMap(map{}W, mapBounds, worldPos.xz);\n", layer->mapIndex);
+		for(int i=0; mapMask>>i; ++i) {
+			if(mapMask & 1<<i) {
+				source +=  format("	vec4 map{}Sample = sampleMap(map{}, mapBounds, worldPos.xz);\n", i);
+				if(doubleMapMask & 1<<i) {
+					source +=  format("	vec4 map{}WSample = sampleMap(map{}W, mapBounds, worldPos.xz);\n", i);
 				}
 			}
 		}
@@ -579,9 +585,15 @@ bool DynamicMaterial::compile() {
 			continue;
 		}
 
+		// CLip layer
+		if(layer->texture == TEXTURE_CLIP) {
+			source += "	if(weight>0.5) discard;\n";
+			continue;
+		}
+
 		// Sample textures
 		if(layer->type == LAYER_AUTO || layer->type==LAYER_WEIGHT) {
-			if(layer->texture < 0) source +=
+			if(layer->texture == TEXTURE_COLOUR) source +=
 				"	diff = vec4(" + str(colour.r) + ", " + str(colour.g) + ", " + str(colour.b) + ", 0);\n"
 				"	norm = vec4(0, 0, 1, 0);\n";
 			else if(layer->projection == PROJECTION_VERTICAL) source +=
@@ -742,10 +754,12 @@ void DynamicMaterial::exportMaterial() const {
 
 	for(size_t index=0; index<m_layers.size(); ++index) {
 		const MaterialLayer* layer = m_layers[index];
-		addVar1( addIndex("opacity",index), layer->visible? layer->opacity: 0);
+		if(layer->texture != TEXTURE_CLIP) {
+			addVar1( addIndex("opacity",index), layer->visible? layer->opacity: 0);
+		}
 
 		// Splat texture scaling
-		if(layer->type != LAYER_COLOUR) {
+		if(layer->type != LAYER_COLOUR && layer->texture>=0) {
 			if(layer->projection == PROJECTION_FLAT) addVar2( addIndex("scale",index), 1.0 / layer->scale.xy());
 			else addVar3( addIndex("scale",index), 1.0 / layer->scale);
 		}

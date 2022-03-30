@@ -86,6 +86,7 @@ class MaterialEditor {
 	void moveLayer(int, int);
 	void expandLayer(gui::Button*);
 	void addLayerGUI(MaterialLayer*);
+	void setupLayerWidgets(MaterialLayer*, gui::Widget*);
 	void selectLayer(gui::Widget*);
 
 	void changeMap(gui::Combobox*, int);
