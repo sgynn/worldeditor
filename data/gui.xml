@@ -233,11 +233,11 @@
 		<widget class="Label" rect="8 64 56 20" caption="Source" skin="default"/>
 		<widget anchor="lrt" class="Textbox" rect="64 64 120 20" name="source" skin="default"/>
 		<widget anchor="rt" class="Button" rect="184 64 16 20" name="sourcebutton" caption="..." skin="button"/>
-		<widget anchor="lrt" template="droplist" name="mode" rect="64 16 136 20">
+		<widget anchor="lrt" template="droplist" name="mode" skin="panel" rect="64 16 136 20">
 			<item>Raw Float</item>
 			<item>Tiff 16bit</item>
 		</widget>
-		<widget anchor="lrt" template="droplist" name="size" rect="64 40 136 20"/>
+		<widget anchor="lrt" template="droplist" name="size" skin="panel" rect="64 40 136 20"/>
 		<widget class="Label" rect="8 88 56 20" caption="Range" skin="default"/>
 		<widget max="10000" anchor="lrt" rect="64 88 90 20" template="spinbox" min="-1000" skin="panel" name="minheight"/>
 		<widget max="10000" anchor="lrt" template="spinbox" rect="100 88 90 20" min="-1000" skin="panel" value="300" name="maxheight"/>
@@ -283,7 +283,7 @@
 		<widget class="Label" rect="8 8 64 20" caption="Material" skin="default"/>
 		<widget anchor="lrt" template="combobox" name="materiallist" skin="panel" rect="72 8 310 20"/>
 		<widget class="Label" rect="16 32 64 20" caption="Mode" skin="default"/>
-		<widget anchor="lrt" template="droplist" name="materialmodes" rect="72 32 310 20">
+		<widget anchor="lrt" template="droplist" name="materialmodes" skin="panel" rect="72 32 310 20">
 			<item>Composite</item>
 			<item>Diffuse</item>
 			<item>Normals</item>
@@ -292,7 +292,7 @@
 		<widget anchor="lrtb" template="scrollpane" name="layerlist" skin="panel" rect="0 56 390 378"/>
 		<widget anchor="lb" class="Button" rect="5 448 100 20" name="newmaterial" caption="New Material" skin="button"/>
 		<widget anchor="lb" class="Button" rect="110 448 60 20" name="exportmaterial" caption="Export" skin="button"/>
-		<widget anchor="rb" template="droplist" name="addlayer" rect="200 448 80 20">
+		<widget anchor="rb" template="droplist" name="addlayer" skin="button" rect="200 448 80 20">
 			<item>Procedural</item>
 			<item>Mapped</item>
 			<item>Colour</item>
@@ -335,13 +335,13 @@
 		<widget class="Label" rect="8 64 56 20" caption="Size" skin="default"/>
 		<widget anchor="rt" class="Button" rect="80 96 56 20" name="editorcreate" caption="Create" skin="button"/>
 		<widget anchor="rt" class="Button" rect="144 96 56 20" name="editorcancel" caption="Cancel" skin="button"/>
-		<widget anchor="lrt" template="droplist" name="editormode" rect="64 16 136 20">
+		<widget anchor="lrt" template="droplist" name="editormode" skin="panel" rect="64 16 136 20">
 			<item>Colour</item>
 			<item>Weight</item>
 			<item>Index</item>
 		</widget>
 		<widget anchor="lrt" class="Textbox" rect="64 40 136 20" name="editorname" skin="default"/>
-		<widget anchor="lrt" template="droplist" name="editorsize" rect="64 64 136 20">
+		<widget anchor="lrt" template="droplist" name="editorsize" skin="panel" rect="64 64 136 20">
 			<item>64</item>
 			<item>128</item>
 			<item>256</item>

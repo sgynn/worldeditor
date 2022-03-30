@@ -2,36 +2,6 @@
 <gui>
 	<external file="data/gui.xml"/>
 
-	<!--Skins-->
-	<skin name="panel">
-		<font name="helvetica" size="16"/>
-		<generate selback="#800d1241" states="normal,disabled,selected normal,selected highlight,selected pressed,selected disabled" back="#800d1241" selline="#ffff00" line="#61cd5"/>
-	</skin>
-	<skin name="button">
-		<font align="middle centre" name="helvetica" size="16"/>
-		<image file="data/gui.png"/>
-		<state border="2 2 2 2" colour="#80c0ff" coord="0 8 4 4" name="normal"/>
-		<state border="2 2 2 2" colour="#ffa0a0" coord="4 8 4 4" name="highlight"/>
-		<state border="2 2 2 2" colour="#4080a0" coord="0 12 4 4" name="pressed"/>
-		<state border="2 2 2 2" colour="#607080" coord="4 12 4 4" name="disabled"/>
-		<state border="2 2 2 2" colour="#80c0ff" coord="8 0 4 4" name="selected normal"/>
-		<state border="2 2 2 2" colour="#80c0ff" coord="12 0 4 4" name="selected highlight"/>
-		<state border="2 2 2 2" colour="#80c0ff" coord="8 4 4 4" name="selected pressed"/>
-		<state border="2 2 2 2" colour="#607080" coord="12 4 4 4" name="selected disabled"/>
-	</skin>
-	<skin name="none">
-		<state name="normal"/>
-	</skin>
-	<skin name="clear">
-		<font name="helvetica" size="16"/>
-		<state name="normal"/>
-	</skin>
-	<skin name="listitem">
-		<font name="helvetica" size="16"/>
-		<state name="normal"/>
-		<state name="selected normal" colour="#ffa040"/>
-	</skin>
-
 	<!--Templates-->
 	<template rect="0 0 100 100" name="frame" skin="panel" category="Containers"/>
 	<template class="Icon" iconlist="icons" rect="0 0 32 32" name="icon" skin="panel" category="Display"/>
@@ -46,7 +16,7 @@
 	</template>
 	<template class="Combobox" rect="0 0 100 20" name="dropbutton">
 		<widget anchor="blr" class="Listbox" rect="0 20 100 100" name="_list">
-			<widget rect="2 0 80 20" name="_text" skin="clear"/>
+			<widget rect="2 0 80 20" name="_text" skin="none"/>
 		</widget>
 	</template>
 	<template class="Button" name="button" skin="button" category="Input"/>

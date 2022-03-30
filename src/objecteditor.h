@@ -32,6 +32,7 @@ class ObjectEditor : public EditorPlugin {
 	void changePath(gui::Textbox*);
 	void selectResource(gui::TreeView*, gui::TreeNode*);
 	void selectObject(gui::TreeView*, gui::TreeNode*);
+	void changeVisible(gui::TreeView*, gui::TreeNode*, gui::Widget*);
 
 	protected:
 	void setupMaterials();

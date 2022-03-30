@@ -51,6 +51,7 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 	
 	CONNECT(Textbox,  "path", eventSubmit, changePath);
 	CONNECT(TreeView, "tree", eventSelected, selectObject);
+	CONNECT(TreeView, "tree", eventCustom, changeVisible)
 	CONNECT(TreeView, "resources", eventSelected, selectResource);
 
 	m_gizmo = new editor::Gizmo();
@@ -430,8 +431,14 @@ void ObjectEditor::placeObject(Object* object, TreeNode* data) {
 		node->setData(2, data->getParent()->getData(2));
 		node->setData(3, data->getIndex());
 	}
+	node->setData(4, true);
 	m_sceneTree->getRootNode()->add(node);
 	object->updateBounds();
+}
+
+void ObjectEditor::changeVisible(TreeView*, TreeNode* node, Widget*) {
+	Object* obj = node->getData(1).getValue<Object*>(0);
+	obj->setVisible(node->getData(4).getValue(true));
 }
 
 void ObjectEditor::selectObject(TreeView*, TreeNode* node) {
