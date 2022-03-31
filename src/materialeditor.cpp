@@ -206,7 +206,7 @@ XMLElement MaterialEditor::serialiseMaterial(int index) {
 		layer.setAttribute("blend", blendModes[ l->blend ]);
 		if(l->blend==BLEND_HEIGHT) layer.setAttribute("blendscale", l->blendScale);
 		if(l->opacity<1)           layer.setAttribute("opacity", l->opacity);
-		if(l->texture>=0)          layer.setAttribute("texture", l->texture);
+		if(l->texture!=-1)         layer.setAttribute("texture", l->texture);
 		else                       layer.setAttribute("colour", l->colour, true);
 		if(l->projection)          layer.setAttribute("projection", projections[l->projection]);
 
@@ -322,7 +322,7 @@ const MaterialEditor::MapData& MaterialEditor::getMap(uint index) const {
 }
 
 void MaterialEditor::addMap(uint index, const char* name, int size, int channels, int flags) {
-	if(m_mapInfo.size() <= index) m_mapInfo.resize(index+1, MapData{0,0});
+	while(m_mapInfo.size() <= index) m_mapInfo.push_back(MapData{0,0,0,0});
 	m_mapInfo[index].channels = channels;
 	m_mapInfo[index].flags = flags;
 	m_mapInfo[index].name = name;
@@ -338,7 +338,7 @@ void MaterialEditor::deleteMap(uint index) {
 	}
 }
 
-void MaterialEditor::populateMaps(gui::ItemList* list, int mask, uint selected) const {
+void MaterialEditor::populateMaps(gui::Combobox* list, int mask, uint selected) const {
 	list->clearItems();
 	for(uint i=0; i<m_mapInfo.size(); ++i) {
 		if(m_mapInfo[i].flags & mask) {
@@ -847,6 +847,7 @@ void MaterialEditor::setupLayerWidgets(MaterialLayer* layer, gui::Widget* w) {
 			channel->addItem("Blue");
 			channel->addItem("Alpha");
 			channel->addItem("Remainder");
+			channel->selectItem(layer->mapData);
 			channel->eventSelected.bind(this, &MaterialEditor::changeChannel);
 		}
 	}

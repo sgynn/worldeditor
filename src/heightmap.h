@@ -65,6 +65,7 @@ class MapGrid : public TerrainEditorDataInterface, public base::SceneNode {
 	vec3 getOffset(const Point&) const;
 
 	int createTextureMap(int size, int channels, int flags); // Definition for creating EditibleImage maps
+	void loadMapDefinition(uint id, int size, int channels, int flags);
 	void updateBounds();
 
 	Delegate<void(TerrainMap*)> eventMapCreated;

@@ -1183,15 +1183,15 @@ void WorldEditor::saveWorld(const char* file) {
 	}
 
 	// Overlays
-	for(uint i=0; m_materials->getMap(i).flags; ++i) {
+	for(uint i=1; m_materials->getMap(i).size; ++i) {
 		const MaterialEditor::MapData& map = m_materials->getMap(i);
 		XMLElement& e = xml.getRoot().add("overlay");
-		const char* modes [] = { "weight", "colour", "index" };
+		const char* modes [] = { "colour", "weight", "index" };
 		e.setAttribute("index", (int)i);
 		e.setAttribute("name", map.name);
 		e.setAttribute("size", map.size);
 		e.setAttribute("channels", map.channels);
-		e.setAttribute("type", modes[map.flags-1]);
+		e.setAttribute("type", modes[map.flags]);
 	}
 
 	// Grid
@@ -1265,13 +1265,26 @@ void WorldEditor::loadWorld(const char* file) {
 	// Load overlay definitions
 	for(const XMLElement& e: xml.getRoot()) {
 		if(e=="overlay") {
-			const char* modes [] = { "weight", "colour", "index" };
+			const char* modes [] = { "colour", "weight", "index" };
 			const char* name = e.attribute("name");
 			int index = e.attribute("index",0);
 			int size = e.attribute("size",0);
 			int channels = e.attribute("channels", 0);
 			int flags = enumerate(e.attribute("type"), modes, 3);
 			m_materials->addMap(index, name, size, channels, flags);
+			m_terrain->loadMapDefinition(index, size, channels, flags);
+			ToolGroup* group = 0;
+			if(flags==2 && channels>1) flags=3;
+			switch(flags) {
+			case 0: group = new ColourToolGroup(name, index); break;
+			case 1: group = new WeightToolGroup(name, channels, index); break;
+			case 2: group = new IndexToolGroup(name, index); break;
+			case 3: group = new IndexWeightToolGroup(name, index); break;
+			}
+			if(group) {
+				group->setup(m_gui);
+				addGroup(group, "texture", false);
+			}
 		}
 	}
 
@@ -1343,6 +1356,7 @@ void WorldEditor::loadWorld(const char* file) {
 	// Other editors
 	for(EditorPlugin* e: m_editors) e->load(xml.getRoot(), 0);
 
+	m_materials->selectMaterial(m_materials->getMaterial());
 	refreshMap();
 }
 

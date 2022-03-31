@@ -117,7 +117,7 @@ class MaterialEditor {
 
 	static int getListIndex(gui::ItemList*, const char*);
 	static int getItemIndex(gui::Widget* w, gui::Widget* list);
-	void populateMaps(gui::ItemList* list, int mask, uint sel) const;
+	void populateMaps(gui::Combobox* list, int mask, uint sel) const;
 	MaterialLayer* getLayer(gui::Widget*) const;
 	void updateMaterial(gui::Widget*);
 	void rebuildMaterial(bool bind=false);

@@ -98,7 +98,7 @@ int MapGrid::getMaps(unsigned id, const Brush& brush, EditableMap** maps, vec3* 
 float MapGrid::getResolution(unsigned id) const {
 	if(id==0) return 1; // Need Heightmap resolution.
 	if(id<m_mapDefinitions.size() && m_mapDefinitions[id].size) {
-		return m_gridSize / m_mapDefinitions[id].size;;
+		return m_gridSize / m_mapDefinitions[id].size;
 	}
 	return 1;
 }
@@ -138,6 +138,11 @@ int MapGrid::createTextureMap(int size, int channels, int flags) {
 	int id = m_mapDefinitions.size();
 	m_mapDefinitions.push_back( MapDef{size, channels, flags} );
 	return id;
+}
+
+void MapGrid::loadMapDefinition(uint id, int size, int channels, int flags) {
+	while(m_mapDefinitions.size() <= id) m_mapDefinitions.push_back(MapDef{0,0,0});
+	m_mapDefinitions[id] = MapDef{size, channels, flags};
 }
 
 void MapGrid::updateBounds() {
