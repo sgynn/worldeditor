@@ -295,8 +295,14 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 					Object* object = m_placement;
 					placeObject(object, m_resource);
 					m_placement = 0;
-					if(state.keyMask&SHIFT_MASK) selectResource(0, m_resource);
-					else { cancelPlacement(); selectObject(object); }
+					if(state.keyMask&SHIFT_MASK) {
+						selectResource(0, m_resource);
+						m_placement->setOrientation(object->getOrientation());
+					}
+					else {
+						cancelPlacement();
+						selectObject(object); 
+					}
 				}
 				break;
 

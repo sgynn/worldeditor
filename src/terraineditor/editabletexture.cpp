@@ -127,6 +127,7 @@ bool EditableTexture::save(const char* filename) {
 		png.data = (char*)m_data;
 		png.save(filename);
 		png.data = 0;
+		printf("Saved %s\n", filename);
 		return true;
 	}
 	else printf("Can only save png files\n");

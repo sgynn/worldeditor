@@ -1178,7 +1178,7 @@ void WorldEditor::saveWorld(const char* file) {
 			tex.setAttribute("index", (int)i);
 			tex.setAttribute("file", buffer);
 			// save images
-			static_cast<EditableTexture*>(map->maps[i])->save(buffer);
+			static_cast<EditableTexture*>(map->maps[i])->save(m_fileSystem->getFile(buffer));
 		}
 	}
 

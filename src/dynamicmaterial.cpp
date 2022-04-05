@@ -507,7 +507,7 @@ bool DynamicMaterial::compile() {
 	"\n\n\n// Main shader function\n"
 	"void main() {\n"
 	"	vec4 diffuse = vec4(1,1,1,1);\n"
-	"	vec4 normal = vec4(0,1,0,0);\n"
+	"	vec4 normal = vec4(0,0,1,0);\n"
 	"	float gloss = 0.0;\n"
 	"	float height;\n"
 	"	float weight;\n"
@@ -630,12 +630,17 @@ bool DynamicMaterial::compile() {
 		source += "\n";
 	}
 
+	// Mapped normal calculation
+	source += "\n"
+	"	vec3 nmult = vec3(1.0, 0.0, -1.0);\n"
+	"	vec3 finalNormal = normalize(worldNormal + normal.xzy * nmult);\n\n";
+
 	// Lighting (basic diffuse);
 	switch(m_mode) {
 	case COMPOSITE:
 		source +=
 		"	// Lighting\n"
-		"	float l = dot( normalize(worldNormal + normal.xyz), normalize(lightDirection) );\n"
+		"	float l = dot(finalNormal, normalize(lightDirection));\n"
 		"	float s = (l+1)/1.3 * 0.2 + 0.1;\n"
 		"	fragment = diffuse * max(l, s);\n"
 		"}\n";
@@ -649,14 +654,14 @@ bool DynamicMaterial::compile() {
 	case NORMALS:
 		source +=
 		"	// Normal output\n"
-		"	vec3 output = normalize(worldNormal + normal.xyz) * 0.5 + 0.5;"
+		"	vec3 output = finalNormal * 0.5 + 0.5;"
 		"	fragment = vec4(output, 1);\n"
 		"}\n";
 		break;
 	case LIGHTING:
 		source +=
 		"	// Lighting\n"
-		"	float l = dot( normalize(worldNormal + normal.xyz), normalize(lightDirection) );\n"
+		"	float l = dot(finalNormal, normalize(lightDirection));\n"
 		"	float s = (l+1)/1.3 * 0.2 + 0.1;\n"
 		"	l = max(l, s);\n"
 		"	fragment = vec4(l,l,l,1);\n"
