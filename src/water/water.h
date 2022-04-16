@@ -3,16 +3,16 @@
 #include <base/math.h>
 #include <vector>
 
-namespace base { class Drawable; }
+namespace base { class Mesh; }
 
 class WaterSystem {
 	public:
 	WaterSystem();
 	~WaterSystem();
-	base::Drawable* buildGeometry(const BoundingBox& bounds, float resolution=1) const;
+	base::Mesh* buildGeometry(const BoundingBox& bounds, float resolution=1, base::Mesh* mesh=0) const;
 
-	struct SplineNode { vec3 point; vec3 direction; float a,b; };
-	struct RiverNode : public SplineNode { float left,right; float speed; };
+	struct SplineNode { vec3 point; vec3 direction; float a=1,b=1; };
+	struct RiverNode : public SplineNode { float left=1,right=1; float speed=1; };
 	struct River {
 		std::vector<RiverNode> nodes;
 	};

@@ -565,6 +565,7 @@ void WorldEditor::editorActivated(EditorPlugin* editor) {
 void WorldEditor::createNewTerrain(int size) {
 	clear();
 	m_mapSize = size;
+	updateTitle();
 
 	// Create terrain
 	m_terrain = new MapGrid( (size-1)*m_resolution, m_heightRange );
@@ -1235,6 +1236,7 @@ void WorldEditor::saveWorld(const char* file) {
 	cam.setAttribute("dx", -m_camera->getDirection().x);
 	cam.setAttribute("dy", -m_camera->getDirection().y);
 	cam.setAttribute("dz", -m_camera->getDirection().z);
+	cam.setAttribute("speed", m_options.speed);
 
 
 	// Save
@@ -1361,8 +1363,23 @@ void WorldEditor::loadWorld(const char* file) {
 	// Other editors
 	for(EditorPlugin* e: m_editors) e->load(xml.getRoot(), 0);
 
+	// Camera position
+	vec3 camPos, camDir;
+	const XMLElement& camera = xml.getRoot().find("camera");
+	if(camera.name()) {
+		camPos.x = camera.attribute("x", 0.f);
+		camPos.y = camera.attribute("y", 0.f);
+		camPos.z = camera.attribute("z", 0.f);
+		camDir.x =  camera.attribute("dx", 0.f);
+		camDir.y =  camera.attribute("dy", 0.f);
+		camDir.z =  camera.attribute("dz", 1.f);
+		m_options.speed = camera.attribute("speed", m_options.speed);
+		m_camera->lookat(camPos, camPos + camDir);
+	}
+
 	m_materials->selectMaterial(m_materials->getMaterial());
 	refreshMap();
+	updateTitle();
 }
 
 

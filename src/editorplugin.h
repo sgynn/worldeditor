@@ -40,6 +40,7 @@ class EditorPlugin {
 	void registerPlugin(gui::Widget* toolPanel);
 	Delegate<void(EditorPlugin*)> eventActivated;
 	gui::Widget* getPanel() const { return m_panel; }
+	bool isActive() const;
 	void closeEditor();
 	protected:
 	bool createPanel(gui::Root*, const char* name, const char* file=0);

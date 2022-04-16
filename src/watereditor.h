@@ -26,15 +26,19 @@ class WaterEditor : public EditorPlugin {
 	void duplicateItem(gui::Button*);
 	void selectItem(gui::Listbox*, int);
 
+	void updateLines();
+
 	protected:
 	MapGrid* m_terrain;
 	WaterSystem* m_waterSystem;
 	base::SceneNode* m_node;
 	gui::Listbox* m_list;
+	vec3 m_centre;
 
 	WaterSystem::River* m_river = 0;
 	WaterSystem::Lake* m_lake = 0;
 	int m_activeNode = -1;
+	int m_held = 0;
 };
 
 

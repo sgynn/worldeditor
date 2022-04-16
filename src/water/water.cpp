@@ -1,8 +1,10 @@
 #include "water.h"
-#include <base/drawablemesh.h>
 #include <base/mesh.h>
+#include <base/hardwarebuffer.h>
 #include <base/collision.h>
 #include <cstring>
+
+using namespace base;
 
 WaterSystem::WaterSystem() {
 }
@@ -121,7 +123,7 @@ vec3 WaterSystem::getNearestEdge(Lake* lake, const vec2& point) const {
 	return result;
 }
 
-base::Drawable* WaterSystem::buildGeometry(const BoundingBox& box, float resolution) const {
+base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution, base::Mesh* mesh) const {
 	if(m_lakes.empty() && m_rivers.empty()) return 0;
 
 	// Test all points - this can easily be multithreaded
@@ -181,19 +183,19 @@ base::Drawable* WaterSystem::buildGeometry(const BoundingBox& box, float resolut
 	int ss = countX * countY;
 	int vertexCount = 0;
 	for(int i=0; i<ss; ++i) if(info[i] != none) ++vertexCount;
-	float* data = new float[vertexCount * 10]; // pos3, normal3, velocity2, wave1, edge1
+	float* vertices = new float[vertexCount * 10]; // pos3, normal3, velocity2, wave1, edge1
 
 	
 	// Build mesh
 	int currentIndex = 0;
-	uint* indexMap = new uint[countX*countY];
-	memset(indexMap, 0xff, countX*countY*4);
+	uint16* indexMap = new uint16[countX*countY];
+	memset(indexMap, 0xff, countX*countY*2);
 	for(int x=0; x<countX; ++x) {
 		float posX = start.x + x * resolution;
 		for(int y=0; y<countY; ++y) {
 			if(info[x+y*countX] != none) {
 				indexMap[x+y*countX] = currentIndex;
-				float* vx = data + currentIndex*10;
+				float* vx = vertices + currentIndex*10;
 				float height = 0; // FIXME values
 				float waves = 0;
 				float distanceToEdge = 0;
@@ -226,8 +228,8 @@ base::Drawable* WaterSystem::buildGeometry(const BoundingBox& box, float resolut
 	}
 
 	// Index buffer
-	uint* indices = new uint[indexCount];
-	uint* ix = indices;
+	uint16* indices = new uint16[indexCount];
+	uint16* ix = indices;
 	for(int x=0; x<countX-1; ++x) {
 		for(int y=0; y<countY-1; ++y) {
 			int k = x + y * countX;
@@ -247,8 +249,23 @@ base::Drawable* WaterSystem::buildGeometry(const BoundingBox& box, float resolut
 	}
 
 	// Output!
-	return 0;
+	if(!mesh) {
+		mesh = new Mesh();
+		HardwareVertexBuffer* vbuf = new HardwareVertexBuffer();
+		HardwareIndexBuffer* ibuf = new HardwareIndexBuffer();
+		vbuf->attributes.add(VA_VERTEX, VA_FLOAT3);
+		vbuf->attributes.add(VA_NORMAL, VA_FLOAT3);
+		vbuf->attributes.add(VA_CUSTOM, VA_FLOAT2, "velocity");
+		vbuf->attributes.add(VA_CUSTOM, VA_FLOAT2, "info");
+		vbuf->createBuffer();
+		ibuf->createBuffer();
+		mesh->setVertexBuffer(vbuf);
+		mesh->setIndexBuffer(ibuf);
+	}
 
+	mesh->getVertexBuffer()->setData(vertices, vertexCount, 10*4, true);
+	mesh->getIndexBuffer()->setData(indices, indexCount);
+	return mesh;
 }
 
 

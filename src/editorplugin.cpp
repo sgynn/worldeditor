@@ -56,3 +56,6 @@ void EditorPlugin::closeEditor() {
 	close();
 }
 
+bool EditorPlugin::isActive() const {
+	return m_panel && m_panel->isVisible();
+}

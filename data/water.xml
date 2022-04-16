@@ -15,6 +15,6 @@
 			<item>Ocean</item>
 			<widget anchor="cm" autosize="1" template="label" caption="Add" rect="28 1 29 19"/>
 		</widget>
-		<widget anchor="rb" template="button" name="clonewater" caption="Duplicate" rect="20 312 75 20"/>
+		<widget anchor="rb" template="button" name="duplicatewater" caption="Duplicate" rect="20 312 75 20"/>
 	</widget>
 </gui>
