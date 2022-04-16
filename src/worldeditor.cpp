@@ -390,7 +390,7 @@ void WorldEditor::update() {
 		// Right click menu
 		static bool moved = false;
 		if(mouse.pressed == 4) moved = state.consumedMouseDown;
-		else if(mouse.moved.x || mouse.moved.y) moved = true;
+		else if(mouse.delta.x || mouse.delta.y) moved = true;
 		else if(mouse.released==4 && !moved) {
 			float t;
 			if(!m_terrain->castRay(mouseRay.start, mouseRay.direction, t)) t = -mouseRay.start.y / mouseRay.direction.y;

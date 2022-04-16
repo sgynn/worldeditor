@@ -354,7 +354,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 		editor::MouseRay mouseRay(camera, mouse.x, mouse.y, base::Game::width(), base::Game::height());
 		if(mouse.released&1) m_gizmo->onMouseUp();
 		if((mouse.pressed&1) && m_gizmo->onMouseDown(mouseRay)) state.consumedMouseDown = true;
-		if(mouse.moved.x || mouse.moved.y) {
+		if(mouse.delta.x || mouse.delta.y) {
 			m_gizmo->onMouseMove(mouseRay);
 			if(m_gizmo->isHeld()) {
 				SceneNode* target = m_selected.size()==1? m_selected[0]: m_selectGroup;

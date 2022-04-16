@@ -234,7 +234,9 @@ inline size_t TiffStream::getAddress(int x, int y) const {
 size_t TiffStream::getPixel(int x, int y, void* data) const {
 	size_t addr = getAddress(x, y);
 	fseek(m_stream, addr, SEEK_SET);
+	#ifdef LINUX
 	if(feof(m_stream)) asm("int $3");
+	#endif
 	return fread(data, m_bitsPerSample/8, m_samplesPerPixel, m_stream);
 }
 
