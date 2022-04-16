@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<gui height="1024" width="1280">
+	<external file="data/gui.xml"/>
+	<external file="data/foliage.xml"/>
+	<!--Templates-->
+	<template class="Button" name="button" skin="button" category="Input"/>
+	<template category="Display" class="Label" name="label" skin="panel" caption="Label"/>
+	<!--Widget Layout-->
+	<widget rect="216 348 299 364" template="dialogfixed" name="watereditor" caption="Water" skin="default">
+		<widget anchor="rb" template="button" name="removewater" caption="Remove" rect="214 312 75 20"/>
+		<widget anchor="lrtb" template="iconlistbox2" name="waterlist" skin="default" rect="0 0 289 308"/>
+		<widget anchor="rb" template="dropbutton" name="addwater" skin="button" rect="118 312 83 20">
+			<item>River</item>
+			<item>Lake</item>
+			<item>Ocean</item>
+			<widget anchor="cm" autosize="1" template="label" caption="Add" rect="28 1 29 19"/>
+		</widget>
+		<widget anchor="rb" template="button" name="clonewater" caption="Duplicate" rect="20 312 75 20"/>
+	</widget>
+</gui>

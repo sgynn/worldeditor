@@ -115,6 +115,12 @@
 		<icon rect="80 64 16 16" name="layer_w"/>
 		<icon rect="64 80 16 16" name="layer_c"/>
 		<icon rect="80 80 16 16" name="layer_i"/>
+		<icon rect="161 32 32 32" name="Water"/>
+		<icon rect="32 96 32 32" name="move"/>
+		<icon rect="64 96 32 32" name="rotate"/>
+		<icon rect="96 96 32 32" name="scale"/>
+		<icon rect="128 96 32 32" name="block"/>
+		<icon rect="160 96 32 32" name="sphere"/>
 	</iconlist>
 	<!--Templates-->
 	<template class="Icon" iconlist="icons" rect="0 0 32 32" name="icon" skin="panel" category="Display"/>
@@ -252,7 +258,7 @@
 		<widget class="Checkbox" rect="120 104 16 16" name="collision" skin="button"/>
 		<widget anchor="lrt" template="slider" name="viewdistance" rect="120 8 144 16"/>
 		<widget anchor="lrt" template="slider" name="terraindetail" rect="120 32 144 16"/>
-		<widget anchor="lrt" template="slider" name="cameraspeed" rect="120 56 144 16"/>
+		<widget anchor="lrt" template="slider" name="cameraspeed" rect="120 56 144 16" min="10"/>
 	</widget>
 	<widget class="Widget" rect="0 0 172 36" name="mainmenu" skin="default">
 		<widget template="iconbuttondark" name="newmap" icon="new" rect="2 2 32 32"/>

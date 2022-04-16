@@ -35,6 +35,7 @@
 #include "foliageeditor.h"
 #include "polygoneditor.h"
 #include "objecteditor.h"
+#include "watereditor.h"
 #include "erosion.h"
 
 #include <base/scene.h>
@@ -355,6 +356,7 @@ void WorldEditor::update() {
 	if(mouse.wheel && mouse.button==4) {
 		state.consumedMouseWheel = true;
 		m_options.speed *= 1 + mouse.wheel * 0.1;
+		m_options.speed = fmax(0.1, m_options.speed);
 		cam->setSpeed(m_options.speed, 0.004);
 		m_gui->getWidget<Scrollbar>("cameraspeed")->setValue(m_options.speed * 100);
 	}
@@ -426,6 +428,7 @@ void WorldEditor::update() {
 void WorldEditor::draw() {
 	base::DebugGeometryManager::getInstance()->update();
 	// Render scene
+	m_renderer->clearScreen();
 	m_renderer->clear();
 	m_renderer->getState().setCamera(m_camera);
 	m_scene->collect(m_renderer, m_camera);
@@ -580,6 +583,7 @@ void WorldEditor::createNewTerrain(int size) {
 	createEditor<FoliageEditor>();
 	createEditor<PolygonEditor>();
 	createEditor<ObjectEditor>();
+	createEditor<WaterEditor>();
 
 	// Minimap
 	m_minimap->setWorld(m_terrain);
@@ -596,6 +600,7 @@ void WorldEditor::createNewTerrain(int size) {
 	ENABLE_BUTTON( "materialbutton" )
 	ENABLE_BUTTON( "texturebutton" )
 	ENABLE_BUTTON( "foliagebutton" )
+	ENABLE_BUTTON( "waterbutton" )
 	
 }
 
