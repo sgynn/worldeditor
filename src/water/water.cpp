@@ -3,6 +3,7 @@
 #include <base/hardwarebuffer.h>
 #include <base/collision.h>
 #include <cstring>
+#include <cstdio>
 
 using namespace base;
 
@@ -143,7 +144,6 @@ base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution,
 	};
 
 	vec2 point;
-	uint16 index = none;
 	uint16* info = new uint16[countX * countY];
 	memset(info, 0xff, countX * countY * 2);
 	for(int x=0; x<countX; ++x) {
@@ -158,10 +158,11 @@ base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution,
 					info[k] = i;
 				}
 			}
-			if(index!=none) {
+			if(!last) {
 				// Quite likely to be the same as previous test
-				if(x>0 && info[k-1]&0x8000 && inside(m_lakes[info[k-1]&0x1fff], point)) {
-					info[k] = info[k-1];
+				uint16 prev = k? info[k-1]: none;
+				if(prev!=none && prev&0x8000 && inside(m_lakes[prev&0x1fff], point)) {
+					info[k] = prev;
 				}
 				else for(size_t i=0; i<m_lakes.size(); ++i) {
 					if(inside(m_lakes[i], point)) {
@@ -172,10 +173,11 @@ base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution,
 			}
 
 			// Border
-			if(x>0&&info[k-1]==none && info[k]!=none) info[k-1] = info[k] | 0x4000;
-			if(y>0&&info[k-countX]==none && info[k]!=none) info[k-countX] = info[k] | 0x4000;
-			if(info[k]!=none && x<countX-1) info[k+1] = info[k] | 0x2000;
-			if(info[k]!=none && y<countX-countX) info[k+countX] = info[k] | 0x2000;
+			const int m = 0x4000;
+			if(x>0 && info[k]&m && ~info[k-1]&m) info[k] = info[k-1] | m;
+			if(x>0 && ~info[k]&m && info[k-1]&m) info[k-1] = info[k] | m;
+			if(y>0 && info[k]&m && ~info[k-countX]&m) info[k] = info[k-countX] | m;
+			if(y>0 && ~info[k]&m && info[k-countX]&m) info[k-countX] = info[k] | m;
 		}
 	}
 
@@ -185,6 +187,7 @@ base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution,
 	for(int i=0; i<ss; ++i) if(info[i] != none) ++vertexCount;
 	float* vertices = new float[vertexCount * 10]; // pos3, normal3, velocity2, wave1, edge1
 
+	printf("Water mesh: %d vertices\n", vertexCount);
 	
 	// Build mesh
 	int currentIndex = 0;
@@ -193,14 +196,17 @@ base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution,
 	for(int x=0; x<countX; ++x) {
 		float posX = start.x + x * resolution;
 		for(int y=0; y<countY; ++y) {
-			if(info[x+y*countX] != none) {
-				indexMap[x+y*countX] = currentIndex;
+			int index = x+y*countX;
+			if(info[index] != none) {
+				indexMap[index] = currentIndex;
 				float* vx = vertices + currentIndex*10;
 				float height = 0; // FIXME values
 				float waves = 0;
 				float distanceToEdge = 0;
 				vec3 normal(0,1,0);
 				vec2 velocity(0,1);
+
+				if(info[index]&0x8000) height = m_lakes[info[index]&0x1fff]->nodes[0].point.y;
 
 				vx[0] = posX;
 				vx[1] = height;
@@ -234,8 +240,8 @@ base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution,
 		for(int y=0; y<countY-1; ++y) {
 			int k = x + y * countX;
 			if(~(info[k]|info[k+1]|info[k+countX])&0x2000) {
-				ix[0] = indexMap[k];
-				ix[1] = indexMap[k+1];
+				ix[1] = indexMap[k];
+				ix[0] = indexMap[k+1];
 				ix[2] = indexMap[k+countX];
 				ix += 3;
 			}

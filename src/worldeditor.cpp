@@ -438,7 +438,7 @@ void WorldEditor::draw() {
 	m_renderer->render(12,12);
 	m_renderer->getState().reset();
 
-	m_gui->draw();
+	m_gui->draw(Game::getSize());
 }
 
 void WorldEditor::updateTitle() {

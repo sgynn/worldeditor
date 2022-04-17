@@ -2,12 +2,17 @@
 #include "water/water.h"
 #include "heightmap.h"
 #include <base/gui/lists.h>
-#include <base/debuggeometry.h>
 #include <base/drawablemesh.h>
+#include <base/debuggeometry.h>
+#include <base/autovariables.h>
+#include <base/material.h>
+#include <base/texture.h>
+#include <base/shader.h>
 #include <base/collision.h>
 #include <base/camera.h>
 #include <base/scene.h>
 #include <base/input.h>
+#include <base/file.h>
 
 using namespace gui;
 using namespace base;
@@ -105,27 +110,30 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 		for(WaterSystem::River* r: m_waterSystem->rivers()) {
 			for(size_t i=0; i<r->nodes.size(); ++i) {
 				WaterSystem::RiverNode& n = r->nodes[i];
+				vec3 side = n.direction.cross(vec3(0,1,0)).normalise();
 				if(overPoint(n.point)) { node=i; over=1; lake=0; river=r; }
 				if(overPoint(n.point - n.direction*n.a)) { node=i; over=2; lake=0; river=r; }
 				if(overPoint(n.point + n.direction*n.b)) { node=i; over=3; lake=0; river=r; }
+				if(overPoint(n.point - side*n.left))  { node=i; over=4; lake=0; river=r; }
+				if(overPoint(n.point + side*n.right)) { node=i; over=5; lake=0; river=r; }
 			}
 		}
 		// Over Splines
-		if(over==0 || closest > 1) {
+		if((over==0 || closest > 1) && !(state.keyMask&CTRL_MASK)) {
 			for(WaterSystem::Lake* l : m_waterSystem->lakes()) {
 				for(size_t i=l->nodes.size()-1, j=0; j<l->nodes.size(); i=j++) {
-					if(overSpline(l->nodes[i], l->nodes[j], 1, t)) { node=i; over=4; lake=l; }
+					if(overSpline(l->nodes[i], l->nodes[j], 1, t)) { node=i; over=6; lake=l; }
 				}
 			}
 			for(WaterSystem::River* r: m_waterSystem->rivers()) {
-				for(size_t i=r->nodes.size()-1, j=0; j<r->nodes.size(); i=j++) {
-					if(overSpline(r->nodes[i], r->nodes[j], 1, t)) { node=i; over=4; lake=0; river=r; }
+				for(size_t i=1; i<r->nodes.size(); ++i) {
+					if(overSpline(r->nodes[i-1], r->nodes[i], 1, t)) { node=i-1; over=6; lake=0; river=r; }
 				}
 			}
 		}
 
 		if(over>0) {
-			const uint col[] = { 0xff0000, 0xff8000, 0xff8000, 0x00ff00 };
+			const uint col[] = { 0xff0000, 0xff8000, 0xff8000, 0x80ff, 0x80ff, 0x00ff00 };
 			static DebugGeometry circle(SDG_ALWAYS);
 			circle.circle(closestPoint, vec3(0,1,0), 0.1, 16, col[over-1]);
 			if(mouse.pressed==1) {
@@ -135,14 +143,14 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 				m_river = river;
 
 				// Add node
-				if(over == 4) {
+				if(over == 6) {
 					++node;
 					if(lake) {
-						lake->nodes.insert(lake->nodes.begin() + node, WaterSystem::SplineNode());
+						lake->nodes.insert(lake->nodes.begin() + node, lake->nodes[node-1]);
 						lake->nodes[node].point = closestPoint;
 					}
 					if(river) {
-						river->nodes.insert(river->nodes.begin() + node, WaterSystem::RiverNode());
+						river->nodes.insert(river->nodes.begin() + node, river->nodes[node-1]);
 						river->nodes[node].point = closestPoint;
 					}
 					m_held = 1;
@@ -156,31 +164,57 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 		WaterSystem::SplineNode& node = m_river? m_river->nodes[m_activeNode]: m_lake->nodes[m_activeNode];
 		if(base::intersectRayPlane(ray.start, ray.direction, vec3(0,1,0), node.point.y, t)) {
 			bool shift = state.keyMask&SHIFT_MASK;
+			WaterSystem::RiverNode* rnode = m_river? (WaterSystem::RiverNode*)&node: 0;
 			if(m_held==1 && !shift) node.point = ray.point(t);
 			else {
 				vec3 n = node.point - ray.point(t);
 				float d = n.normaliseWithLength();
-				if(m_held==2) {
+				switch(m_held) {
+				case 1: case 2:
 					node.direction = n;
-					node.a = d;
-				}
-				else {
+					if(shift) node.a = node.b = d;
+					else node.a = d;
+					break;
+				case 3:
 					node.direction = -n;
-					node.b = d;
+					if(shift) node.a = node.b = d;
+					else node.b = d;
+					break;
+				case 4:
+					node.direction = -n.cross(vec3(0,1,0));
+					if(shift) rnode->left = rnode->right = d;
+					else rnode->left = d;
+					break;
+				case 5:
+					node.direction = n.cross(vec3(0,1,0));
+					if(shift) rnode->left = rnode->right = d;
+					else rnode->right = d;
+					break;
 				}
-				if(shift) node.a = node.b = d;
 			}
 			updateLines();
 		}
-		if(!mouse.button) m_held = 0;
+		if(!mouse.button) {
+			updateGeometry();
+			m_held = 0;
+		}
 	}
 
 }
 
 void WaterEditor::clear() {
+	m_list->clearItems();
+	delete m_waterSystem;
+	m_waterSystem = new WaterSystem();
 }
+
 void WaterEditor::close() {
 	EditorPlugin::close();
+	updateLines();
+}
+
+void WaterEditor::activate() {
+	updateLines();
 }
 
 
@@ -215,6 +249,7 @@ void WaterEditor::addItem(Combobox*, int type) {
 		m_lake->nodes.push_back(node);
 	}
 	updateLines();
+	updateGeometry();
 }
 
 void WaterEditor::deselect() {
@@ -232,15 +267,35 @@ void WaterEditor::deleteItem(Button*) {
 	m_list->removeItem(m_list->getSelectedIndex());
 }
 
-void WaterEditor::duplicateItem(Button*) {
-	// Use this to create stuff
-		
-	BoundingBox bounds = m_terrain->getBounds();
-	Material* material = DebugGeometryManager::getDefaultMaterial();
 
+void WaterEditor::duplicateItem(Button*) {
+}
+
+extern String appPath;
+void WaterEditor::updateGeometry() {
+	static Material* material = 0;
+	if(!material) {
+		const uint img[] = { 0xff808080, 0xffa0a0a0, 0xffa0a0a0, 0xff808080 };
+		Texture tex = Texture::create(2,2,Texture::RGBA8, img);
+		File source(appPath + "data/water.glsl");
+		material = new Material();
+		Pass* pass = material->addPass();
+		base::Shader* shader = new base::Shader();
+		shader->attach(new ShaderPart(VERTEX_SHADER, source.data()));
+		shader->attach(new ShaderPart(FRAGMENT_SHADER, source.data()));
+		shader->bindAttributeLocation("vertex",  0);
+		shader->bindAttributeLocation("normal",  1);
+		pass->setShader(shader);
+		pass->getParameters().setAuto("transform", AUTO_MODEL_VIEW_PROJECTION_MATRIX);
+		pass->getParameters().setAuto("modelMatrix", AUTO_MODEL_MATRIX);
+		pass->getParameters().set("lightDirection", vec3(1,1,1));
+		pass->setTexture("water", new Texture(tex));
+		pass->compile();
+	}
+
+	BoundingBox bounds = m_terrain->getBounds();
 	m_node->deleteAttachments();
 	m_node->attach(new DrawableMesh(m_waterSystem->buildGeometry(bounds, 4), material));
-	updateLines();
 }
 
 
@@ -248,6 +303,19 @@ void WaterEditor::duplicateItem(Button*) {
 
 void WaterEditor::updateLines() {
 	static DebugGeometry g(SDG_MANUAL);
+	if(!isActive()) { g.flush(); return; }
+	auto drawSpline = [](const vec3& a, const vec3& da, const vec3& b, const vec3& db, uint colour) {
+		vec3 last = a;
+		const vec3 control[4] = { a, a+da, b-db, b };
+		for(int t = 1; t<16; ++t) {
+			vec3 p = calculateBezierPoint(control, t/16.f);
+			g.line(last, p, colour|0xff000000);
+			last = p;
+		}
+		g.line(last, b, colour|0xff000000);
+	};
+
+
 	for(WaterSystem::Lake* l : m_waterSystem->lakes()) {
 		// Handles
 		for(WaterSystem::SplineNode& n: l->nodes) {
@@ -257,14 +325,26 @@ void WaterEditor::updateLines() {
 		for(size_t i=l->nodes.size()-1, j=0; j<l->nodes.size(); i=j++) {
 			const WaterSystem::SplineNode& na = l->nodes[i];
 			const WaterSystem::SplineNode& nb = l->nodes[j];
-			const vec3 control[4] = { na.point, na.point+na.direction*na.b, nb.point-nb.direction*nb.a, nb.point };
-			vec3 last = na.point;
-			for(int t = 1; t<16; ++t) {
-				vec3 p = calculateBezierPoint(control, t/16.f);
-				g.line(last, p, 0xffffffff);
-				last = p;
-			}
-			g.line(last, nb.point, 0xffffffff);
+			drawSpline(na.point, na.direction*na.b, nb.point, nb.direction*nb.a, 0xffffff);
+		}
+	}
+	static const vec3 up(0,1,0);
+	for(WaterSystem::River* r : m_waterSystem->rivers()) {
+		// Handles
+		for(WaterSystem::RiverNode& n: r->nodes) {
+			vec3 side = n.direction.cross(up).normalise();
+			g.line(n.point - n.direction * n.a, n.point + n.direction * n.b, 0x000000);
+			g.line(n.point - side * n.left, n.point + side * n.right, 0x0080ff);
+		}
+		// Splines
+		for(size_t i=1; i<r->nodes.size(); ++i) {
+			const WaterSystem::RiverNode& na = r->nodes[i-1];
+			const WaterSystem::RiverNode& nb = r->nodes[i];
+			vec3 sa = na.direction.cross(up).normalise();
+			vec3 sb = nb.direction.cross(up).normalise();
+			drawSpline(na.point, na.direction*na.b, nb.point, nb.direction*nb.a, 0xffffff);
+			drawSpline(na.point-sa*na.left, na.direction*na.b, nb.point-sb*nb.left, nb.direction*nb.a, 0x0080ff);
+			drawSpline(na.point+sa*na.right, na.direction*na.b, nb.point+sb*nb.right, nb.direction*nb.a, 0x0080ff);
 		}
 	}
 	g.flush();

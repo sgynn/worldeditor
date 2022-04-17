@@ -16,6 +16,7 @@ class WaterEditor : public EditorPlugin {
 	void load(const base::XMLElement&, const TerrainMap* context) override;
 	base::XMLElement save(const TerrainMap* context) const override;
 	void update(const Mouse&, const Ray&, base::Camera*, InputState&) override;
+	void activate() override;
 	void clear() override;
 	void close() override;
 
@@ -27,6 +28,7 @@ class WaterEditor : public EditorPlugin {
 	void selectItem(gui::Listbox*, int);
 
 	void updateLines();
+	void updateGeometry();
 
 	protected:
 	MapGrid* m_terrain;
