@@ -29,12 +29,6 @@ class WaterSystem {
 	const std::vector<Lake*>& lakes() { return m_lakes; }
 
 	protected:
-	bool inside(River* river, const vec2& point, River* last) const;
-	bool inside(Lake* lake, const vec2& point) const;
-	vec3 getNearestEdge(River* river, const vec2& point) const;
-	vec3 getNearestEdge(Lake* lake, const vec2& point) const;
-
-	protected:
 	std::vector<River*> m_rivers;
 	std::vector<Lake*> m_lakes;
 };
