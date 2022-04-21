@@ -27,7 +27,7 @@ class TerrainEditorDataInterface {
 	public:
 	virtual ~TerrainEditorDataInterface() {}
 	virtual int getMaps(unsigned id, const Brush&, EditableMap**, vec3* offsets, int* flags) = 0;
-	virtual int castRay(const vec3& start, const vec3& direction, float& out) const = 0;
+	virtual int trace(const Ray& start, float& t) const = 0;
 	virtual float getHeight(const vec3& point) const = 0;
 	virtual float getResolution(unsigned id) const = 0;
 };

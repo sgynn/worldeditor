@@ -29,7 +29,7 @@ void ErosionEditor::update(const Mouse& mouse, const Ray& ray, Camera*, InputSta
 	// Update progressbar and block other input when running
 	if(mouse.pressed) {
 		float hit;
-		if(m_terrain->castRay(ray.start, ray.direction, hit)) setContext(m_terrain->getMap(ray.point(hit)));
+		if(m_terrain->trace(ray, hit)) setContext(m_terrain->getMap(ray.point(hit)));
 	}
 	
 	if(m_progress > 0) {

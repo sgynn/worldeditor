@@ -28,6 +28,9 @@ class WaterSystem {
 	const std::vector<River*>& rivers() { return m_rivers; }
 	const std::vector<Lake*>& lakes() { return m_lakes; }
 
+	River* traceRiver(const Ray& ray, float& t) const;
+	Lake* traceLake(const Ray& ray, float& t) const;
+
 	protected:
 	std::vector<River*> m_rivers;
 	std::vector<Lake*> m_lakes;

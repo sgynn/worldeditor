@@ -395,7 +395,7 @@ void WorldEditor::update() {
 		else if(mouse.delta.x || mouse.delta.y) moved = true;
 		else if(mouse.released==4 && !moved) {
 			float t;
-			if(!m_terrain->castRay(mouseRay.start, mouseRay.direction, t)) t = -mouseRay.start.y / mouseRay.direction.y;
+			if(!m_terrain->trace(mouseRay, t)) t = -mouseRay.start.y / mouseRay.direction.y;
 			vec3 p = mouseRay.point(t);
 			m_currentTile = m_terrain->getTile(p);
 			TerrainMap* map = m_terrain->getMap(m_currentTile);

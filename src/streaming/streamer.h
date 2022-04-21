@@ -1,5 +1,4 @@
-#ifndef _STREAMER_
-#define _STREAMER_
+#pragma once
 
 #include "object.h"
 #include "bufferedstream.h"
@@ -81,10 +80,10 @@ class StreamingHeightmapEditor {
 	Streamer* m_map;
 	public:
 	StreamingHeightmapEditor(Streamer* map) : m_map(map) {}
-	void  getInfo(float& r, vec3& o) const                        { r = m_map->m_resolution; o = vec3(0,0,0); }
-	float getHeight(const vec3& pos) const                        { return m_map->height(pos.x, pos.z); }
-	float getHeight(const vec3& pos, vec3& normal) const          { return m_map->height(pos.x, pos.z, normal); }
-	int   castRay(const vec3& s, const vec3& d, float& out) const { return m_map->ray(s,d,out); }
+	void  getInfo(float& r, vec3& o) const               { r = m_map->m_resolution; o = vec3(0,0,0); }
+	float getHeight(const vec3& pos) const               { return m_map->height(pos.x, pos.z); }
+	float getHeight(const vec3& pos, vec3& normal) const { return m_map->height(pos.x, pos.z, normal); }
+	int   trace(const Ray& ray, float& out) const        { return m_map->ray(ray.start, ray.direction, out); }
 
 	int getHeights(const Rect&, float*) const;
 	int setHeights(const Rect&, const float*);
@@ -93,6 +92,4 @@ class StreamingHeightmapEditor {
 	void setMaterial(const DynamicMaterial* m)   { m_map->setMaterial(m); }
 };
 
-
-#endif
 

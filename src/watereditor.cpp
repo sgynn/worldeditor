@@ -61,7 +61,7 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 
 	float t;
 	Ray cameraRay(camera->getPosition(), -camera->getDirection());
-	if(m_terrain->castRay(cameraRay.start, cameraRay.direction, t)) m_centre = cameraRay.point(t);
+	if(m_terrain->trace(cameraRay, t)) m_centre = cameraRay.point(t);
 	
 	// Detect mouse over
 	if(m_held==0 && !state.consumedMouseDown) {
@@ -137,6 +137,7 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 			static DebugGeometry circle(SDG_ALWAYS);
 			circle.circle(closestPoint, vec3(0,1,0), 0.1, 16, col[over-1]);
 			if(mouse.pressed==1) {
+				state.consumedMouseDown = true;
 				m_held = over;
 				m_activeNode = node;
 				m_lake = lake;
@@ -162,6 +163,9 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 
 	if(m_held>0) {
 		WaterSystem::SplineNode& node = m_river? m_river->nodes[m_activeNode]: m_lake->nodes[m_activeNode];
+
+		
+
 		if(base::intersectRayPlane(ray.start, ray.direction, vec3(0,1,0), node.point.y, t)) {
 			bool shift = state.keyMask&SHIFT_MASK;
 			WaterSystem::RiverNode* rnode = m_river? (WaterSystem::RiverNode*)&node: 0;

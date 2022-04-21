@@ -239,11 +239,11 @@ float DynamicHeightmap::heightFunc(const vec3& p) {
 	return height(p.x, p.z);
 }
 
-int DynamicHeightmap::castRay(const vec3& start, const vec3& direction, float& out) const {
+int DynamicHeightmap::trace(const Ray& ray, float& t) const {
 	if(!m_land) return 0;
 	vec3 point, normal;
-	int r = m_land->intersect(start, start+direction*1e6f, point, normal);
-	if(r) out = direction.dot(point-start) / direction.dot(direction);
+	int r = m_land->intersect(ray.start, ray.point(1e6f), point, normal);
+	if(r) t = ray.direction.dot(point - ray.start);
 	return r;
 }
 

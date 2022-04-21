@@ -103,15 +103,16 @@ float MapGrid::getResolution(unsigned id) const {
 	return 1;
 }
 
-int MapGrid::castRay(const vec3& start, const vec3& dir, float& out) const {
-	out = 1e16f;
+int MapGrid::trace(const Ray& ray, float& t) const {
+	t = 1e16f;
 	int result = 0;
+	Ray localRay = ray;
 	for(auto& s: m_slots) {
 		if(!s.second.map) continue;
-		float tmp = out;
-		vec3 offset = getOffset(s.first);
-		if(s.second.map->heightMap->castRay(start-offset, dir, tmp) && tmp < out) {
-			out = tmp;
+		float tmp = t;
+		localRay.start = ray.start - getOffset(s.first);
+		if(s.second.map->heightMap->trace(localRay, tmp) && tmp < t) {
+			t = tmp;
 			result = 1;
 		}
 	}

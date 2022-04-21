@@ -189,7 +189,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 
 		// Position
 		if(m_mode == SINGLE) {
-			bool hit = m_terrain->castRay(ray.start, ray.direction, t);
+			bool hit = m_terrain->trace(ray, t);
 			if(m_collideObjects) hit |= pick(m_node, ray, true, t)!=0;
 			if(hit) {
 				m_placement->setPosition(ray.point(t) + m_altitude);
@@ -223,7 +223,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 		}
 
 		// Chain mode
-		if(m_mode == CHAIN && m_terrain->castRay(ray.start, ray.direction, t)) {
+		if(m_mode == CHAIN && m_terrain->trace(ray, t)) {
 			if(!m_started) {
 				m_chainStart = ray.point(t) + m_altitude;
 				m_placement->setPosition(m_chainStart - m_placement->getOrientation() * m_chainStep * 0.5);
@@ -432,7 +432,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 			else if(!state.overGUI) {
 				printf("Point select\n");
 				float t = 1e4f;
-				m_terrain->castRay(ray.start, ray.direction, t);
+				m_terrain->trace(ray, t);
 				Object* sel = pick(m_node, ray, false, t);
 				selectObject(sel, state.keyMask&SHIFT_MASK);
 			}

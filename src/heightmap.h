@@ -16,7 +16,7 @@ class HeightmapInterface {
 	virtual ~HeightmapInterface() {}
 	virtual void setDetail(float) {}
 	virtual base::Drawable* createDrawable() = 0;
-	virtual int castRay(const vec3& start, const vec3& direction, float& out) const = 0;
+	virtual int trace(const Ray& ray, float& t) const = 0;
 	virtual float getHeight(const vec3& point) const = 0;
 	virtual void setMaterial(class DynamicMaterial*, const MapList&) = 0;
 	virtual void setData(const float* data) = 0;
@@ -45,7 +45,7 @@ class MapGrid : public TerrainEditorDataInterface, public base::SceneNode {
 	~MapGrid();
 
 	int getMaps(unsigned id, const Brush&, EditableMap**, vec3*, int*) override;
-	int castRay(const vec3& start, const vec3& dir, float& out) const override;
+	int trace(const Ray& ray, float& t) const override;
 	float getHeight(const vec3&) const override;
 	float getResolution(unsigned id) const override;
 

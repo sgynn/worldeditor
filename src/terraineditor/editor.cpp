@@ -89,7 +89,7 @@ void TerrainEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 
 	// update current brush
 	float hitDistance = 0;
-	int hit = m_target->castRay(ray.start, ray.direction, hitDistance);
+	int hit = m_target->trace(ray, hitDistance);
 	vec3 position = ray.point(hitDistance);
 	if(hit) m_brush.position = position.xz();
 	else {

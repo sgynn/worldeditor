@@ -259,7 +259,7 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 	// Move selected vertex
 	else if(m_dragging!=NONE && m_selected && (mouse.button==1 || m_dragging==INITIAL)) {
 		float t;
-		if(!m_terrain->castRay(ray.start, ray.direction, t)) t = -ray.start.y / ray.direction.y; // zero plane
+		if(!m_terrain->trace(ray, t)) t = -ray.start.y / ray.direction.y; // zero plane
 		vec3 p = ray.point(t) - m_offset;
 		std::vector<vec3>& poly = m_selected->points;
 		if(m_dragging==VERTEX) {

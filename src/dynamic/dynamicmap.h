@@ -15,7 +15,7 @@ class DynamicHeightmap : public HeightmapInterface {
 	
 	void setDetail(float) override;
 	base::Drawable* createDrawable() override;
-	int castRay(const vec3& start, const vec3& direction, float& out) const override;
+	int trace(const Ray& ray, float& t) const override;
 	float getHeight(const vec3& point) const override;
 	void setMaterial(class DynamicMaterial*, const MapList&) override;
 
