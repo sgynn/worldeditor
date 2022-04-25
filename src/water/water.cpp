@@ -92,7 +92,7 @@ class Bezier {
 			st = st>0? st<1? st: 1: 0;
 			float dist = target.distance2(last+d*st);
 			if(dist < max) {
-				t = i + st*step;
+				t = (i - 1 + st) * step;
 				max = dist;
 			}
 			last = p;
@@ -216,7 +216,7 @@ static float getClosestCore(const WaterSystem::River* river, const vec2& point, 
 		const WaterSystem::RiverNode& b = river->nodes[i];
 		Bezier bezier(a.point,  a.direction*a.b, b.point,  -b.direction*b.a);
 		float t = bezier.closestPoint(point, limit);
-		if(t>=0) result = t + i;
+		if(t>=0) result = t + i - 1;
 	}
 	return result;
 }
@@ -248,8 +248,6 @@ template<class T> inline void rasterise(const T* water, std::vector<bool>& cells
 	}
 }
 
-
-
 base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution, base::Mesh* mesh) const {
 	if(m_lakes.empty() && m_rivers.empty()) return 0;
 
@@ -271,7 +269,6 @@ base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution,
 		int k = x+y*countX;
 		return cells[k] || (x&&cells[k-1]) || (y&&cells[k-countX]) || (x&&y&&cells[k-countX-1]);
 	};
-
 
 	// Count vertices
 	int vertexCount = 0;
@@ -321,14 +318,18 @@ base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution,
 						if(lt>=0) { river=0; lastLake=lake; height=lake->nodes[0].point.y; };
 					}
 					if(river) {
-						const RiverNode& a = river->nodes[(int)t];
-						const RiverNode& b = river->nodes[(int)t+1];
-						control[0] = control[1] = a.point;
-						control[2] = control[3] = b.point;
-						control[1] += a.direction*a.b;
-						control[2] -= b.direction*b.a;
-						t -= floor(t);
-						height = bezierPoint(control, t).y;
+						if(t<=0) height = river->nodes[0].point.y;
+						else if(t>=river->nodes.size()-1) height = river->nodes.back().point.y;
+						else {
+							const RiverNode& a = river->nodes[(int)t];
+							const RiverNode& b = river->nodes[(int)t+1];
+							control[0] = control[1] = a.point;
+							control[2] = control[3] = b.point;
+							control[1] += a.direction*a.b;
+							control[2] -= b.direction*b.a;
+							t -= floor(t);
+							height = bezierPoint(control, t).y;
+						}
 					}
 				}
 

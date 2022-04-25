@@ -103,8 +103,10 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 			for(size_t i=0; i<l->nodes.size(); ++i) {
 				WaterSystem::SplineNode& n = l->nodes[i];
 				if(overPoint(n.point)) { node=i; over=1; lake=l; river=0; }
-				if(overPoint(n.point - n.direction*n.a)) { node=i; over=2; lake=l; }
-				if(overPoint(n.point + n.direction*n.b)) { node=i; over=3; lake=l; }
+				if(!over) {
+					if(overPoint(n.point - n.direction*n.a)) { node=i; over=2; lake=l; }
+					if(overPoint(n.point + n.direction*n.b)) { node=i; over=3; lake=l; }
+				}
 			}
 		}
 		for(WaterSystem::River* r: m_waterSystem->rivers()) {
@@ -112,10 +114,12 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 				WaterSystem::RiverNode& n = r->nodes[i];
 				vec3 side = n.direction.cross(vec3(0,1,0)).normalise();
 				if(overPoint(n.point)) { node=i; over=1; lake=0; river=r; }
-				if(overPoint(n.point - n.direction*n.a)) { node=i; over=2; lake=0; river=r; }
-				if(overPoint(n.point + n.direction*n.b)) { node=i; over=3; lake=0; river=r; }
-				if(overPoint(n.point - side*n.left))  { node=i; over=4; lake=0; river=r; }
-				if(overPoint(n.point + side*n.right)) { node=i; over=5; lake=0; river=r; }
+				if(!over) {
+					if(overPoint(n.point - n.direction*n.a)) { node=i; over=2; lake=0; river=r; }
+					if(overPoint(n.point + n.direction*n.b)) { node=i; over=3; lake=0; river=r; }
+					if(overPoint(n.point - side*n.left))  { node=i; over=4; lake=0; river=r; }
+					if(overPoint(n.point + side*n.right)) { node=i; over=5; lake=0; river=r; }
+				}
 			}
 		}
 		// Over Splines
@@ -161,17 +165,46 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 		}
 	}
 
+	// delete node
+	if(m_held && mouse.pressed==4) {
+		if(m_lake && m_lake->nodes.size() > 2) {
+			m_lake->nodes.erase(m_lake->nodes.begin() + m_activeNode);
+			m_held = 0;
+		}
+		else if(m_river && m_river->nodes.size() > 2) {
+			m_river->nodes.erase(m_river->nodes.begin() + m_activeNode);
+			m_held = 0;
+		}
+		if(!m_held) {
+			updateLines();
+			updateGeometry();
+			state.consumedMouseDown = true;
+		}
+	}
+
+	// Move node
 	if(m_held>0) {
 		WaterSystem::SplineNode& node = m_river? m_river->nodes[m_activeNode]: m_lake->nodes[m_activeNode];
 
+		// Moving lake handles needs to use node plane.
+		// Moving lake nodes needs terrain trace, clamp to bounds, move others vertically.
+		// Moving river nodes needs terrain trace.
+		// need something to project outwards.
+		// river handles could potentially not be flat.
+		// Want snapping river start/end nodes, including rivers from other tiles
+		// river nodes inside lakes need to be at lake height
 		
-
-		if(base::intersectRayPlane(ray.start, ray.direction, vec3(0,1,0), node.point.y, t)) {
+		float tp=0, tt=0;
+		m_terrain->trace(ray, tt);
+		base::intersectRayPlane(ray.start, ray.direction, vec3(0,1,0), node.point.y, tp);
+		if(tp>0 || tt>0) {
 			bool shift = state.keyMask&SHIFT_MASK;
 			WaterSystem::RiverNode* rnode = m_river? (WaterSystem::RiverNode*)&node: 0;
-			if(m_held==1 && !shift) node.point = ray.point(t);
+			if(m_held==1 && !shift) {
+				node.point = ray.point(m_lake? tp: tt-0.01);
+			}
 			else {
-				vec3 n = node.point - ray.point(t);
+				vec3 n = node.point - ray.point(tp);
 				float d = n.normaliseWithLength();
 				switch(m_held) {
 				case 1: case 2:

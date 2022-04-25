@@ -11,8 +11,8 @@ class WaterSystem {
 	~WaterSystem();
 	base::Mesh* buildGeometry(const BoundingBox& bounds, float resolution=1, base::Mesh* mesh=0) const;
 
-	struct SplineNode { vec3 point; vec3 direction; float a=1,b=1; };
-	struct RiverNode : public SplineNode { float left=1,right=1; float speed=1; };
+	struct SplineNode { vec3 point; vec3 direction; float a=2,b=2; };
+	struct RiverNode : public SplineNode { float left=2,right=2; float speed=1; };
 	struct River {
 		std::vector<RiverNode> nodes;
 	};
