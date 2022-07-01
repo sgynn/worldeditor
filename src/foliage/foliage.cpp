@@ -231,7 +231,7 @@ FoliageLayer::Geometry FoliageInstanceLayer::generateGeometry(const Index& index
 	generatePoints(index, points, up);
 	if(points.empty()) return Geometry{0,0,0};
 	static const vec3 unitY(0,1,0);
-	Quaternion q, a, rot = Quaternion::arc(unitY, up );
+	Quaternion q, a, rot = Quaternion::arc(unitY, up);
 
 	RNG rng(0);
 	float* data = new float[ points.size() * 8 ]; // Instance buffer data
@@ -247,10 +247,14 @@ FoliageLayer::Geometry FoliageInstanceLayer::generateGeometry(const Index& index
 		case ABSOLUTE: q.fromAxis( up.cross(point.normal), rng.randf(m_alignRange) ); break;
 		case RELATIVE: q = slerp(rot, Quaternion::arc( unitY, point.normal ), rng.randf(m_alignRange)); break;
 		}
+		q *= a;
 
 		memcpy(vx+0, point.position, sizeof(vec3));
-		memcpy(vx+4, q*a, sizeof(Quaternion));
 		vx[3] = rng.randf(m_scaleRange);
+		vx[4] = q.x;
+		vx[5] = q.y;
+		vx[6] = q.z;
+		vx[7] = q.w;
 		vx += 8;
 	}
 
@@ -308,10 +312,10 @@ FoliageLayer::Geometry GrassLayer::generateGeometry(const Index& index) const {
 		direction = rot * direction;
 		vec3 top = up * s + vec3(direction.z*lean,0,-direction.x*lean);
 		// Positiion
-		memcpy(vx+0,  point.position - direction,        sizeof(vec3));
+		memcpy(vx+0,  point.position - direction,       sizeof(vec3));
 		memcpy(vx+8,  point.position - direction + top, sizeof(vec3));
 		memcpy(vx+16, point.position + direction + top, sizeof(vec3));
-		memcpy(vx+24, point.position + direction,        sizeof(vec3));
+		memcpy(vx+24, point.position + direction,       sizeof(vec3));
 		// Normal
 		memcpy(vx+3,  point.normal, sizeof(vec3));
 		memcpy(vx+11, point.normal, sizeof(vec3));
