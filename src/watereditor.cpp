@@ -48,7 +48,10 @@ WaterEditor::WaterEditor(Root* gui, FileSystem*, MapGrid* map, SceneNode* scene)
 }
 
 WaterEditor::~WaterEditor() {
+	m_node->deleteAttachments();
+	m_list->clearItems();
 	delete m_waterSystem;
+	delete m_node;
 }
 
 void WaterEditor::load(const base::XMLElement& root, const TerrainMap* context) {
