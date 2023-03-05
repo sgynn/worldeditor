@@ -270,15 +270,30 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 			bool shift = state.keyMask&SHIFT_MASK;
 			WaterSystem::RiverNode* rnode = m_river? (WaterSystem::RiverNode*)&node: 0;
 			if(m_held==1 && !shift) {
-				node.point = ray.point(m_lake? tp: tt-0.01);
 				
-				if(m_river) {
-					vec3 side = node.direction.cross(vec3(0,1,0));
-					vec3 a = node.point + side * rnode->left;
-					vec3 b = node.point - side * rnode->right;
-					a.y = m_terrain->getHeight(a);
-					b.y = m_terrain->getHeight(b);
-					node.point.y = fmin(a.y, b.y);
+				// Vertical
+				if(state.keyMask&ALT_MASK) {
+					vec3 low = node.point, high = node.point;
+					low.y = -100;
+					high.y = 1000;
+					float s, t;
+					base::closestPointBetweenLines(ray.start, ray.point(1000), low, high, s, t);
+					node.point = lerp(low, high, t);
+					if(m_lake) {
+						for(WaterSystem::SplineNode& n: m_lake->nodes) n.point.y = node.point.y;
+					}
+				}
+				else {
+					node.point = ray.point(m_lake? tp: tt-0.01);
+					
+					if(m_river) {
+						vec3 side = node.direction.cross(vec3(0,1,0));
+						vec3 a = node.point + side * rnode->left;
+						vec3 b = node.point - side * rnode->right;
+						a.y = m_terrain->getHeight(a);
+						b.y = m_terrain->getHeight(b);
+						node.point.y = fmin(a.y, b.y);
+					}
 				}
 
 
@@ -452,8 +467,14 @@ void WaterEditor::updateLines() {
 		// Handles
 		for(WaterSystem::RiverNode& n: r->nodes) {
 			vec3 side = n.direction.cross(up).normalise();
-			g.line(n.point - n.direction * n.a, n.point + n.direction * n.b, 0x000000);
+			vec3 pa = n.point - n.direction * n.a;
+			vec3 pb = n.point + n.direction * n.b;
+			g.line(pa, pb, 0x000000);
 			g.line(n.point - side * n.left, n.point + side * n.right, 0x0080ff);
+			if(n.direction.y != 0) {
+				g.line(pa, vec3(pa.x, n.point.y, pa.z), 0x000000);
+				g.line(pb, vec3(pb.x, n.point.y, pb.z), 0x000000);
+			}
 		}
 		// Splines
 		for(size_t i=1; i<r->nodes.size(); ++i) {
