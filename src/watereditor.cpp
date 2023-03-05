@@ -127,6 +127,7 @@ XMLElement WaterEditor::save(const TerrainMap* context) const {
 }
 void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camera, InputState& state) {
 	if(!isActive()) return;
+	static const vec3 up(0,1,0);
 
 	float t;
 	Ray cameraRay(camera->getPosition(), -camera->getDirection());
@@ -181,7 +182,7 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 		for(WaterSystem::River* r: m_waterSystem->rivers()) {
 			for(size_t i=0; i<r->nodes.size(); ++i) {
 				WaterSystem::RiverNode& n = r->nodes[i];
-				vec3 side = n.direction.cross(vec3(0,1,0)).normalise();
+				vec3 side = n.direction.cross(up).normalise();
 				if(overPoint(n.point)) { node=i; over=1; lake=0; river=r; }
 				if(!over) {
 					if(overPoint(n.point - n.direction*n.a)) { node=i; over=2; lake=0; river=r; }
@@ -208,7 +209,7 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 		if(over>0) {
 			const uint col[] = { 0xff0000, 0xff8000, 0xff8000, 0x80ff, 0x80ff, 0x00ff00 };
 			static DebugGeometry circle(SDG_ALWAYS);
-			circle.circle(closestPoint, vec3(0,1,0), 0.1, 16, col[over-1]);
+			circle.circle(closestPoint, up, 0.1, 16, col[over-1]);
 			if(mouse.pressed==1) {
 				state.consumedMouseDown = true;
 				m_held = over;
@@ -265,7 +266,7 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 		
 		float tp=0, tt=0;
 		m_terrain->trace(ray, tt);
-		base::intersectRayPlane(ray.start, ray.direction, vec3(0,1,0), node.point.y, tp);
+		base::intersectRayPlane(ray.start, ray.direction, up, node.point.y, tp);
 		if(tp>0 || tt>0) {
 			bool shift = state.keyMask&SHIFT_MASK;
 			WaterSystem::RiverNode* rnode = m_river? (WaterSystem::RiverNode*)&node: 0;
@@ -287,7 +288,7 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 					node.point = ray.point(m_lake? tp: tt-0.01);
 					
 					if(m_river) {
-						vec3 side = node.direction.cross(vec3(0,1,0));
+						vec3 side = node.direction.cross(up);
 						vec3 a = node.point + side * rnode->left;
 						vec3 b = node.point - side * rnode->right;
 						a.y = m_terrain->getHeight(a);
@@ -300,25 +301,38 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 			}
 			else {
 				vec3 n = node.point - ray.point(tp);
+				if(m_held <= 3 && m_river) {
+					if(state.keyMask&ALT_MASK) { // Adjust pitch
+						float s, t;
+						vec3 pos = node.point + node.direction * (m_held<3? -node.a: node.b);
+						base::closestPointBetweenLines(ray.start, ray.point(1000), pos-up*100, pos+up*100, s, t);
+						n = node.point - (pos + up * (t * 200 - 100));
+					}
+					else if(node.direction.y != 0) {
+						n.y = node.direction.y * n.length(); // Maintain pitch
+						if(m_held==3) n.y = -n.y;
+					}
+				}
+
 				float d = n.normaliseWithLength();
 				switch(m_held) {
-				case 1: case 2:
+				case 1: case 2:	// Forward tangent
 					node.direction = n;
 					if(shift) node.a = node.b = d;
 					else node.a = d;
 					break;
-				case 3:
+				case 3:	// Reverse tangent
 					node.direction = -n;
 					if(shift) node.a = node.b = d;
 					else node.b = d;
 					break;
-				case 4:
-					node.direction = -n.cross(vec3(0,1,0));
+				case 4:	// River left side
+					node.direction = -n.cross(up);
 					if(shift) rnode->left = rnode->right = d;
 					else rnode->left = d;
 					break;
-				case 5:
-					node.direction = n.cross(vec3(0,1,0));
+				case 5: // river right side
+					node.direction = n.cross(up);
 					if(shift) rnode->left = rnode->right = d;
 					else rnode->right = d;
 					break;
