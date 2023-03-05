@@ -51,10 +51,79 @@ WaterEditor::~WaterEditor() {
 	delete m_waterSystem;
 }
 
-void WaterEditor::load(const base::XMLElement&, const TerrainMap* context) {
+void WaterEditor::load(const base::XMLElement& root, const TerrainMap* context) {
+	if(const XMLElement& water = root.find("water")) {
+		for(const XMLElement& e: water) {
+			if(e == "river") {
+				WaterSystem::River* river = m_waterSystem->addRiver();
+				for(const XMLElement& node: e) {
+					WaterSystem::RiverNode n;
+					n.left = n.right = node.attribute("width", 1.f);
+					n.speed = node.attribute("speed", 1.f);
+					n.a = n.b = node.attribute("handle", 1.f);
+					sscanf(node.attribute("point"), "%g %g %g", &n.point.x, &n.point.y, &n.point.z);
+					sscanf(node.attribute("tangent"), "%g %g %g", &n.direction.x, &n.direction.y, &n.direction.z);
+					sscanf(node.attribute("handle"), "%g %g", &n.a, &n.b);
+					sscanf(node.attribute("width"), "%g %g", &n.left, &n.right);
+					river->nodes.push_back(n);
+				}
+				m_list->addItem("River", river, 38);
+			}
+			else if(e == "lake" || e=="ocean") {
+				bool inside = e == "lake";
+				WaterSystem::Lake* lake = m_waterSystem->addLake(inside);
+				float height = e.attribute("height", 0.f);
+				for(const XMLElement& node: e) {
+					WaterSystem::SplineNode n;
+					n.point.y = height;
+					n.a = n.b = node.attribute("handle", 1.f);
+					sscanf(node.attribute("point"), "%g %g", &n.point.x, &n.point.z);
+					sscanf(node.attribute("tangent"), "%g %g", &n.direction.x, &n.direction.z);
+					sscanf(node.attribute("handle"), "%g %g", &n.a, &n.b);
+					lake->nodes.push_back(n);
+				}
+				m_list->addItem(inside? "Lake": "Ocean", lake, 38);
+			}
+		}
+		updateGeometry();
+	}
 }
+
 XMLElement WaterEditor::save(const TerrainMap* context) const {
-	return XMLElement();
+	if(m_waterSystem->lakes().empty()) return XMLElement();
+	char buffer[128];
+	auto printElements = [&buffer](std::initializer_list<float> values) {
+		char* c = buffer;
+		for(float v: values) c+=sprintf(c, "%g ", v);
+		c[-1] = 0;
+		return buffer;
+	};
+
+	XMLElement water("water");
+	for(const WaterSystem::Lake* lake : m_waterSystem->lakes()) {
+		XMLElement& out = water.add(lake->inside? "lake": "ocean");
+		out.setAttribute("height", lake->nodes[0].point.y);
+		for(const WaterSystem::SplineNode& n: lake->nodes) {
+			XMLElement& e = out.add("node");
+			e.setAttribute("point", printElements({n.point.x, n.point.z}));
+			e.setAttribute("tangent", printElements({n.direction.x, n.direction.z}));
+			e.setAttribute("handle", printElements({n.a, n.b}));
+		}
+	}
+	
+	for(const WaterSystem::River* lake : m_waterSystem->rivers()) {
+		XMLElement& out = water.add("river");
+		for(const WaterSystem::RiverNode& n: lake->nodes) {
+			XMLElement& e = out.add("node");
+			e.setAttribute("point", printElements({n.point.x, n.point.y, n.point.z}));
+			e.setAttribute("tangent", printElements({n.direction.x, n.direction.y, n.direction.z}));
+			e.setAttribute("handle", printElements({n.a, n.b}));
+			e.setAttribute("width", printElements({n.left, n.right}));
+			e.setAttribute("speed", n.speed);
+		}
+	}
+
+	return water;
 }
 void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camera, InputState& state) {
 	if(!isActive()) return;
@@ -202,6 +271,17 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 			WaterSystem::RiverNode* rnode = m_river? (WaterSystem::RiverNode*)&node: 0;
 			if(m_held==1 && !shift) {
 				node.point = ray.point(m_lake? tp: tt-0.01);
+				
+				if(m_river) {
+					vec3 side = node.direction.cross(vec3(0,1,0));
+					vec3 a = node.point + side * rnode->left;
+					vec3 b = node.point - side * rnode->right;
+					a.y = m_terrain->getHeight(a);
+					b.y = m_terrain->getHeight(b);
+					node.point.y = fmin(a.y, b.y);
+				}
+
+
 			}
 			else {
 				vec3 n = node.point - ray.point(tp);
@@ -302,6 +382,8 @@ void WaterEditor::deleteItem(Button*) {
 	if(m_river) m_waterSystem->destroyRiver(m_river);
 	if(m_lake) m_waterSystem->destroyLake(m_lake);
 	m_list->removeItem(m_list->getSelectedIndex());
+	updateGeometry();
+	updateLines();
 }
 
 

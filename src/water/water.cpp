@@ -307,7 +307,7 @@ base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution,
 				if(lastLake) height = lastLake->nodes[0].point.y;
 				else {
 					float t = 0;
-					float limit = 100;
+					float limit = 1000;
 					River* river = 0;
 					for(River* r: m_rivers) {
 						float rt = getClosestCore(r, pos, limit);

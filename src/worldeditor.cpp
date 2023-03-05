@@ -105,7 +105,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_ac
 	m_renderer = new base::Renderer;
 	m_fileSystem = new FileSystem;
 
-	base::DebugGeometryManager::initialise(m_scene);
+	base::DebugGeometryManager::initialise(m_scene, 10, true);
 
 	// Load editor options
 	INIFile::Section options = ini["settings"];
