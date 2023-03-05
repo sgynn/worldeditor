@@ -235,7 +235,6 @@ template<class T> inline void rasterise(const T* water, std::vector<bool>& cells
 		cell.max.x = cell.min.x + resolution;
 		int state=0;
 		for(int y=a.y; y<=b.y; ++y) {
-			if(cells[x+y*stride]) continue;
 			cell.min.y = y*resolution;
 			cell.max.y = cell.min.y + resolution;
 			if(testBox(water, cell)) state = 1;
@@ -243,7 +242,8 @@ template<class T> inline void rasterise(const T* water, std::vector<bool>& cells
 				if(inside(water, cell.centre())) state = 2;
 				else state = 0;
 			}
-			cells[x+y*stride] = state > 0;
+			if(state>0 && !cells[x+y*stride]) 
+				cells[x+y*stride] = true;
 		}
 	}
 }

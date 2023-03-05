@@ -132,7 +132,8 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 	float t;
 	Ray cameraRay(camera->getPosition(), -camera->getDirection());
 	if(m_terrain->trace(cameraRay, t)) m_centre = cameraRay.point(t);
-	
+
+
 	// Detect mouse over
 	if(m_held==0 && !state.consumedMouseDown) {
 		WaterSystem::River* river = 0;
