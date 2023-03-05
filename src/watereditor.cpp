@@ -440,9 +440,17 @@ void WaterEditor::updateGeometry() {
 		pass->setShader(shader);
 		pass->getParameters().setAuto("transform", AUTO_MODEL_VIEW_PROJECTION_MATRIX);
 		pass->getParameters().setAuto("modelMatrix", AUTO_MODEL_MATRIX);
+		pass->getParameters().setAuto("time", AUTO_TIME);
 		pass->getParameters().set("lightDirection", vec3(1,1,1));
 		pass->setTexture("water", new Texture(tex));
 		pass->compile();
+
+		if(!shader->isCompiled()) {
+			char buf[2048];
+			shader->getLog(buf, sizeof(buf));
+			puts(buf);
+		}
+
 	}
 
 	BoundingBox bounds = m_terrain->getBounds();

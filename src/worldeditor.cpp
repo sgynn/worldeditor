@@ -41,6 +41,7 @@
 #include <base/scene.h>
 #include <base/shader.h>
 #include <base/renderer.h>
+#include <base/autovariables.h>
 #include <base/debuggeometry.h>
 #include "dynamicmaterial.h"
 #include "materialeditor.h"
@@ -422,7 +423,9 @@ void WorldEditor::update() {
 	}
 
 	// Scene graph
+	static float time=0; time+=1/60.f;
 	m_scene->updateSceneGraph();
+	m_renderer->getState().getVariableSource()->setTime(time);
 }
 
 void WorldEditor::draw() {

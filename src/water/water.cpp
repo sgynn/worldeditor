@@ -283,6 +283,8 @@ base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution,
 
 	printf("Water mesh: %d vertices\n", vertexCount);
 
+	std::map<Point, float*> lookup;
+
 	// Build mesh
 	vec2 pos;
 	vec3 control[4];
@@ -300,7 +302,7 @@ base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution,
 				float waves = 0;
 				float distanceToEdge = 0;
 				vec3 normal(0,1,0);
-				vec2 velocity(0,1);
+				vec2 velocity(0,0);
 
 				if(lastLake && !inside(lastLake, pos)) lastLake = 0;
 				if(!lastLake) for(Lake* l: m_lakes) if(inside(l, pos)) { lastLake = l; break; };
@@ -328,7 +330,11 @@ base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution,
 							control[1] += a.direction*a.b;
 							control[2] -= b.direction*b.a;
 							t -= floor(t);
-							height = bezierPoint(control, t).y;
+							float dir = t>0.5? -1: 1;
+							vec3 p = bezierPoint(control, t);
+							vec3 p2 = bezierPoint(control, t + 0.01 * dir);
+							height = p.y;
+							velocity = (p2-p).xz().normalise() * (b.speed*t + a.speed*(1-t)) * dir;
 						}
 					}
 				}
@@ -345,9 +351,29 @@ base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution,
 				vx[9] = distanceToEdge;
 				indexMap[x+y*countX] = currentIndex;
 				++currentIndex;
+
+				lookup[Point(x,y)] = vx;
 			}
 		}
 	}
+
+	// Run a blur on velocity - this will probably be slow
+	static const Point adj[4] = {{-1,0}, {1,0}, {0,-1}, {0,1}};
+	for(auto& i: lookup) {
+		vec2 n;
+		int count = 0;
+		for(Point offset: adj) {
+			auto it=lookup.find(i.first+offset);
+			if(it!=lookup.end()) {
+				n += vec2(it->second+6);
+				++count;
+			}
+		}
+		vec2& v = *reinterpret_cast<vec2*>(i.second+6);
+		v = (v + n) / (count+1);
+	}
+
+
 
 	// Index buffer
 	uint16* indices = new uint16[indexCount];
