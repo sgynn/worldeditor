@@ -427,7 +427,9 @@ extern String appPath;
 void WaterEditor::updateGeometry() {
 	static Material* material = 0;
 	if(!material) {
-		const uint img[] = { 0xff808080, 0xffa0a0a0, 0xffa0a0a0, 0xff808080 };
+		constexpr uint c0 = 0xffff8040;
+		constexpr uint c1 = 0xffffa050;
+		const uint img[] = { c0, c1, c1, c0 };
 		Texture tex = Texture::create(2,2,Texture::RGBA8, img);
 		File source(appPath + "data/water.glsl");
 		material = new Material();
