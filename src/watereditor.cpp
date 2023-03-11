@@ -236,6 +236,15 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 					m_activeNode = node;
 				}
 			}
+
+			// MouseWheel to change velocity
+			if(river && over==1 && !state.consumedMouseWheel && mouse.wheel) {
+				state.consumedMouseWheel = true;
+				float& speed = river->nodes[node].speed;
+				speed = speed * (1 + mouse.wheel * 0.1);
+				updateGeometry();
+				printf("Speed: %g\n", speed);
+			}
 		}
 	}
 
@@ -256,6 +265,7 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 		}
 	}
 
+
 	// Move node
 	if(m_held>0) {
 		WaterSystem::SplineNode& node = m_river? m_river->nodes[m_activeNode]: m_lake->nodes[m_activeNode];
@@ -267,6 +277,7 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 		// river handles could potentially not be flat.
 		// Want snapping river start/end nodes, including rivers from other tiles
 		// river nodes inside lakes need to be at lake height
+
 		
 		float tp=0, tt=0;
 		m_terrain->trace(ray, tt);

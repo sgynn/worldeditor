@@ -301,23 +301,32 @@ base::Mesh* WaterSystem::buildGeometry(const BoundingBox& box, float resolution,
 				float height = 10; // FIXME values
 				float waves = 0;
 				float distanceToEdge = 0;
+				float limit = 1000;
 				vec3 normal(0,1,0);
 				vec2 velocity(0,0);
 
 				if(lastLake && !inside(lastLake, pos)) lastLake = 0;
 				if(!lastLake) for(Lake* l: m_lakes) if(inside(l, pos)) { lastLake = l; break; };
-				if(lastLake) height = lastLake->nodes[0].point.y;
+				if(lastLake) {
+					getClosestEdge(lastLake, pos, limit);
+					height = lastLake->nodes[0].point.y;
+					distanceToEdge = limit;
+				}
 				else {
 					float t = 0;
-					float limit = 1000;
 					River* river = 0;
 					for(River* r: m_rivers) {
 						float rt = getClosestCore(r, pos, limit);
 						if(rt>=0) { t=rt; river=r; };
 					}
-					for(Lake* lake : m_lakes) {
+					if(!river || !inside(river, pos)) for(Lake* lake : m_lakes) {
 						float lt = getClosestEdge(lake, pos, limit);
-						if(lt>=0) { river=0; lastLake=lake; height=lake->nodes[0].point.y; };
+						if(lt>=0) {
+							river = 0;
+							lastLake = lake;
+							height = lake->nodes[0].point.y;
+							distanceToEdge = limit;
+						}
 					}
 					if(river) {
 						if(t<=0) height = river->nodes[0].point.y;
