@@ -47,6 +47,7 @@ class ObjectEditor : public EditorPlugin {
 	void placeObject(Object* object, gui::TreeNode* data);
 	void applySelectTransform();
 	void selectionChanged();
+	void setProperty(gui::Widget*);
 	
 
 	protected:

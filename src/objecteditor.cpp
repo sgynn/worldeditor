@@ -37,6 +37,7 @@ using base::DrawableMesh;
 extern gui::String appPath;
 
 #define CONNECT(Type, name, event, callback) { Type* t=m_panel->getWidget<Type>(name); if(t) t->event.bind(this, &ObjectEditor::callback); else printf("Missing widget: %s\n", name); }
+#define CONNECT_I(Type, name, event, ...) { Type* t=m_panel->getWidget<Type>(name); if(t) t->event.bind(__VA_ARGS__); else printf("Error: Missing widget %s\n", name); }
 
 ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, SceneNode* scene)
 	: m_fileSystem(fs), m_terrain(terrain), m_placement(0), m_mode(SINGLE), m_collideObjects(true), m_gizmo(0)
@@ -53,6 +54,8 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 	CONNECT(TreeView, "tree", eventSelected, selectObject);
 	CONNECT(TreeView, "tree", eventCustom, changeVisible)
 	CONNECT(TreeView, "resources", eventSelected, selectResource);
+	CONNECT(Textbox,  "property", eventLostFocus, setProperty);
+	CONNECT_I(Textbox,  "property", eventSubmit, [this](Textbox*){m_panel->setFocus(); });
 
 	m_gizmo = new editor::Gizmo();
 	m_gizmo->setRenderQueue(15);
@@ -88,10 +91,12 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 			vec3 pos, scale(1,1,1);
 			const char* name = i.attribute("name");
 			const char* file = i.attribute("file");
+			const char* data = i.attribute("data");
 			int meshIndex = i.attribute("mesh", -1);
 			sscanf(i.attribute("scale"), "%g %g %g", &scale.x, &scale.y, &scale.z);
 			sscanf(i.attribute("position"), "%g %g %g", &pos.x, &pos.y, &pos.z);
 			sscanf(i.attribute("orientation"), "%g %g %g %g", &rot.w, &rot.x, &rot.y, &rot.z);
+
 			
 			String f = m_fileSystem->getFile(file);
 			Model* model = base::BMLoader::load(f);
@@ -108,6 +113,7 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 				node->setData(2, f);
 				node->setData(3, meshIndex);
 				node->setData(4, true);
+				node->setData(5, String(data));
 				m_sceneTree->getRootNode()->add(node);
 			}
 		}
@@ -124,6 +130,7 @@ XMLElement ObjectEditor::save(const TerrainMap* context) const {
 		const vec3& pos = object->getPosition();
 		const Quaternion& rot = object->getOrientation();
 		int mesh = n->getData(3).getValue(-1);
+		String data = n->getData(5).getValue<String>("");
 		
 
 		XMLElement& e = xml.add("object");
@@ -143,6 +150,7 @@ XMLElement ObjectEditor::save(const TerrainMap* context) const {
 			sprintf(buffer, "%g %g %g", scl.z, scl.y, scl.z);
 			e.setAttribute("scale", buffer);
 		}
+		if(!data.empty()) e.setAttribute("data", data.str());
 	}
 
 	return xml;
@@ -168,8 +176,18 @@ void ObjectEditor::changePath(Textbox* t) {
 	setResourcePath(t->getText());
 }
 
+void ObjectEditor::setProperty(Widget* w) {
+	String prop = w->cast<Textbox>()->getText();
+	for(Object* obj: m_selected) {
+		TreeNode* node = findTreeNode(m_sceneTree->getRootNode(), [obj](TreeNode* n){return n->getData(1)==obj;});
+		if(node) node->setData(5, prop);
+	}
+}
+
 void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camera, InputState& state) {
 	if(!m_panel->isVisible()) return;
+
+	bool keys = !m_panel->getRoot()->getFocusedWidget()->cast<Textbox>();
 
 	// Placement update
 	if(m_placement) { 
@@ -255,7 +273,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 				}
 			}
 		}
-		if(m_mode==SINGLE && base::Game::Pressed(base::KEY_C)) {
+		if(m_mode==SINGLE && base::Game::Pressed(base::KEY_C) && keys) {
 			Quaternion tmp = m_placement->getOrientation();
 			m_placement->setOrientation(Quaternion());
 			m_placement->updateBounds();
@@ -270,7 +288,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 				m_started = false;
 			}
 		}
-		else if(m_mode == CHAIN && base::Game::Pressed(base::KEY_C)) {
+		else if(m_mode == CHAIN && base::Game::Pressed(base::KEY_C) && keys) {
 			Quaternion tmp = m_placement->getOrientation();
 			tmp.x = tmp.z = 0;
 			tmp.normalise();
@@ -337,7 +355,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 	if(m_gizmo->isVisible()) {
 
 		// Delete selection
-		if(base::Game::Pressed(base::KEY_DEL)) {
+		if(base::Game::Pressed(base::KEY_DEL) && keys) {
 			for(Object* obj: m_selected) {
 				TreeNode* node = findTreeNode(m_sceneTree->getRootNode(), [obj](TreeNode* n){return n->getData(1)==obj;});
 				node->getParent()->remove(node);
@@ -391,7 +409,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 	}
 
 	// Toggle visibility
-	if(base::Game::Pressed(base::KEY_H) && base::Game::input()->getKeyModifier()&base::MODIFIER_ALT) {
+	if(base::Game::Pressed(base::KEY_H) && keys && base::Game::input()->getKeyModifier()&base::MODIFIER_ALT) {
 		findTreeNode(m_sceneTree->getRootNode(), [](TreeNode* n) {
 			Object* o = n->getData(1).getValue<Object*>(0);
 			if(o && !o->isVisible()) {
@@ -402,7 +420,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 		});
 		m_sceneTree->refresh();
 	}
-	else if(base::Game::Pressed(base::KEY_H)) {
+	else if(base::Game::Pressed(base::KEY_H) && keys) {
 		for(Object* obj: m_selected) {
 			obj->setVisible(false);
 			TreeNode* node = findTreeNode(m_sceneTree->getRootNode(), [obj](TreeNode* n){return n->getData(1)==obj;});
@@ -487,6 +505,7 @@ void ObjectEditor::selectObject(Object* obj, bool append) {
 	if(node) {
 		node->select();
 		m_sceneTree->scrollToItem(node);
+		m_panel->getWidget<Textbox>("property")->setText(node->getData(5).getValue<String>(""));
 	}
 
 	selectionChanged();

@@ -22,12 +22,14 @@
 	<widget rect="168 192 276 600" template="dialogfixed" name="objecteditor" caption="Object Editor" skin="default">
 		<widget anchor="lrtb" template="vsplit" rect="0 0 266 573">
 			<widget class="Widget" template="frame" rect="0 0 266 298">
-				<widget anchor="lrtb" hideroot="1" template="tree" name="tree" rect="0 0 266 298">
+				<widget anchor="lrtb" hideroot="1" template="tree" name="tree" rect="0 0 266 276">
 					<widget anchor="lr" class="Widget" visible="0" template="frame" rect="38 66 178 24" skin="none" name="_item" tangible="2">
 						<widget inheritstate="1" anchor="lrtb" template="label" name="_0" skin="listitem" rect="0 0 144 24"/>
 						<widget anchor="r" template="checkbox" name="_4" rect="155 3 16 16" drag="1"/>
 					</widget>
 				</widget>
+				<widget anchor="lrb" template="editbox" name="property" rect="72 276 192 20"/>
+				<widget anchor="lb" template="label" caption="Property" rect="0 276 42 20"/>
 			</widget>
 			<widget class="Widget" template="frame" rect="0 300 266 273">
 				<widget anchor="lrtb" hideroot="1" template="tree" name="resources" rect="0 0 266 250"/>
