@@ -220,6 +220,11 @@ void WaterEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camer
 				m_activeNode = node;
 				m_lake = lake;
 				m_river = river;
+				
+				// Select in list
+				ListItem* item = m_list->findItem([lake, river](ListItem& i) { return i.getData(1)==lake || i.getData(1)==river; });
+				if(item) m_list->selectItem(item->getIndex(), true);
+
 
 				// Add node
 				if(over == 6) {
@@ -379,8 +384,9 @@ void WaterEditor::activate() {
 }
 
 
-void WaterEditor::addItem(Combobox*, ListItem& item) {
+void WaterEditor::addItem(Combobox* c, ListItem& item) {
 	deselect();
+	c->selectItem(-1);
 	int type = item.getIndex();
 	if(type == 0) {
 		m_river = m_waterSystem->addRiver();
@@ -394,7 +400,7 @@ void WaterEditor::addItem(Combobox*, ListItem& item) {
 	}
 	else {
 		m_lake = m_waterSystem->addLake(type == 1);
-		m_list->addItem(type==1?"Lake":"Ocean", m_river, 38);
+		m_list->addItem(type==1?"Lake":"Ocean", m_lake, 38);
 		WaterSystem::SplineNode node;
 		node.a = node.b = 4;
 		node.point = m_centre + vec3(5,0,0);
@@ -416,11 +422,17 @@ void WaterEditor::addItem(Combobox*, ListItem& item) {
 
 void WaterEditor::deselect() {
 	m_list->clearSelection();
+	m_panel->getWidget("duplicatewater")->setEnabled(false);
+	m_panel->getWidget("removewater")->setEnabled(false);
+	m_river = nullptr;
+	m_lake = nullptr;
 }
 
 void WaterEditor::selectItem(Listbox* list, ListItem& item) {
-	item.getData(1).read(m_river);
-	item.getData(1).read(m_lake);
+	m_river = item.findValue<WaterSystem::River*>();
+	m_lake = item.findValue<WaterSystem::Lake*>();
+	m_panel->getWidget("duplicatewater")->setEnabled(m_river || m_lake);
+	m_panel->getWidget("removewater")->setEnabled(m_river || m_lake);
 }
 
 void WaterEditor::deleteItem(Button*) {
