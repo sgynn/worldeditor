@@ -153,6 +153,7 @@ void FoliageEditor::setupGui(Root* gui) {
 	m_fileDialog = gui->getWidget<FileDialog>("filedialog");
 
 	m_layerList->eventSelected.bind(this, &FoliageEditor::layerSelected);
+	m_layerList->eventCustom.bind(this, &FoliageEditor::changeVisible);
 
 	gui->getWidget<Combobox>("addfoliage")->eventSelected.bind(this, &FoliageEditor::addLayer);
 	m_removeButton = gui->getWidget<Button>("removefoliage");
@@ -178,6 +179,7 @@ void FoliageEditor::update(const Mouse&, const Ray& ray, base::Camera*, InputSta
 void FoliageEditor::addLayer(Combobox* c, ListItem& type) {
 	FoliageLayerEditor* editor = addLayer((FoliageType)type.getIndex());
 	showEditor(editor);
+	c->clearSelection();
 }
 
 FoliageLayerEditor* FoliageEditor::addLayer(FoliageType type) {
@@ -198,7 +200,7 @@ FoliageLayerEditor* FoliageEditor::addLayer(FoliageType type) {
 	m_panel->getParent()->add(widget);
 
 	FoliageLayerEditor* editor = new FoliageLayerEditor(this, widget, layer, type);
-	m_layerList->addItem(editor->getName(), editor, type==FoliageType::Instanced? 16: 18);
+	m_layerList->addItem(editor->getName(), editor, type==FoliageType::Instanced? 16: 18, true);
 	m_foliage->addLayer(layer);
 	editor->eventRenamed.bind(this, &FoliageEditor::layerRenamed);
 	return editor;
@@ -234,6 +236,12 @@ void FoliageEditor::layerRenamed(FoliageLayerEditor* e) {
 			item.setValue(e->getName());
 			break;
 		}
+	}
+}
+
+void FoliageEditor::changeVisible(Listbox*, ListItem& item, Widget*) {
+	if(FoliageLayerEditor* editor = item.findValue<FoliageLayerEditor*>()) {
+		editor->setVisible(item.getValue(3, true));
 	}
 }
 
@@ -344,6 +352,10 @@ void FoliageLayerEditor::updateSliders() {
 	SET_SLIDER("maxscale", m_scale.max, 10);
 	SET_SLIDER("minalign", m_angle.min, 1);
 	SET_SLIDER("maxalign", m_angle.max, 1);
+}
+
+void FoliageLayerEditor::setVisible(bool vis) {
+	((base::SceneNode*)m_layer)->setVisible(vis);
 }
 
 void FoliageLayerEditor::renameLayer(Textbox* t) {
@@ -483,6 +495,8 @@ XMLElement FoliageLayerEditor::save() const {
 	saveRange(e, "slope", m_slope);
 	saveRange(e, "scale", m_scale);
 
+	if(!((base::SceneNode*)m_layer)->isVisible()) e.setAttribute("enabled", false);
+
 	if(m_type==FoliageType::Grass) {
 		Combobox* list = m_panel->getWidget<Combobox>("sprite");
 		FoliageSprite* sprite = list->getSelectedItem()->getData(1).cast<FoliageSprite>();
@@ -516,7 +530,13 @@ void FoliageEditor::load(const XMLElement& e, const TerrainMap* context) {
 
 		FoliageLayerEditor* editor = addLayer(type);
 		editor->load(layerData);
+
+		// Initial being enabled
+		if(!layerData.attribute("enabled", true)) {
+			m_layerList->getItem(m_layerList->getItemCount()-1).setValue(3, false);
+		}
 	}
+	m_layerList->refresh();
 }
 
 void FoliageLayerEditor::load(const XMLElement& e) {
@@ -545,6 +565,8 @@ void FoliageLayerEditor::load(const XMLElement& e) {
 		m_panel->getWidget<Widget>("alignrange")->setVisible(m_align>1);
 		loadRange(e.find("angle"), m_angle);
 	}
+
+	if(!e.attribute("enabled", true)) setVisible(false);
 
 	updateSliders();
 	refresh();

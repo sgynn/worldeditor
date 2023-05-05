@@ -64,6 +64,7 @@ class FoliageEditor : public EditorPlugin {
 	void removeLayer(gui::Button*);
 	void duplicateLayer(gui::Button*);
 	void destroy(FoliageLayerEditor*);
+	void changeVisible(gui::Listbox*, gui::ListItem&, gui::Widget*);
 
 	protected:
 	friend class FoliageLayerEditor;
@@ -91,6 +92,7 @@ class FoliageLayerEditor {
 
 	void load(const base::XMLElement&);
 	base::XMLElement save() const;
+	void setVisible(bool);
 	void updateSliders();
 	void refresh();
 

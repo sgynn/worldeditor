@@ -6,7 +6,7 @@
 	<template class="Button" name="button" skin="button" category="Input"/>
 	<template category="Display" class="Label" name="label" skin="panel" caption="Label"/>
 	<!--Widget Layout-->
-	<widget rect="216 348 299 364" template="dialogfixed" name="watereditor" caption="Water" skin="default">
+	<widget rect="216 348 299 364" template="dialog" name="watereditor" caption="Water" skin="default">
 		<widget anchor="rb" template="button" name="removewater" caption="Remove" rect="214 312 75 20"/>
 		<widget anchor="lrtb" template="iconlistbox2" name="waterlist" skin="default" rect="0 0 289 308"/>
 		<widget anchor="rb" template="dropbutton" name="addwater" skin="button" rect="118 312 83 20">

@@ -4,7 +4,7 @@
 	<!--Layout-->
 	<widget rect="228 288 298 512" template="dialogfixed" name="polygoneditor" caption="Polygon Editor" skin="default">
 		<widget template="frame" rect="7 2 272 304">
-			<widget anchor="lrtb" template="listbox" name="polygonlist" skin="default" rect="0 0 272 272"/>
+			<widget anchor="lrtb" template="listbox" name="polygonlist" skin="listitem" rect="0 0 272 272"/>
 			<widget anchor="lb" icon="14" template="button" rect="12 276 59 24" skin="" iconlist="icons" name="add" caption="Add"/>
 			<widget anchor="lb" icon="14" template="button" rect="84 276 59 24" skin="" iconlist="icons" name="remove" caption="Remove"/>
 			<widget anchor="rb" template="spinbox" name="flags" skin="default" rect="214 276 60 20"/>

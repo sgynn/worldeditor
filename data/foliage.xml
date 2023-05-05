@@ -4,12 +4,16 @@
 
 	<!--Templates-->
 	<template rect="0 0 100 100" name="frame" skin="panel" category="Containers"/>
+	<template class="Checkbox" rect="840 447 16 16" name="visibility" skin="none">
+		<widget anchor="lrtb" selicon="8" template="icon" icon="9" rect="0 0 16 16"/>
+	</template>
 	<template class="Listbox" rect="0 0 100 100" name="iconlistbox2">
 		<widget anchor="tlrb" rect="0 0 85 100" name="_client"/>
 		<widget anchor="trb" template="vscroll" name="_scroll" rect="84 0 16 100"/>
-		<widget name="_item" rect="0 0 100 20" skin="none" tangible="0" anchor="lr">
+		<widget name="_item" rect="0 0 100 20" skin="none" tangible="2" anchor="lr">
 			<widget class="Label" rect="20 0 80 20" name="_0" skin="listitem" inheritstate="1"/>
 			<widget class="Icon" iconlist="icons" rect="2 2 16 16" name="_2"/>
+			<widget anchor="r" template="visibility" name="_3" rect="60 3 16 16" drag="1"/>
 		</widget>
 	</template>
 	<template class="Combobox" rect="0 0 100 20" name="dropbutton">
@@ -19,7 +23,7 @@
 	<template class="Textbox" name="editbox" skin="panel" category="Input"/>
 	<template category="Display" class="Label" name="label" skin="panel" caption="Label"/>
 	<!--Layout-->
-	<widget visible="0" template="dialogfixed" name="foliage" caption="Foliage" rect="216 348 299 364">
+	<widget visible="0" template="dialog" name="foliage" caption="Foliage" rect="216 348 299 364">
 		<widget anchor="rb" template="button" name="removefoliage" caption="Remove" rect="214 312 75 20"/>
 		<widget anchor="lrtb" template="iconlistbox2" name="foliagelist" skin="default" rect="0 0 289 308"/>
 		<widget anchor="rb" template="dropbutton" name="addfoliage" skin="button" rect="118 312 83 20">
