@@ -38,7 +38,7 @@
 		</widget>
 		<widget anchor="lrtb" template="category" name="scene" caption="Scene" rect="0 43 262 152">
 			<widget anchor="lr" template="editbox" name="filter" rect="0 0 246 20"/>
-			<widget anchor="lrtb" template="listbox" name="objectlist" skin="default" rect="0 20 262 112">
+			<widget rect="0 20 262 112" anchor="lrtb" template="listbox" name="objectlist" skin="default" multi="1">
 				<widget anchor="lr" class="Widget" visible="0" template="frame" rect="0 36 245 24" skin="none" name="_item" tangible="2">
 					<widget inheritstate="1" anchor="lrtb" template="label" name="_0" skin="listitem" rect="0 0 211 24"/>
 					<widget anchor="r" template="visibility" name="_4" rect="222 3 16 16" drag="1"/>

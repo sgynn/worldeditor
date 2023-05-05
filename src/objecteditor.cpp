@@ -54,8 +54,20 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 	CONNECT(Listbox, "objectlist", eventSelected, selectObject);
 	CONNECT(Listbox, "objectlist", eventCustom, changeVisible)
 	CONNECT(TreeView, "resources", eventSelected, selectResource);
+
 	CONNECT(Textbox,  "property", eventLostFocus, setProperty);
-	CONNECT_I(Textbox,  "property", eventSubmit, [this](Textbox*){m_panel->setFocus(); });
+	CONNECT_I(Textbox,"property", eventSubmit, [this](Textbox*){m_panel->setFocus(); });
+	CONNECT(Textbox,  "name", eventLostFocus, setName);
+	CONNECT_I(Textbox,"name", eventSubmit, [this](Textbox*){m_panel->setFocus(); });
+	CONNECT(SpinboxFloat, "x", eventChanged, setTransform);
+	CONNECT(SpinboxFloat, "y", eventChanged, setTransform);
+	CONNECT(SpinboxFloat, "z", eventChanged, setTransform);
+	CONNECT(SpinboxFloat, "sx", eventChanged, setTransform);
+	CONNECT(SpinboxFloat, "sy", eventChanged, setTransform);
+	CONNECT(SpinboxFloat, "sz", eventChanged, setTransform);
+	CONNECT(SpinboxFloat, "yaw", eventChanged, setTransform);
+	CONNECT(SpinboxFloat, "roll", eventChanged, setTransform);
+	CONNECT(SpinboxFloat, "pitch", eventChanged, setTransform);
 
 	CONNECT_I(Button, "move", eventPressed, [this](Button*) { setGizmoMode(0); });
 	CONNECT_I(Button, "rotate", eventPressed, [this](Button*) { setGizmoMode(1); });
@@ -64,6 +76,7 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 	CONNECT_I(Button, "global", eventPressed, [this](Button*) { setGizmoSpaceLocal(false); });
 
 	CONNECT_I(Checkbox, "visible", eventChanged, [this](Button* b) { m_node->setVisible(b->isSelected()); });
+	m_panel->getWidget("visible")->setSelected(true);
 
 	m_gizmo = new editor::Gizmo();
 	m_gizmo->setRenderQueue(15);
@@ -99,6 +112,7 @@ inline Object* getObject(const ListItem& item) {
 
 void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 	const XMLElement& list = e.find("objects");
+	constexpr const char* emptyString = nullptr;
 	for(const XMLElement& i: list) {
 		if(i == "object") {
 			Quaternion rot;
@@ -107,6 +121,7 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 			const char* file = i.attribute("file");
 			const char* data = i.attribute("data");
 			int meshIndex = i.attribute("mesh", -1);
+			const char* meshName = i.attribute("mesh", emptyString);
 			sscanf(i.attribute("scale"), "%g %g %g", &scale.x, &scale.y, &scale.z);
 			sscanf(i.attribute("position"), "%g %g %g", &pos.x, &pos.y, &pos.z);
 			sscanf(i.attribute("orientation"), "%g %g %g %g", &rot.w, &rot.x, &rot.y, &rot.z);
@@ -120,14 +135,18 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 				m_models[meshFile.str()] = model;
 			}
 
-			if(model && meshIndex < model->getMeshCount()) {
-				Object* object;
-				if(meshIndex<0) object = createObject(name, model, 0, 0); // Full model
-				else object = createObject(name, 0, model->getMesh(meshIndex), model->getMaterialName(meshIndex));
+			if(model) {
+				if(meshIndex>=0 && meshIndex<model->getMeshCount()) meshName = model->getMeshName(meshIndex);
+				if(!model->getMesh(meshName)) {
+					printf("Error: Model %s has no mesh '%s'\n", meshFile.str(), meshName);
+					continue;
+				}
+
+				Object* object = createObject(name, model, meshName);
 				m_node->addChild(object);
 				object->setTransform(pos, rot, scale);
 				object->updateBounds();
-				m_objectList->addItem(name, object, meshFile, meshIndex, true, data);
+				m_objectList->addItem(name, object, meshFile, meshName, true, data);
 			}
 		}
 	}
@@ -142,14 +161,14 @@ XMLElement ObjectEditor::save(const TerrainMap* context) const {
 		const vec3 scl = object->getScale();
 		const vec3& pos = object->getPosition();
 		const Quaternion& rot = object->getOrientation();
-		int mesh = item.getValue(3, -1);
+		const char* mesh = item.getText(3);
 		String data = item.getText(5);
 		
 
 		XMLElement& e = xml.add("object");
 		e.setAttribute("name", item.getText());
 		e.setAttribute("file", m_fileSystem->getRelative(item.getText(2)));
-		if(mesh>=0) e.setAttribute("mesh", mesh);
+		if(mesh) e.setAttribute("mesh", mesh);
 		
 		if(pos!=vec3()) {
 			sprintf(buffer, "%g %g %g", pos.x, pos.y, pos.z);
@@ -182,9 +201,32 @@ void ObjectEditor::changePath(Textbox* t) {
 
 void ObjectEditor::setProperty(Widget* w) {
 	String prop = w->cast<Textbox>()->getText();
-	for(ListItem& i: m_objectList->selectedItems()) {
-		i.setValue(5, prop);
+	for(ListItem& i: m_objectList->selectedItems()) i.setValue(5, prop);
+}
+
+void ObjectEditor::setName(Widget* w) {
+	String name = w->cast<Textbox>()->getText();
+	for(ListItem& i: m_objectList->selectedItems()) i.setValue(name);
+	m_objectList->refresh();
+}
+
+void ObjectEditor::setTransform(SpinboxFloat* s, float) {
+	if(!m_activeObject) return;
+	if(m_objectList->getSelectionSize() > 1) {
+		Object* a = m_activeObject;
+		clearSelection();
+		selectObject(a);
 	}
+
+
+	auto val = [this](const char* key) { return m_panel->getWidget<SpinboxFloat>(key)->getValue(); };
+	vec3 pos(val("x"), val("y"), val("z"));
+	vec3 scale(val("sx"), val("sy"), val("sz"));
+	vec3 euler(val("yaw"), val("pitch"), val("roll"));
+	Quaternion rot(euler * PI/180);
+	m_activeObject->setTransform(pos, rot, scale);
+	m_activeObject->updateBounds();
+	selectionChanged();
 }
 
 void ObjectEditor::setGizmoMode(int mode) {
@@ -399,6 +441,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 					m_selectGroup->setTransform(m_gizmo->getPosition(), m_gizmo->getOrientation(), m_gizmo->getScale());
 					for(SceneNode* n: m_selectGroup->children()) static_cast<Object*>(n)->updateBounds();
 				}
+				refreshTransform(m_activeObject);
 			}
 		}
 		if(wasHeld) return;
@@ -491,11 +534,11 @@ void ObjectEditor::cancelPlacement() {
 }
 
 void ObjectEditor::placeObject(Object* object, TreeNode* data) {
-	// Properties: Name, Object, Model, MeshIndex, Visible, Custom
+	// Properties: Name, Object, Model, Mesh, Visible, Custom
 	const char* modelFile = data->getText(2);
-	int meshIndex = modelFile? -1: data->getIndex();
+	const char* mesh = modelFile? nullptr: data->getText();
 	if(!modelFile) modelFile = data->getParent()->getText(2);
-	m_objectList->addItem(object->getName(), object, modelFile, meshIndex, true);
+	m_objectList->addItem(object->getName(), object, modelFile, mesh, true);
 	object->updateBounds();
 }
 
@@ -505,8 +548,11 @@ void ObjectEditor::changeVisible(Listbox*, ListItem& item, Widget*) {
 	if(isSelected(obj)) clearSelection();
 }
 
-void ObjectEditor::selectObject(Listbox*, ListItem& item) {
-	selectObject(getObject(item));
+void ObjectEditor::selectObject(Listbox* list, ListItem& item) {
+	cancelPlacement();
+	if(item.isValid()) list->deselectItem(item.getIndex());
+	if(list->getSelectionSize() == 0) selectObject(getObject(item));
+	else selectObject(getObject(item), true);
 }
 
 void ObjectEditor::selectObject(Object* obj, bool append) {
@@ -519,12 +565,37 @@ void ObjectEditor::selectObject(Object* obj, bool append) {
 	if(item) {
 		m_objectList->selectItem(item->getIndex());
 		m_objectList->ensureVisible(item->getIndex());
+		char model[128];
+		const char* file = item->getText(2);
+		file = strrchr(file, '/') + 1;
+		if(item->getValue(3, -1)<0) snprintf(model, 127, "%s", file);
+		else snprintf(model, 127, "%s : %d", file, item->getValue(3,0));
+
+		m_panel->getWidget<Textbox>("name")->setText(item->getText());
 		m_panel->getWidget<Textbox>("property")->setText(item->getText(5));
-		// TODO: Other properties
+		m_panel->getWidget<Label>("model")->setCaption(model);
+		refreshTransform(obj);
 	}
 
 	selectionChanged();
 }
+
+void ObjectEditor::refreshTransform(Object* obj) {
+	m_panel->getWidget<SpinboxFloat>("x")->setValue(obj->getPosition().x);
+	m_panel->getWidget<SpinboxFloat>("y")->setValue(obj->getPosition().y);
+	m_panel->getWidget<SpinboxFloat>("z")->setValue(obj->getPosition().z);
+	m_panel->getWidget<SpinboxFloat>("sx")->setValue(obj->getScale().x);
+	m_panel->getWidget<SpinboxFloat>("sy")->setValue(obj->getScale().y);
+	m_panel->getWidget<SpinboxFloat>("sz")->setValue(obj->getScale().z);
+
+	vec3 euler;
+	obj->getOrientation().toEuler(euler);
+	m_panel->getWidget<SpinboxFloat>("yaw")->setValue(euler.x * 180/PI);
+	m_panel->getWidget<SpinboxFloat>("pitch")->setValue(euler.y * 180/PI);
+	m_panel->getWidget<SpinboxFloat>("roll")->setValue(euler.z * 180/PI);
+	m_activeObject = obj;
+}
+
 
 void setRenderQueue(SceneNode* node, int queue) {
 	for(Drawable* d: node->attachments()) d->setRenderQueue(queue);
@@ -586,6 +657,7 @@ bool ObjectEditor::isSelected(SceneNode* obj) const {
 }
 
 void ObjectEditor::clearSelection() {
+	m_activeObject = nullptr;
 	m_objectList->clearSelection();
 	selectionChanged();
 }
@@ -785,57 +857,58 @@ base::Material* ObjectEditor::getMaterial(const char* name, bool nmap, bool col)
 	return material;
 }
 
-Object* ObjectEditor::createObject(const char* name, Model* model, Mesh* mesh, const char* material) {
-	if(!model && !mesh) return 0;
+Object* ObjectEditor::createObject(const char* name, Model* model, const char* mesh) {
+	if(!model) return nullptr;
 	
-	auto createDrawable = [&](Mesh* mesh) {
+	auto createDrawableFromMesh = [&](int meshIndex) {
+		Mesh* mesh = model->getMesh(meshIndex);
 		bool hasTangents = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_TANGENT);
 		bool hasColour = mesh->getVertexBuffer()->attributes.hasAttrribute(base::VA_COLOUR);
 		mesh->getVertexBuffer()->createBuffer();
 		mesh->getIndexBuffer()->createBuffer();
 		DrawableMesh* d = new DrawableMesh(mesh);
+		const char* material = model->getMaterialName(meshIndex);
 		d->setMaterial(getMaterial(material, hasTangents, hasColour));
+		if(mesh->getBounds().isEmpty()) mesh->calculateBounds();
 		return d;
 	};
-	auto calculateMeshBounds = [](Mesh* m) { if(m->getBounds().isEmpty()) m->calculateBounds(); };
 
 	Object* object = new Object();
 	object->setName(name);
 	m_node->addChild(object);
 
-	if(model) {
-		if(LayoutExtension* layout = model->getExtension<LayoutExtension>()) {
-			vec3 pos, scale(1);
-			Quaternion rot;
-			int count=0;
-			for(const LayoutExtension::Node* n: *layout) {
-				SceneNode* node = new SceneNode(n->name);
-				// Get all meshes with matching name
-				if(n->mesh) for(int i=0; i<model->getMeshCount(); ++i) {
-					if(strcmp(n->mesh, model->getMeshName(i))==0) {
-						node->attach(createDrawable(model->getMesh(i)));
-						calculateMeshBounds(model->getMesh(i));
-						++count;
-					}
-				}
-				LayoutExtension::getDerivedTransform(n, pos, rot);
-				node->setTransform(pos, rot, scale);
-				object->addChild(node);
-			}
-			printf("Created model %s (%d)\n", name, count);
-		}
-		else {
-			printf("Created model %s (%d)\n", name, model->getMeshCount());
-			for(int i=0; i<model->getMeshCount(); ++i) {
-				object->attach(createDrawable(model->getMesh(i)));
-				calculateMeshBounds(model->getMesh(i));
+	if(mesh) {
+		printf("Created named mesh %s\n", name);
+		for(int i=0; i<model->getMeshCount(); ++i) {
+			if(strcmp(model->getMeshName(i), mesh)==0) {
+				object->attach(createDrawableFromMesh(i));
 			}
 		}
 	}
-	else if(mesh) {
-		printf("Created single mesh %s\n", name);
-		object->attach(createDrawable(mesh) );
-		calculateMeshBounds(mesh);
+	else if(LayoutExtension* layout = model->getExtension<LayoutExtension>()) {
+		vec3 pos, scale(1);
+		Quaternion rot;
+		int count=0;
+		for(const LayoutExtension::Node* n: *layout) {
+			SceneNode* node = new SceneNode(n->name);
+			// Get all meshes with matching name
+			if(n->mesh) for(int i=0; i<model->getMeshCount(); ++i) {
+				if(strcmp(n->mesh, model->getMeshName(i))==0) {
+					object->attach(createDrawableFromMesh(i));
+					++count;
+				}
+			}
+			LayoutExtension::getDerivedTransform(n, pos, rot);
+			node->setTransform(pos, rot, scale);
+			object->addChild(node);
+		}
+		printf("Created model %s (%d)\n", name, count);
+	}
+	else {
+		printf("Created model %s (%d)\n", name, model->getMeshCount());
+		for(int i=0; i<model->getMeshCount(); ++i) {
+			object->attach(createDrawableFromMesh(i));
+		}
 	}
 	return object;
 }
@@ -848,9 +921,8 @@ void ObjectEditor::selectResource(TreeView*, TreeNode* resource) {
 	if(resource) {
 		const char* name = resource->getText();
 		Model* model = resource->getData(1).getValue<Model*>(0);
-		Mesh* mesh = resource->getData(1).getValue<Mesh*>(0);
-		const char* material = resource->getText(3);
-		m_placement = createObject(name, model, mesh, material);
+		const char* mesh = resource->getText(3);
+		m_placement = createObject(name, model, mesh);
 	}
 }
 
@@ -860,15 +932,26 @@ TreeNode* ObjectEditor::addModel(const char* path, const char* name) {
 	TreeNode* node = new TreeNode(name);
 	node->setData(1, model);
 	node->setData(2, String(path));
-	node->setData(3, model->getMaterialName(0));
-	for(int i=0; i<model->getMeshCount(); ++i) model->getMesh(i)->calculateBounds();
-	if(model->getMeshCount()>1) {
+	if(model->getMeshCount() > 1) {
+		// Does the name of mesh i match any previous ones - used for merging meshes
+		auto isSubMesh = [model](int index) {
+			const char* name = model->getMeshName(index);
+			while(--index>=0) if(strcmp(name, model->getMeshName(index))==0) return true;
+			return false;
+		};
+
+		// Make sure there are actually multiple meshes
+		int actualMeshCount = 1;
+		for(int i=1; i<model->getMeshCount(); ++i) if(!isSubMesh(i)) ++actualMeshCount;
+
 		// Allow placing individual meshes
-		for(int i=0; i<model->getMeshCount(); ++i) {
-			TreeNode* mesh = new TreeNode(model->getMeshName(i));
-			mesh->setData(1, model->getMesh(i));
-			mesh->setData(3, model->getMaterialName(i));
-			node->add(mesh);
+		if(actualMeshCount>1) for(int i=0; i<model->getMeshCount(); ++i) {
+			if(isSubMesh(i)) continue;
+			const char* mesh = model->getMeshName(i);
+			TreeNode* meshNode = new TreeNode(mesh);
+			meshNode->setData(1, model);
+			meshNode->setData(3, String(mesh));
+			node->add(meshNode);
 		}
 	}
 	return node;

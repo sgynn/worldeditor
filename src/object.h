@@ -1,5 +1,4 @@
-#ifndef _OBJECT_
-#define _OBJECT_
+#pragma once
 
 #include <base/scene.h>
 
@@ -22,6 +21,4 @@ class Object : public base::SceneNode {
 	BoundingBox m_bounds;
 	
 };
-
-#endif
 
