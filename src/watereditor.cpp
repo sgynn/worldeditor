@@ -379,9 +379,10 @@ void WaterEditor::activate() {
 }
 
 
-void WaterEditor::addItem(Combobox*, int type) {
+void WaterEditor::addItem(Combobox*, ListItem& item) {
 	deselect();
-	if(type==0) {
+	int type = item.getIndex();
+	if(type == 0) {
 		m_river = m_waterSystem->addRiver();
 		m_list->addItem("River", m_river, 38);
 		WaterSystem::RiverNode node;
@@ -392,7 +393,7 @@ void WaterEditor::addItem(Combobox*, int type) {
 		m_river->nodes.push_back(node);
 	}
 	else {
-		m_lake = m_waterSystem->addLake(type==1);
+		m_lake = m_waterSystem->addLake(type == 1);
 		m_list->addItem(type==1?"Lake":"Ocean", m_river, 38);
 		WaterSystem::SplineNode node;
 		node.a = node.b = 4;
@@ -417,9 +418,9 @@ void WaterEditor::deselect() {
 	m_list->clearSelection();
 }
 
-void WaterEditor::selectItem(Listbox* list, int index) {
-	list->getItemData(index).read(m_river);
-	list->getItemData(index).read(m_lake);
+void WaterEditor::selectItem(Listbox* list, ListItem& item) {
+	item.getData(1).read(m_river);
+	item.getData(1).read(m_lake);
 }
 
 void WaterEditor::deleteItem(Button*) {

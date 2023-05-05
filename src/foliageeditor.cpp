@@ -135,7 +135,7 @@ base::Material* FoliageEditor::createMaterial(FoliageType type, const char* diff
 
 // ======================================================================== //
 
-FoliageEditor:: FoliageEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, base::SceneNode* node) : m_foliage(0), m_fileSystem(fs), m_terrain(terrain), m_node(node) {
+FoliageEditor:: FoliageEditor(Root* gui, FileSystem* fs, MapGrid* terrain, base::SceneNode* node) : m_foliage(0), m_fileSystem(fs), m_terrain(terrain), m_node(node) {
 	setupGui(gui);
 }
 FoliageEditor::~FoliageEditor() {
@@ -145,7 +145,7 @@ FoliageEditor::~FoliageEditor() {
 	delete m_spriteList;
 }
 
-void FoliageEditor::setupGui(gui::Root* gui) {
+void FoliageEditor::setupGui(Root* gui) {
 	createPanel(gui, "foliage", "foliage.xml");
 	createToolButton(gui, "Foliage");
 
@@ -165,8 +165,8 @@ void FoliageEditor::setupGui(gui::Root* gui) {
 }
 
 void FoliageEditor::close() {
-	for(uint i=0; i<m_layerList->getItemCount(); ++i) {
-		FoliageLayerEditor* editor = m_layerList->getItemData(i).getValue<FoliageLayerEditor*>(0);
+	for(const ListItem& item: m_layerList->items()) {
+		FoliageEditor* editor = item.findValue<FoliageEditor*>();
 		if(editor) editor->getPanel()->setVisible(false);
 	}
 }
@@ -175,8 +175,8 @@ void FoliageEditor::update(const Mouse&, const Ray& ray, base::Camera*, InputSta
 	if(m_foliage) m_foliage->update(ray.start);
 }
 
-void FoliageEditor::addLayer(gui::Combobox* c, int i) {
-	FoliageLayerEditor* editor = addLayer((FoliageType)i);
+void FoliageEditor::addLayer(Combobox* c, ListItem& type) {
+	FoliageLayerEditor* editor = addLayer((FoliageType)type.getIndex());
 	showEditor(editor);
 }
 
@@ -205,39 +205,33 @@ FoliageLayerEditor* FoliageEditor::addLayer(FoliageType type) {
 }
 
 void FoliageEditor::removeLayer(Button*) {
-	int index = m_layerList->getSelectedIndex();
-	if(index>=0) {
-		FoliageLayerEditor* editor = m_layerList->getItemData(index).getValue<FoliageLayerEditor*>(0);
+	if(const ListItem* item = m_layerList->getSelectedItem()) {
+		FoliageLayerEditor* editor = item->findValue<FoliageLayerEditor*>();
+		m_layerList->removeItem(item->getIndex());
 		destroy(editor);
-		m_layerList->removeItem(index);
 	}
 }
 void FoliageEditor::duplicateLayer(Button*) {
-	int index = m_layerList->getSelectedIndex();
-	if(index>=0) {
-		FoliageLayerEditor* from = m_layerList->getItemData(index).getValue<FoliageLayerEditor*>(0);
-		FoliageLayerEditor* to =  addLayer(from->getType());
+	if(const ListItem* item = m_layerList->getSelectedItem()) {
+		FoliageLayerEditor* from = item->findValue<FoliageLayerEditor*>();
+		FoliageLayerEditor* to = addLayer(from->getType());
 		to->load(from->save()); // meh ?
 		showEditor(to);
 	}
 }
 
-void FoliageEditor::layerSelected(Listbox* list, int i) {
-	m_removeButton->setEnabled(i>=0);
-	m_cloneButton->setEnabled(i>=0);
-	if(i>=0) {
-		FoliageLayerEditor* editor = 0;
-		list->getItemData(i).read(editor);
-		if(editor) {
-			showEditor(editor);
-		}
+void FoliageEditor::layerSelected(Listbox* list, ListItem& item) {
+	m_removeButton->setEnabled(item.isValid());
+	m_cloneButton->setEnabled(item.isValid());
+	if(FoliageLayerEditor* editor = item.findValue<FoliageLayerEditor*>()) {
+		showEditor(editor);
 	}
 }
 
 void FoliageEditor::layerRenamed(FoliageLayerEditor* e) {
-	for(uint i=0; i<m_layerList->getItemCount(); ++i) {
-		if(m_layerList->getItemData(i).getValue<FoliageLayerEditor*>(0) == e) {
-			m_layerList->setItemName(i, e->getName());
+	for(ListItem& item: m_layerList->items()) {
+		if(item.findValue<FoliageLayerEditor*>() == e) {
+			item.setValue(e->getName());
 			break;
 		}
 	}
@@ -248,19 +242,17 @@ void FoliageEditor::showEditor(FoliageLayerEditor* layer) {
 	layer->getPanel()->raise();
 	
 	// Don't perfectly overlap them
-	for(uint i=0; i<m_layerList->getItemCount(); ++i) {
-		FoliageLayerEditor* editor = m_layerList->getItemData(i).getValue<FoliageLayerEditor*>(0);
+	for(ListItem& item: m_layerList->items()) {
+		FoliageLayerEditor* editor = item.findValue<FoliageLayerEditor*>();
 		if(editor != layer && editor->getPanel()->isVisible() && editor->getPanel()->getPosition() == layer->getPanel()->getPosition()) {
 			layer->getPanel()->setPosition(layer->getPanel()->getPosition() + Point(32, 32));
-			
 		}
 	}
 }
 
 void FoliageEditor::clear() {
-	for(uint i=0; i<m_layerList->getItemCount(); ++i) {
-		FoliageLayerEditor* editor = m_layerList->getItemData(i).getValue<FoliageLayerEditor*>(0);
-		destroy(editor);
+	for(ListItem& item: m_layerList->items()) {
+		destroy(item.findValue<FoliageLayerEditor*>());
 	}
 	m_layerList->clearItems();
 }
@@ -354,35 +346,28 @@ void FoliageLayerEditor::updateSliders() {
 	SET_SLIDER("maxalign", m_angle.max, 1);
 }
 
-inline int getListIndex(ItemList* list, const char* name) {
-	for(uint i=0; i<list->getItemCount(); ++i) {
-		if(strcmp(list->getItem(i), name)==0) return i;
-	}
-	return -1;
-}
-
-void FoliageLayerEditor::renameLayer(gui::Textbox* t) {
+void FoliageLayerEditor::renameLayer(Textbox* t) {
 	m_name = t->getText();
 	if(eventRenamed) eventRenamed(this);
 }
 
-void FoliageLayerEditor::setDensityMap(gui::Combobox*, int) {}
-void FoliageLayerEditor::setDensity(gui::Scrollbar*, int v) { m_density=powf(v*0.001,2)*m_densityMax; refresh(); }
-void FoliageLayerEditor::setRange(gui::Scrollbar*, int v)   { m_range=v; m_layer->setViewRange(m_range); }
+void FoliageLayerEditor::setDensityMap(Combobox*, ListItem&) {}
+void FoliageLayerEditor::setDensity(Scrollbar*, int v) { m_density=powf(v*0.001,2)*m_densityMax; refresh(); }
+void FoliageLayerEditor::setRange(Scrollbar*, int v)   { m_range=v; m_layer->setViewRange(m_range); }
 
-void FoliageLayerEditor::setMinHeight(gui::Scrollbar*, int v) { m_height.min = v*0.5; refresh(); }
-void FoliageLayerEditor::setMaxHeight(gui::Scrollbar*, int v) { m_height.max = v*0.5; refresh(); }
-void FoliageLayerEditor::setMinSlope(gui::Scrollbar*, int v)  { m_slope.min = v*0.001; refresh(); }
-void FoliageLayerEditor::setMaxSlope(gui::Scrollbar*, int v)  { m_slope.max = v*0.001; refresh(); }
+void FoliageLayerEditor::setMinHeight(Scrollbar*, int v) { m_height.min = v*0.5; refresh(); }
+void FoliageLayerEditor::setMaxHeight(Scrollbar*, int v) { m_height.max = v*0.5; refresh(); }
+void FoliageLayerEditor::setMinSlope(Scrollbar*, int v)  { m_slope.min = v*0.001; refresh(); }
+void FoliageLayerEditor::setMaxSlope(Scrollbar*, int v)  { m_slope.max = v*0.001; refresh(); }
 
-void FoliageLayerEditor::setMinScale(gui::Scrollbar*, int v)  { m_scale.min = v*0.01; refresh(); }
-void FoliageLayerEditor::setMaxScale(gui::Scrollbar*, int v)  { m_scale.max = v*0.01; refresh(); }
+void FoliageLayerEditor::setMinScale(Scrollbar*, int v)  { m_scale.min = v*0.01; refresh(); }
+void FoliageLayerEditor::setMaxScale(Scrollbar*, int v)  { m_scale.max = v*0.01; refresh(); }
 
-void FoliageLayerEditor::setMinAngle(gui::Scrollbar*, int v)  { m_angle.min = v*0.01; refresh(); }
-void FoliageLayerEditor::setMaxAngle(gui::Scrollbar*, int v)  { m_angle.max = v*0.01; refresh(); }
+void FoliageLayerEditor::setMinAngle(Scrollbar*, int v)  { m_angle.min = v*0.01; refresh(); }
+void FoliageLayerEditor::setMaxAngle(Scrollbar*, int v)  { m_angle.max = v*0.01; refresh(); }
 
 // -------------------------------------------------------------------------------------- //
-void FoliageLayerEditor::loadMesh(gui::Button*) {
+void FoliageLayerEditor::loadMesh(Button*) {
 	m_editor->m_fileDialog->eventConfirm.bind(this, &FoliageLayerEditor::loadMeshFile);
 	m_editor->m_fileDialog->setFilter("*.bm");
 	m_editor->m_fileDialog->setFileName("");
@@ -392,8 +377,9 @@ void FoliageLayerEditor::loadMeshFile(const char* file) {
 	m_file = file;
 	const char* name = strrchr(file, '/') + 1;
 	Combobox* list = m_panel->getWidget<Combobox>("mesh");
-	int index = getListIndex(m_editor->m_meshList, name);
-	if(index<0) {
+	ListItem* existing = list->findItem([name](ListItem& i){return strcmp(i.getText(), name)==0; });
+	if(existing) list->selectItem(existing->getIndex(), true);
+	else {
 		FoliageMesh mesh { file, 0,0,0,0 };
 		mesh.material = m_editor->createMaterial(m_type, "./maps/white.png");
 		base::Model* model = base::BMLoader::load(file);
@@ -403,26 +389,23 @@ void FoliageLayerEditor::loadMeshFile(const char* file) {
 			mesh.mesh->getIndexBuffer()->createBuffer();
 		}
 		list->addItem(name, mesh);
-		list->setText(name);
-		index = list->getItemCount()-1;
+		list->selectItem(list->getItemCount()-1, true);
 	}
-	list->selectItem(index);
-	setMesh(list, index);
 }
-void FoliageLayerEditor::setMesh(gui::Combobox* list, int index) {
-	FoliageMesh* mesh = list->getItemData(index).cast<FoliageMesh>();
-	static_cast<FoliageInstanceLayer*>(m_layer)->setMesh(mesh->mesh);
-	m_layer->setMaterial(mesh->material);
+void FoliageLayerEditor::setMesh(Combobox* list, ListItem& item) {
+	const FoliageMesh& mesh = item.getValue<FoliageMesh>(1, FoliageMesh());
+	static_cast<FoliageInstanceLayer*>(m_layer)->setMesh(mesh.mesh);
+	m_layer->setMaterial(mesh.material);
 	refresh();
 }
-void FoliageLayerEditor::setAlignment(gui::Combobox*, int i) {
-	m_align = i;
+void FoliageLayerEditor::setAlignment(Combobox*, ListItem& value) {
+	m_align = value.getIndex();
 	m_panel->getWidget<Widget>("alignrange")->setVisible(m_align>1);
 	refresh();
 }
 
 // -------------------------------------------------------------------------------------- //
-void FoliageLayerEditor::loadSprite(gui::Button*) {
+void FoliageLayerEditor::loadSprite(Button*) {
 	m_editor->m_fileDialog->eventConfirm.bind(this, &FoliageLayerEditor::loadSpriteFile);
 	m_editor->m_fileDialog->setFilter("*.png");
 	m_editor->m_fileDialog->setFileName("");
@@ -433,24 +416,22 @@ void FoliageLayerEditor::loadSpriteFile(const char* file) {
 	const char* name = strrchr(file, '/');
 	if(name) ++name; else name=file;
 	Combobox* list = m_panel->getWidget<Combobox>("sprite");
-	int index = getListIndex(m_editor->m_spriteList, name);
-	if(index<0) {
+	ListItem* existing = list->findItem([name](ListItem& i){return strcmp(i.getText(), name)==0; });
+	if(existing) list->selectItem(existing->getIndex());
+	else {
 		FoliageSprite sprite;
 		sprite.file = m_editor->m_fileSystem->getRelative(file);
 		sprite.material = m_editor->createMaterial(m_type, m_editor->m_fileSystem->getFile(file));
 		list->addItem(name, sprite);
-		list->setText(name);
-		index = list->getItemCount()-1;
+		list->selectItem(list->getItemCount()-1, true);
 	}
-	list->selectItem(index);
-	setSprite(list, index);
 }
-void FoliageLayerEditor::setSprite(gui::Combobox* list, int index) {
-	FoliageSprite* sprite = list->getItemData(index).cast<FoliageSprite>();
-	m_layer->setMaterial(sprite->material);
+void FoliageLayerEditor::setSprite(Combobox* list, ListItem& item) {
+	const FoliageSprite& sprite = item.getValue<FoliageSprite>(1, FoliageSprite());
+	m_layer->setMaterial(sprite.material);
 	refresh();
 }
-void FoliageLayerEditor::setScaleMap(gui::Combobox*, int) {}
+void FoliageLayerEditor::setScaleMap(Combobox*, ListItem&) {}
 // -------------------------------------------------------------------------------------- //
 
 void FoliageLayerEditor::refresh() {
@@ -485,8 +466,8 @@ inline void loadRange(const XMLElement& e, ::Range& range) {
 
 XMLElement FoliageEditor::save(const TerrainMap* context) const {
 	XMLElement e("foliage");
-	for(uint i=0; i<m_layerList->getItemCount(); ++i) {
-		const FoliageLayerEditor* layer = m_layerList->getItemData(i).getValue<FoliageLayerEditor*>(0);
+	for(const ListItem& item: m_layerList->items()) {
+		const FoliageLayerEditor* layer = item.getValue<FoliageLayerEditor*>(1, nullptr);
 		e.add(layer->save());
 	}
 	return e;
@@ -504,7 +485,7 @@ XMLElement FoliageLayerEditor::save() const {
 
 	if(m_type==FoliageType::Grass) {
 		Combobox* list = m_panel->getWidget<Combobox>("sprite");
-		FoliageSprite* sprite = list->getSelectedData().cast<FoliageSprite>();
+		FoliageSprite* sprite = list->getSelectedItem()->getData(1).cast<FoliageSprite>();
 		if(sprite) {
 			XMLElement& f = e.add("sprite");
 			f.setAttribute("file", m_editor->m_fileSystem->getRelative(sprite->file));
@@ -512,7 +493,7 @@ XMLElement FoliageLayerEditor::save() const {
 	}
 	if(m_type==FoliageType::Instanced) {
 		Combobox* list = m_panel->getWidget<Combobox>("mesh");
-		FoliageMesh* mesh = list->getSelectedData().cast<FoliageMesh>();
+		FoliageMesh* mesh = list->getSelectedItem()->getData(1).cast<FoliageMesh>();
 		if(mesh) {
 			XMLElement& f = e.add("mesh");
 			f.setAttribute("file", m_editor->m_fileSystem->getRelative(mesh->file));

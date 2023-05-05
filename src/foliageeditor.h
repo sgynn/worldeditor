@@ -1,5 +1,4 @@
-#ifndef _FOLIAGE_EDITOR_
-#define _FOLIAGE_EDITOR_
+#pragma once
 
 #include "editorplugin.h"
 #include <base/gui/widgets.h>
@@ -59,13 +58,12 @@ class FoliageEditor : public EditorPlugin {
 	void showEditor(FoliageLayerEditor* layer);
 	
 	protected:
-	void layerSelected(gui::Listbox*, int);
+	void layerSelected(gui::Listbox*, gui::ListItem&);
 	void layerRenamed(class FoliageLayerEditor*);
-	void addLayer(gui::Combobox*, int);
+	void addLayer(gui::Combobox*, gui::ListItem&);
 	void removeLayer(gui::Button*);
 	void duplicateLayer(gui::Button*);
 	void destroy(FoliageLayerEditor*);
-
 
 	protected:
 	friend class FoliageLayerEditor;
@@ -99,7 +97,7 @@ class FoliageLayerEditor {
 	private:
 	void renameLayer(gui::Textbox*);
 
-	void setDensityMap(gui::Combobox*, int);
+	void setDensityMap(gui::Combobox*, gui::ListItem&);
 	void setDensity(gui::Scrollbar*, int);
 	void setRange(gui::Scrollbar*, int);
 
@@ -116,13 +114,13 @@ class FoliageLayerEditor {
 
 	void loadMesh(gui::Button*);
 	void loadMeshFile(const char*);
-	void setMesh(gui::Combobox*, int);
-	void setAlignment(gui::Combobox*, int);
+	void setMesh(gui::Combobox*, gui::ListItem&);
+	void setAlignment(gui::Combobox*, gui::ListItem&);
 
 	void loadSprite(gui::Button*);
 	void loadSpriteFile(const char*);
-	void setSprite(gui::Combobox*, int);
-	void setScaleMap(gui::Combobox*, int);
+	void setSprite(gui::Combobox*, gui::ListItem&);
+	void setScaleMap(gui::Combobox*, gui::ListItem&);
 
 	public:
 	Delegate<void(FoliageLayerEditor*)> eventRenamed;
@@ -146,7 +144,4 @@ class FoliageLayerEditor {
 	gui::String m_name;
 	gui::Widget* m_panel;
 };
-
-
-#endif
 

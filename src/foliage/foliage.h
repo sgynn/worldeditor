@@ -1,5 +1,4 @@
-#ifndef _FOLIAGE_
-#define _FOLIAGE_
+#pragma once
 
 // Generic heightmap procedural foliage
 
@@ -173,11 +172,4 @@ private:
 	std::vector<GenChunk> m_queue;
 	void threadFunc(int index);
 };
-
-
-
-
-
-#endif
-
 

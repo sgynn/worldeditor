@@ -1,13 +1,10 @@
-#ifndef _DIALOGS_
-#define _DIALOGS_
-
-// Some additional gui dialogs //
+#pragma once
 
 #include <base/gui/widgets.h>
 
 namespace gui {
 	class Listbox;
-	class Textbox;
+	class ListItem;
 }
 
 class FileDialog : public gui::Window {
@@ -54,11 +51,9 @@ class FileDialog : public gui::Window {
 	gui::Textbox* m_dir;
 	gui::Textbox* m_file;
 	gui::Button*  m_confirm;
-	int m_folderIcon;
-	int m_fileIcon;
 	bool m_saveMode;
 
-	void selectFile(gui::Listbox*, int);
+	void selectFile(gui::Listbox*, gui::ListItem&);
 	void clickFile(gui::Widget*, const Point&, int);
 	void submitFileName(gui::Textbox*);
 	void changedFileName(gui::Textbox*, const char*);
@@ -69,7 +64,4 @@ class FileDialog : public gui::Window {
 	void pressConfirm(gui::Button*);
 };
 
-
-
-#endif
 

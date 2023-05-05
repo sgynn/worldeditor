@@ -25,7 +25,7 @@ PolygonEditor::PolygonEditor(gui::Root* gui, FileSystem*, MapGrid* terrain, base
 	m_properties = m_panel->getWidget<Widget>("properties");
 	m_propertyTemplate = m_properties->getWidget<Widget>("property");
 	m_propertyTemplate->removeFromParent();
-	polygonSelected(m_list,-1);
+	clearSelection();
 
 	CONNECT(Button,  "add", eventPressed, addPolygon);
 	CONNECT(Button,  "remove", eventPressed, removePolygon);
@@ -57,7 +57,7 @@ void PolygonEditor::addPolygon(Button*) {
 	int index = m_list->getItemCount();
 	m_list->addItem("Polygon", p);
 	m_list->selectItem(index);
-	polygonSelected(m_list, index);
+	polygonSelected(m_list, m_list->getItem(index));
 	updateDrawable(p);
 	m_dragging = INITIAL;
 	m_selected = p;
@@ -74,15 +74,16 @@ void PolygonEditor::removePolygon(Button*) {
 		m_list->removeItem(index);
 		if(index==(int)m_list->getItemCount()) --index;
 		m_list->selectItem(index);
-		polygonSelected(m_list, index);
+		if(index>=0) polygonSelected(m_list, m_list->getItem(index));
 	}
 }
 
-void PolygonEditor::polygonSelected(Listbox* list, int index) {
-	m_properties->setVisible(index>=0);
-	m_panel->getWidget("flags")->setVisible(index>=0);
-	if(index>=0) {
-		list->getItemData(index).read(m_selected);
+void PolygonEditor::polygonSelected(Listbox* list, ListItem& item) {
+	if(!item.isValid()) clearSelection();
+	else {
+		m_properties->setVisible(true);
+		m_panel->getWidget("flags")->setVisible(true);
+		m_selected = item.getValue<Polygon*>(1, nullptr);
 		int size = m_selected->properties.size();
 		while(m_properties->getWidgetCount() < size+1) addPropertyWidget();
 		while(m_properties->getWidgetCount() > size+1) {
@@ -97,9 +98,13 @@ void PolygonEditor::polygonSelected(Listbox* list, int index) {
 			value->setText( m_selected->properties[i].value );
 		}
 	}
-	else {
-		m_selected = 0;
-	}
+}
+
+void PolygonEditor::clearSelection() {
+	m_selected = nullptr;
+	m_properties->setVisible(false);
+	m_panel->getWidget("flags")->setVisible(false);
+	m_list->clearSelection();
 }
 
 // ------------------------------------------------------------------------------ //
@@ -129,7 +134,7 @@ void PolygonEditor::changeProperty(Textbox* text, const char* value) {
 	else prop.value = value;
 	// Changed name
 	if(prop.key=="name" || prop.key == "Name") {
-		m_list->setItemName(m_list->getSelectedIndex(), value);
+		m_list->getItem(m_list->getSelectedIndex()).setValue(value);
 	}
 }
 
@@ -176,7 +181,7 @@ XMLElement PolygonEditor::save(const TerrainMap* context) const {
 	char buffer[2048];
 	for(uint i=0; i<m_list->getItemCount(); ++i) {
 		XMLElement& e = xml.add("polygon");
-		Polygon* poly = *m_list->getItemData(i).cast<Polygon*>();
+		Polygon* poly = m_list->getItem(i).getValue<Polygon*>(1, nullptr);
 		for(const ItemProperty& p: poly->properties) e.setAttribute(p.key, p.value);
 		char* c = buffer;
 		int size = poly->points.size();
@@ -193,12 +198,12 @@ XMLElement PolygonEditor::save(const TerrainMap* context) const {
 
 void PolygonEditor::clear() {
 	for(uint i=0; i<m_list->getItemCount(); ++i) {
-		Polygon* poly = *m_list->getItemData(i).cast<Polygon*>();
+		Polygon* poly = m_list->getItem(i).getValue<Polygon*>(1, nullptr);
 		destroyDrawable(poly);
 		delete poly;
 	}
 	m_list->clearItems();
-	polygonSelected(m_list, -1);
+	clearSelection();
 }
 
 // ------------------------------------------------------------------------------ //
@@ -216,7 +221,7 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 		float s, t;
 		Polygon* target = 0;
 		for(uint k=0; k<m_list->getItemCount(); ++k) {
-			Polygon* polygon = *m_list->getItemData(k).cast<Polygon*>();
+			Polygon* polygon = m_list->getItem(k).getValue<Polygon*>(1, nullptr);
 			int size = polygon->points.size();
 			for(int i=size-1, j=0; i<size; i=j++) {
 				float r = base::closestPointBetweenLines(ray.start, end, polygon->points[i], polygon->points[j], s, t);
@@ -246,9 +251,9 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 		// Selection changed
 		if(target && target !=m_selected) {
 			for(uint i=0; i<m_list->getItemCount(); ++i) {
-				if(m_list->getItemData(i) == target) {
+				if(m_list->getItem(i).getValue<Polygon*>(1, nullptr) == target) {
 					m_list->selectItem(i);
-					polygonSelected(m_list, i);
+					polygonSelected(m_list, m_list->getItem(i));
 				}
 			}
 		}

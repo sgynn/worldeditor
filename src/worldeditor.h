@@ -18,7 +18,7 @@ class DynamicMaterial;
 class MaterialEditor;
 class MiniMap;
 
-namespace gui { class Button; class Combobox; class Scrollbar; class Window; class Listbox; class Popup; class Textbox; }
+namespace gui { class Button; class Combobox; class Scrollbar; class Window; class Listbox; class Popup; class Textbox; class ListItem; }
 namespace base { class INIFile; class XMLElement; }
 
 enum class SaveFormat { RAW, TIF16, PNG16 };
@@ -57,11 +57,11 @@ class WorldEditor : public base::GameState {
 
 	void createNewTerrain(gui::Button*);
 	void cancelNewTerrain(gui::Button*);
-	void changeTerrainMode(gui::Combobox*, int);
+	void changeTerrainMode(gui::Combobox*, gui::ListItem&);
 	void browseTerrainSource(gui::Button*);
 	void setTerrainSource(const char* file);
 
-	void validateNewEditor(gui::Combobox*, int);
+	void validateNewEditor(gui::Combobox*, gui::ListItem&);
 	void createNewEditor(gui::Button*);
 	void cancelNewEditor(gui::Button* = 0);
 	void cancelNewEditor(gui::Window*);
@@ -73,7 +73,7 @@ class WorldEditor : public base::GameState {
 	void loadTile(gui::Button*);
 	void unloadTile(gui::Button*);
 	void showTileList(gui::Button*);
-	void assignTile(gui::Listbox*, int);
+	void assignTile(gui::Listbox*, gui::ListItem&);
 	void showRenameTile(gui::Button*);
 	void renameTile(gui::Button*);
 	void renameTile(gui::Textbox*);
@@ -85,7 +85,7 @@ class WorldEditor : public base::GameState {
 	void changeCollision(gui::Button*);
 	void saveSettings(gui::Window* =0);
 
-	void selectToolGroup(gui::Combobox*, int);
+	void selectToolGroup(gui::Combobox*, gui::ListItem&);
 	void selectTool(ToolInstance*);
 	void changeBrushSlider(gui::Scrollbar*, int);
 	void updateBrushSliders();

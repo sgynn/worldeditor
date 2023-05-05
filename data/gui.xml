@@ -126,7 +126,7 @@
 	<!--Templates-->
 	<template class="Icon" iconlist="icons" rect="0 0 32 32" name="icon" skin="panel" category="Display"/>
 	<template class="Button" rect="0 0 32 32" name="iconbutton" skin="button">
-		<widget anchor="tlrb" class="Icon" iconlist="icons" rect="0 0 32 32" name="_icon"/>
+		<widget anchor="tlrb" class="Icon" iconlist="icons" rect="0 0 32 32" name="_icon" skin="button" inheritstate="1"/>
 	</template>
 	<template class="Window" rect="0 0 100 100" name="dialog">
 		<widget anchor="tr" template="iconbutton" name="_close" rect="84 0 16 16" icon="close_dialog"/>
@@ -149,13 +149,14 @@
 	<template class="Listbox" rect="0 0 100 100" name="listbox">
 		<widget anchor="tlrb" rect="0 0 84 100" name="_client"/>
 		<widget anchor="trb" template="vscroll" name="_scroll" rect="84 0 16 100"/>
-		<widget anchor="lr" rect="2 0 80 20" name="_text" skin="listitem"/>
 	</template>
 	<template class="Listbox" rect="0 0 100 100" name="iconlistbox">
 		<widget anchor="tlrb" rect="0 0 85 100" name="_client"/>
 		<widget anchor="trb" template="vscroll" name="_scroll" rect="84 0 16 100"/>
-		<widget anchor="lr" rect="18 0 67 20" name="_text" skin="none"/>
-		<widget class="Icon" iconlist="icons" rect="0 2 16 16" name="_icon"/>
+		<widget name="_item" rect="0 0 100 20"  tangible="2" anchor="lr" skin="none">
+			<widget name="_0" class="Label" skin="listitem" rect="20 0 80 20" inheritstate="1"/>
+			<widget name="_1" template="icon" rect="2 2 16 16"/>
+		</widget>
 	</template>
 	<template max="1000" class="Scrollbar" rect="0 0 100 16" name="slider" skin="none" orientation="horizontal">
 		<widget anchor="mlr" inheritstate="1" tangible="0" rect="0 6 100 4" skin="button"/>
@@ -171,15 +172,15 @@
 		<widget anchor="blr" class="Listbox" rect="0 32 100 100" name="_list">
 			<widget anchor="tlrb" rect="0 0 85 100" name="_client"/>
 			<widget anchor="trb" template="vscroll" name="_scroll" rect="84 0 16 100"/>
-			<widget anchor="lr" rect="38 6 67 20" name="_text" skin="none"/>
-			<widget class="Icon" iconlist="icons" rect="4 0 32 32" name="_icon"/>
+			<widget name="_item" rect="0 0 84 32" tangible="0" skin="none" anchor="lr">
+				<widget anchor="lr" rect="38 6 67 20" class="Label" name="_0" skin="none"/>
+				<widget class="Icon" iconlist="icons" rect="4 0 32 32" name="_2"/>
+			</widget>
 		</widget>
 	</template>
 	<template class="Combobox" rect="476 798 100 20" name="droplist" skin="default">
 		<widget anchor="lrtb" class="Label" rect="0 0 100 20" name="_text" skin="none"/>
-		<widget anchor="lrb" class="Listbox" rect="0 20 100 100" name="_list" skin="default">
-			<widget class="Widget" rect="2 0 80 20" name="_text" skin="none"/>
-		</widget>
+		<widget anchor="lrb" class="Listbox" rect="0 20 100 100" name="_list" skin="default"/>
 	</template>
 	<template anchor="lrt" class="Widget" rect="290 607 216 100" name="textureitem" skin="border">
 		<widget class="Icon" rect="4 4 92 92" name="textureicon" skin="default"/>

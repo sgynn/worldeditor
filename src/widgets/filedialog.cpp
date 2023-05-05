@@ -12,7 +12,7 @@ using namespace base;
 using namespace gui;
 
 
-FileDialog::FileDialog(const Rect& r, Skin* s) : Window(r, s), m_filename(0), m_historyIndex(0), m_lastClick(0), m_folderIcon(0), m_fileIcon(0), m_saveMode(false) {
+FileDialog::FileDialog(const Rect& r, Skin* s) : Window(r, s), m_filename(0), m_historyIndex(0), m_lastClick(0), m_saveMode(false) {
 	m_extension[0]=0;
 	m_filter[0]=0;
 }
@@ -45,11 +45,6 @@ void FileDialog::initialise(const Root* r, const PropertyMap& p) {
 	if(btn) btn->eventPressed.bind(this, &FileDialog::pressBack);
 	btn = getWidget<Button>("fwd");
 	if(btn) btn->eventPressed.bind(this, &FileDialog::pressForward);
-
-	// Cache icons
-	m_folderIcon = m_list->getIconList()->getIconIndex("folder");
-	m_fileIcon = m_list->getIconList()->getIconIndex("file");
-	
 
 	// Load properties
 	const char* initialPath = ".";
@@ -96,12 +91,16 @@ void FileDialog::setDirectory(const char* dir) {
 	// Refresh
 	refreshFileList();
 }
+
+inline bool isDirectory(const ListItem& item) {
+	return item.getValue(2, false);
+}
+
 void FileDialog::refreshFileList() {
 	if(!isVisible()) return;
 	m_list->clearItems();
 	Directory d( getDirectory() );
 	for(Directory::iterator i = d.begin(); i!=d.end(); ++i) {
-		int icon = i->type==Directory::DIRECTORY? m_folderIcon: m_fileIcon;
 		if(i->name[0]=='.') continue; // Ignore hidden files
 		// Match filters
 		if(i->type!=Directory::DIRECTORY && m_filter[0]) {
@@ -117,7 +116,8 @@ void FileDialog::refreshFileList() {
 			if(!matches) continue;
 		}
 		// Add item to list
-		m_list->addItem( i->name, Any(), icon );
+		if(i->type == Directory::DIRECTORY) m_list->addItem(i->name, "folder", true);
+		else m_list->addItem(i->name, "file");
 	}
 }
 
@@ -189,11 +189,11 @@ void FileDialog::showSave() {
 }
 
 
-void FileDialog::selectFile(Listbox* list, int index) {
-	m_file->setText( list->getItem(index) );
+void FileDialog::selectFile(Listbox* list, ListItem& item) {
+	m_file->setText(item);
 	m_confirm->setEnabled( true );
 	if(m_saveMode) {
-		m_confirm->setCaption( list->getItemIcon(index) == m_folderIcon? "Open": "Save" );
+		m_confirm->setCaption(isDirectory(item)? "Open": "Save" );
 	}
 }
 
@@ -245,9 +245,9 @@ void FileDialog::pressForward(Button* b) {
 }
 void FileDialog::pressConfirm(Button*) {
 	// Directory selected
-	if(m_list->getSelectionSize() && m_list->getItemIcon( m_list->getSelectedIndex() )==m_folderIcon) {
+	if(m_list->getSelectionSize() && isDirectory(*m_list->getSelectedItem())) {
 		char buffer[1024];
-		sprintf(buffer, "%s/%s", getDirectory(), m_list->getSelectedItem());
+		sprintf(buffer, "%s/%s", getDirectory(), m_list->getSelectedItem()->getText());
 		setDirectory(buffer);
 	}
 	// Confirm file operation

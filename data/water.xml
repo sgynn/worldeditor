@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <gui height="1024" width="1280">
-	<external file="data/gui.xml"/>
-	<external file="data/foliage.xml"/>
+	<external file="gui.xml"/>
+	<external file="foliage.xml"/>
 	<!--Templates-->
 	<template class="Button" name="button" skin="button" category="Input"/>
 	<template category="Display" class="Label" name="label" skin="panel" caption="Label"/>

@@ -5,7 +5,7 @@
 #include <base/vec.h>
 #include <vector>
 
-namespace gui { class Button; class Listbox; class Textbox; class Combobox; class Spinbox; }
+namespace gui { class Button; class Listbox; class ListItem; class Textbox; class Combobox; class Spinbox; }
 namespace base { class XMLElement; }
 namespace base { class SceneNode; class DrawableMesh; }
 
@@ -22,10 +22,10 @@ class WaterEditor : public EditorPlugin {
 
 	protected:
 	void deselect();
-	void addItem(gui::Combobox*, int);
+	void addItem(gui::Combobox*, gui::ListItem&);
 	void deleteItem(gui::Button*);
 	void duplicateItem(gui::Button*);
-	void selectItem(gui::Listbox*, int);
+	void selectItem(gui::Listbox*, gui::ListItem&);
 
 	void updateLines();
 	void updateGeometry();

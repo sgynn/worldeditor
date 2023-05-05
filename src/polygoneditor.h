@@ -7,7 +7,7 @@
 
 #define Polygon Polygon1
 
-namespace gui { class Button; class Listbox; class Textbox; class Spinbox; }
+namespace gui { class Button; class Listbox; class ListItem; class Textbox; class Spinbox; }
 namespace base { class XMLElement; }
 namespace base { class SceneNode; class DrawableMesh; }
 
@@ -41,12 +41,13 @@ class PolygonEditor : public EditorPlugin {
 	protected:
 	void addPolygon(gui::Button*);
 	void removePolygon(gui::Button*);
-	void polygonSelected(gui::Listbox*, int);
+	void polygonSelected(gui::Listbox*, gui::ListItem&);
 	void addProperty(gui::Button*);
 	void removePropery(gui::Button*);
 	void changeProperty(gui::Textbox*, const char*);
 	void changeFlags(gui::Spinbox*, int);
 	void addPropertyWidget();
+	void clearSelection();
 
 	protected:
 	void updateDrawable(Polygon*);

@@ -8,7 +8,7 @@
 
 namespace base { class Material; }
 namespace base { class Texture;  class Model; class Mesh;  }
-namespace gui { class Button; class Listbox; class Textbox; class Spinbox; class TreeView; class TreeNode; }
+namespace gui { class Button; class Listbox; class Textbox; class Spinbox; class TreeView; class TreeNode; class Listbox; class ListItem; }
 
 namespace editor { class Gizmo; }
 class BoxSelect;
@@ -31,8 +31,8 @@ class ObjectEditor : public EditorPlugin {
 	protected:
 	void changePath(gui::Textbox*);
 	void selectResource(gui::TreeView*, gui::TreeNode*);
-	void selectObject(gui::TreeView*, gui::TreeNode*);
-	void changeVisible(gui::TreeView*, gui::TreeNode*, gui::Widget*);
+	void selectObject(gui::Listbox*, gui::ListItem&);
+	void changeVisible(gui::Listbox*, gui::ListItem&, gui::Widget*);
 
 	protected:
 	void setupMaterials();
@@ -48,6 +48,8 @@ class ObjectEditor : public EditorPlugin {
 	void applySelectTransform();
 	void selectionChanged();
 	void setProperty(gui::Widget*);
+	void setGizmoMode(int mode);
+	void setGizmoSpaceLocal(bool local);
 	
 
 	protected:
@@ -67,14 +69,15 @@ class ObjectEditor : public EditorPlugin {
 	editor::Gizmo* m_gizmo;
 	BoxSelect*     m_box;
 
-	std::vector<Object*> m_selected;
+	std::vector<Object*> m_chain;
 	base::SceneNode* m_selectGroup;
 
 	base::HashMap<base::Material*> m_materials;
 
 	gui::TreeView* m_resourceList;
-	gui::TreeView* m_sceneTree;
 	gui::TreeNode* m_resource;
+	gui::Listbox* m_objectList;
+	base::HashMap<base::Model*> m_models;
 };
 
 

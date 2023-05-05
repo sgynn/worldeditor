@@ -462,8 +462,7 @@ void showDialog(Widget* w) {
 void WorldEditor::showNewDialog(Button*) {
 	Widget* panel = m_gui->getWidget<Widget>("newdialog");
 	Combobox* modes = panel->getWidget<Combobox>("mode");
-	modes->selectItem(1); // TIFF
-	changeTerrainMode(modes, 1);
+	modes->selectItem(1, true); // TIFF
 	showDialog(panel);
 }
 void WorldEditor::showOpenDialog(Button*) {
@@ -496,7 +495,7 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	cancelNewTerrain(0);
 	Widget* panel = b->getParent();
 	int mode = panel->getWidget<Combobox>("mode")->getSelectedIndex();
-	int size = panel->getWidget<Combobox>("size")->getSelectedData().getValue(129);
+	int size = panel->getWidget<Combobox>("size")->getSelectedItem()->getValue(1, 129);
 //	float height = panel->getWidget<Spinbox>("height")->getValue();
 	float hmin = panel->getWidget<Spinbox>("minheight")->getValue();
 	float hmax = panel->getWidget<Spinbox>("maxheight")->getValue();
@@ -523,7 +522,7 @@ void WorldEditor::cancelNewTerrain(gui::Button*) {
 	Widget* w = m_gui->getWidget<Widget>("newdialog");
 	if(w) w->setVisible(false);
 }
-void WorldEditor::changeTerrainMode(gui::Combobox* list, int index) {
+void WorldEditor::changeTerrainMode(gui::Combobox* list, ListItem&) {
 	Combobox* sizes = list->getParent()->getWidget<Combobox>("size");
 	sizes->clearItems();
 	char buffer[32];
@@ -666,9 +665,8 @@ void WorldEditor::unloadTile(::Button*) {
 	refreshMap();
 }
 
-void WorldEditor::assignTile(Listbox* list, int index) {
-	if(index<0) return;
-	m_terrain->assign(m_currentTile, m_maps[index]);
+void WorldEditor::assignTile(Listbox* list, ListItem& item) {
+	m_terrain->assign(m_currentTile, m_maps[item.getIndex()]);
 	list->getParent()->setVisible(false);
 	refreshMap();
 }
@@ -722,7 +720,7 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 	Widget* panel = b->getParent();
 	int mode = panel->getWidget<Combobox>("editormode")->getSelectedIndex();
 	const char* name = panel->getWidget<Textbox>("editorname")->getText();
-	int size = atoi(panel->getWidget<Combobox>("editorsize")->getSelectedItem());
+	int size = atoi(panel->getWidget<Combobox>("editorsize")->getSelectedItem()->getText());
 	if(size > 8192) return; // TODO: streaming textures
 	ToolGroup* group = 0;
 	int mapIndex = 0;
@@ -767,11 +765,10 @@ void WorldEditor::cancelNewEditor(gui::Button*) {
 	if(w) w->setVisible(false);
 
 	Combobox* list = m_gui->getWidget<Combobox>("toollist");
-	list->selectItem(0);
-	selectToolGroup(list, 0);
+	list->selectItem(0, true);
 }
 void WorldEditor::cancelNewEditor(gui::Window*) { cancelNewEditor(); }
-void WorldEditor::validateNewEditor(gui::Combobox* c, int) {
+void WorldEditor::validateNewEditor(gui::Combobox* c, ListItem& item) {
 	Combobox* mode = m_gui->getWidget<Combobox>("editormode");
 	Combobox* size = m_gui->getWidget<Combobox>("editorsize");
 	bool valid = mode->getSelectedIndex()>=0 && size->getSelectedIndex()>=0;
@@ -779,7 +776,7 @@ void WorldEditor::validateNewEditor(gui::Combobox* c, int) {
 	// Initial name
 	if(c==mode) {
 		Textbox* name = m_gui->getWidget<Textbox>("editorname");
-		name->setText(c->getSelectedItem());
+		name->setText(c->getSelectedItem()->getText());
 	}
 }
 
@@ -883,10 +880,11 @@ void WorldEditor::showFoliageList(Button*) {
 	else w->setVisible(false);
 }
 
-void WorldEditor::selectToolGroup(Combobox* c, int index) {
-	ToolGroup* group = 0;
-	c->getItemData(index).read(group);
+void WorldEditor::selectToolGroup(Combobox* c, ListItem& item) {
+	ToolGroup* group = item.getValue<ToolGroup*>(1, nullptr);
 	Widget* p = c->getParent();
+	const char* icon = item.getText(2);
+	c->getTemplateWidget<Icon>("_icon")->setIcon(icon);
 	if(m_activeGroup) {
 		m_activeGroup->deselect();
 		p->remove( m_activeGroup->getPanel() );
@@ -977,26 +975,19 @@ void WorldEditor::setupHeightTools(float res) {
 
 	// Add 'New Layer' option
 	Combobox* list = m_gui->getWidget<Combobox>("toollist");
-	if(list) {
-		int iconIndex = list->getIconList()->getIconIndex("neweditor");
-		list->addItem("New Editor", group, iconIndex);
-	}
+	if(list) list->addItem("New Editor", group, "neweditor");
 }
 
 void WorldEditor::addGroup(ToolGroup* group, const char* icon, bool select) {
 	m_groups.push_back(group);
 	Combobox* list = m_gui->getWidget<Combobox>("toollist");
 	if(!list) return;
-	int iconIndex = list->getIconList()->getIconIndex(icon);
 	int index = list->getItemCount()? list->getItemCount()-1: 0;
-	list->insertItem(index, group->getName(), group, iconIndex);
+	list->insertItem(index, group->getName(), group, icon);
 	group->eventToolSelected.bind(this, &WorldEditor::selectTool);
 	group->setTextures( m_materials->getTextureCount() );
 	// Select it
-	if(select) {
-		list->selectItem(index);
-		selectToolGroup(list, index);
-	}
+	if(select) list->selectItem(index, true);
 }
 
 // ======================= Loading and Saving Maps ========================== //

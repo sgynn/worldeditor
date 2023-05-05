@@ -47,21 +47,31 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 	createToolButton(gui, "Objects");
 
 	m_node = scene->createChild("Objects");
-	m_sceneTree = m_panel->getWidget<TreeView>("tree");
+	m_objectList = m_panel->getWidget<Listbox>("objectlist");
 	m_resourceList = m_panel->getWidget<TreeView>("resources");
 	
 	CONNECT(Textbox,  "path", eventSubmit, changePath);
-	CONNECT(TreeView, "tree", eventSelected, selectObject);
-	CONNECT(TreeView, "tree", eventCustom, changeVisible)
+	CONNECT(Listbox, "objectlist", eventSelected, selectObject);
+	CONNECT(Listbox, "objectlist", eventCustom, changeVisible)
 	CONNECT(TreeView, "resources", eventSelected, selectResource);
 	CONNECT(Textbox,  "property", eventLostFocus, setProperty);
 	CONNECT_I(Textbox,  "property", eventSubmit, [this](Textbox*){m_panel->setFocus(); });
+
+	CONNECT_I(Button, "move", eventPressed, [this](Button*) { setGizmoMode(0); });
+	CONNECT_I(Button, "rotate", eventPressed, [this](Button*) { setGizmoMode(1); });
+	CONNECT_I(Button, "scale", eventPressed, [this](Button*) { setGizmoMode(2); });
+	CONNECT_I(Button, "local", eventPressed, [this](Button*) { setGizmoSpaceLocal(true); });
+	CONNECT_I(Button, "global", eventPressed, [this](Button*) { setGizmoSpaceLocal(false); });
+
+	CONNECT_I(Checkbox, "visible", eventChanged, [this](Button* b) { m_node->setVisible(b->isSelected()); });
 
 	m_gizmo = new editor::Gizmo();
 	m_gizmo->setRenderQueue(15);
 	scene->attach(m_gizmo);
 	m_gizmo->setVisible(false);
 	m_selectGroup = m_node->createChild("Selection");
+	setGizmoSpaceLocal(false);
+	setGizmoMode(0);
 
 	m_box = new BoxSelect();
 	m_panel->getParent()->add(m_box);
@@ -83,6 +93,10 @@ void ObjectEditor::close() {
 
 // ------------------------------------------------------------------------------ //
 
+inline Object* getObject(const ListItem& item) {
+	return item.getValue<Object*>(1, nullptr);
+}
+
 void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 	const XMLElement& list = e.find("objects");
 	for(const XMLElement& i: list) {
@@ -98,8 +112,14 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 			sscanf(i.attribute("orientation"), "%g %g %g %g", &rot.w, &rot.x, &rot.y, &rot.z);
 
 			
-			String f = m_fileSystem->getFile(file);
-			Model* model = base::BMLoader::load(f);
+			Model* nope = (Model*)(size_t)1;
+			String meshFile = m_fileSystem->getFile(file);
+			Model* model = m_models.get(meshFile.str(), nope);
+			if(model == nope) {
+				model = base::BMLoader::load(meshFile);
+				m_models[meshFile.str()] = model;
+			}
+
 			if(model && meshIndex < model->getMeshCount()) {
 				Object* object;
 				if(meshIndex<0) object = createObject(name, model, 0, 0); // Full model
@@ -107,14 +127,7 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 				m_node->addChild(object);
 				object->setTransform(pos, rot, scale);
 				object->updateBounds();
-
-				TreeNode* node = new TreeNode(name);
-				node->setData(1, object);
-				node->setData(2, f);
-				node->setData(3, meshIndex);
-				node->setData(4, true);
-				node->setData(5, String(data));
-				m_sceneTree->getRootNode()->add(node);
+				m_objectList->addItem(name, object, meshFile, meshIndex, true, data);
 			}
 		}
 	}
@@ -123,19 +136,19 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 XMLElement ObjectEditor::save(const TerrainMap* context) const {
 	char buffer[256];
 	XMLElement xml("objects");
-	for(TreeNode* n: *m_sceneTree->getRootNode()) {
-		Object* object = n->getData(1).getValue<Object*>(0);
+	for(const ListItem& item: m_objectList->items()) {
+		Object* object = getObject(item);
 		if(!object) continue;
 		const vec3 scl = object->getScale();
 		const vec3& pos = object->getPosition();
 		const Quaternion& rot = object->getOrientation();
-		int mesh = n->getData(3).getValue(-1);
-		String data = n->getData(5).getValue<String>("");
+		int mesh = item.getValue(3, -1);
+		String data = item.getText(5);
 		
 
 		XMLElement& e = xml.add("object");
-		e.setAttribute("name", n->getText());
-		e.setAttribute("file", m_fileSystem->getRelative(n->getText(2)));
+		e.setAttribute("name", item.getText());
+		e.setAttribute("file", m_fileSystem->getRelative(item.getText(2)));
 		if(mesh>=0) e.setAttribute("mesh", mesh);
 		
 		if(pos!=vec3()) {
@@ -158,19 +171,10 @@ XMLElement ObjectEditor::save(const TerrainMap* context) const {
 
 void ObjectEditor::clear() {
 	m_node->deleteChildren(true);
-	m_sceneTree->getRootNode()->clear();
+	m_objectList->clearItems();
 }
 
 // ------------------------------------------------------------------------------ //
-
-template<class T> TreeNode* findTreeNode(TreeNode* node, const T& predicate) {
-	if(predicate(node)) return node;
-	else for(TreeNode* n: *node) {
-		TreeNode* found = findTreeNode(n, predicate);
-		if(found) return found;
-	}
-	return 0;
-}
 
 void ObjectEditor::changePath(Textbox* t) {
 	setResourcePath(t->getText());
@@ -178,10 +182,24 @@ void ObjectEditor::changePath(Textbox* t) {
 
 void ObjectEditor::setProperty(Widget* w) {
 	String prop = w->cast<Textbox>()->getText();
-	for(Object* obj: m_selected) {
-		TreeNode* node = findTreeNode(m_sceneTree->getRootNode(), [obj](TreeNode* n){return n->getData(1)==obj;});
-		if(node) node->setData(5, prop);
+	for(ListItem& i: m_objectList->selectedItems()) {
+		i.setValue(5, prop);
 	}
+}
+
+void ObjectEditor::setGizmoMode(int mode) {
+	if(m_gizmo->isHeld()) return;
+	m_gizmo->setMode((editor::Gizmo::Mode) mode);
+	m_panel->getWidget("move")->setSelected(mode==0);
+	m_panel->getWidget("rotate")->setSelected(mode==1);
+	m_panel->getWidget("scale")->setSelected(mode==2);
+}
+void ObjectEditor::setGizmoSpaceLocal(bool local) {
+	if(m_gizmo->isHeld()) return;
+	if(local) m_gizmo->setLocalMode();
+	else m_gizmo->setRelative(Matrix());
+	m_panel->getWidget("local")->setSelected(local);
+	m_panel->getWidget("global")->setSelected(!local);
 }
 
 void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camera, InputState& state) {
@@ -253,22 +271,22 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 				float step = m_chainStep.length();
 				size_t count = ceil(distance / step);
 				if(distance > 0 && step>0) {
-					for(size_t i=1; i<m_selected.size(); ++i) m_selected[i]->setVisible(i<count);
-					for(size_t i=m_selected.size(); i<count; ++i) {
+					for(uint i=0; i<m_chain.size(); ++i) m_chain[i]->setVisible(i<count);
+					for(size_t i=m_chain.size(); i<count; ++i) {
 						m_placement = 0;
 						selectResource(0, m_resource);
-						m_selected.push_back(m_placement);
+						m_chain.push_back(m_placement);
 					}
-					m_placement = m_selected[0];
+					m_placement = m_chain[0];
 
 					vec3 z = (end - m_chainStart) / distance;
 					vec3 x = vec3(0,1,0).cross(z);
 					vec3 y = z.cross(x);
 					Quaternion rot(Matrix(x,y,z));
 					rot *= Quaternion::arc(vec3(0,0,1), m_chainStep);
-					for(size_t i=0; i<m_selected.size(); ++i) {
-						m_selected[i]->setPosition(m_chainStart + z * step * (i+0.5));
-						m_selected[i]->setOrientation(rot);
+					for(size_t i=0; i<m_chain.size(); ++i) {
+						m_chain[i]->setPosition(m_chainStart + z * step * (i+0.5));
+						m_chain[i]->setOrientation(rot);
 					}
 				}
 			}
@@ -282,8 +300,8 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 			m_chainStep.y = 0;
 			if(m_chainStep.x>m_chainStep.z) m_chainStep.z=0; else m_chainStep.x=0;
 			if(m_chainStep.length2()>0) {
-				m_selected.clear();
-				m_selected.push_back(m_placement);
+				m_chain.clear();
+				m_chain.push_back(m_placement);
 				m_mode = CHAIN;
 				m_started = false;
 			}
@@ -293,8 +311,8 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 			tmp.x = tmp.z = 0;
 			tmp.normalise();
 			m_placement->setOrientation(tmp);
-			for(size_t i=1; i<m_selected.size(); ++i) delete m_selected[i];
-			m_selected.clear();
+			for(size_t i=1; i<m_chain.size(); ++i) delete m_chain[i];
+			m_chain.clear();
 			m_mode = SINGLE;
 		}
 
@@ -328,14 +346,14 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 				if(!state.overGUI) {
 					int count = 0;
 					float step = m_chainStep.length();
-					for(Object* o: m_selected) {
+					for(Object* o: m_chain) {
 						if(!o->isVisible()) break;
 						placeObject(o, m_resource);
 						++count;
 					}
-					m_selected.clear();
+					m_chain.clear();
 					selectResource(0, m_resource);
-					m_selected.push_back(m_placement);
+					m_chain.push_back(m_placement);
 					m_chainStart += (ray.point(t)+m_altitude-m_chainStart).normalise() * (count*step);
 				}
 				break;
@@ -356,14 +374,11 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 
 		// Delete selection
 		if(base::Game::Pressed(base::KEY_DEL) && keys) {
-			for(Object* obj: m_selected) {
-				TreeNode* node = findTreeNode(m_sceneTree->getRootNode(), [obj](TreeNode* n){return n->getData(1)==obj;});
-				node->getParent()->remove(node);
-				delete node;
-				delete obj;
+			while(m_objectList->getSelectionSize()) {
+				delete getObject(*m_objectList->getSelectedItem());
+				m_objectList->removeItem(m_objectList->getSelectedItem()->getIndex());
 			}
 			m_gizmo->setVisible(false);
-			m_selected.clear();
 			return;
 		}
 
@@ -375,23 +390,30 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 		if(mouse.delta.x || mouse.delta.y) {
 			m_gizmo->onMouseMove(mouseRay);
 			if(m_gizmo->isHeld()) {
-				SceneNode* target = m_selected.size()==1? m_selected[0]: m_selectGroup;
-				target->setTransform(m_gizmo->getPosition(), m_gizmo->getOrientation(), m_gizmo->getScale());
-				for(Object* obj: m_selected) obj->updateBounds();
+				if(m_objectList->getSelectionSize() == 1) {
+					Object* target = getObject(*m_objectList->getSelectedItem());
+					target->setTransform(m_gizmo->getPosition(), m_gizmo->getOrientation(), m_gizmo->getScale());
+					target->updateBounds();
+				}
+				else { // Moving multiple objects
+					m_selectGroup->setTransform(m_gizmo->getPosition(), m_gizmo->getOrientation(), m_gizmo->getScale());
+					for(SceneNode* n: m_selectGroup->children()) static_cast<Object*>(n)->updateBounds();
+				}
 			}
 		}
 		if(wasHeld) return;
 
 		// Additional functions (buttons)
 		if(!m_gizmo->isHeld()) {
-			if(base::Game::Pressed(base::KEY_1)) m_gizmo->setMode(editor::Gizmo::POSITION);
-			if(base::Game::Pressed(base::KEY_2)) m_gizmo->setMode(editor::Gizmo::ORIENTATION);
-			if(base::Game::Pressed(base::KEY_3)) m_gizmo->setMode(editor::Gizmo::SCALE);
-			if(base::Game::Pressed(base::KEY_4)) m_gizmo->setLocalMode();
-			if(base::Game::Pressed(base::KEY_5)) m_gizmo->setRelative(Matrix());
-			if(base::Game::Pressed(base::KEY_G)) {
+			if(base::Game::Pressed(base::KEY_1)) setGizmoMode(editor::Gizmo::POSITION);
+			if(base::Game::Pressed(base::KEY_2)) setGizmoMode(editor::Gizmo::ORIENTATION);
+			if(base::Game::Pressed(base::KEY_3)) setGizmoMode(editor::Gizmo::SCALE);
+			if(base::Game::Pressed(base::KEY_4)) setGizmoSpaceLocal(true);
+			if(base::Game::Pressed(base::KEY_5)) setGizmoSpaceLocal(false);
+			if(base::Game::Pressed(base::KEY_G)) { // Project to ground
 				selectionChanged();
-				for(Object* o: m_selected) {
+				for(ListItem& i: m_objectList->selectedItems()) {
+					Object* o = getObject(i);
 					float t = 100;
 					vec3 pos = o->getPosition() + o->getParent()->getPosition();
 					Ray down(pos + vec3(0,0.1,0), vec3(0,-1,0));
@@ -410,23 +432,21 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 
 	// Toggle visibility
 	if(base::Game::Pressed(base::KEY_H) && keys && base::Game::input()->getKeyModifier()&base::MODIFIER_ALT) {
-		findTreeNode(m_sceneTree->getRootNode(), [](TreeNode* n) {
-			Object* o = n->getData(1).getValue<Object*>(0);
+		for(ListItem& i: m_objectList->items()) {
+			Object* o = i.getValue<Object*>(1, nullptr);
 			if(o && !o->isVisible()) {
 				o->setVisible(true);
-				n->setData(4, true);
+				i.setValue(4, true);
 			}
-			return false;
-		});
-		m_sceneTree->refresh();
+		}
+		m_objectList->refresh();
 	}
 	else if(base::Game::Pressed(base::KEY_H) && keys) {
-		for(Object* obj: m_selected) {
-			obj->setVisible(false);
-			TreeNode* node = findTreeNode(m_sceneTree->getRootNode(), [obj](TreeNode* n){return n->getData(1)==obj;});
-			if(node) node->setData(4, false);
+		for(ListItem& item: m_objectList->selectedItems()) {
+			getObject(item)->setVisible(false);
+			item.setValue(4, false);
 		}
-		m_sceneTree->refresh();
+		m_objectList->refresh();
 		clearSelection();
 	}
 
@@ -459,38 +479,34 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 }
 
 void ObjectEditor::cancelPlacement() {
-	if(m_mode == CHAIN) for(Object* o: m_selected) { o->deleteChildren(true); delete o; }
+	if(m_mode == CHAIN) for(Object* o: m_chain) { o->deleteChildren(true); delete o; }
 	else if(m_placement) {
 		m_placement->deleteChildren(true);
 		delete m_placement;
 	}
-	m_selected.clear();
+	m_chain.clear();
 	m_placement = 0;
 	m_resourceList->clearSelection();
 	if(m_mode == ROTATE) m_mode = SINGLE;
 }
 
 void ObjectEditor::placeObject(Object* object, TreeNode* data) {
-	TreeNode* node = new TreeNode(object->getName());
-	node->setData(1, object);
-	if(m_resource->getText(2)) node->setData(2, data->getData(2));
-	else {
-		node->setData(2, data->getParent()->getData(2));
-		node->setData(3, data->getIndex());
-	}
-	node->setData(4, true);
-	m_sceneTree->getRootNode()->add(node);
+	// Properties: Name, Object, Model, MeshIndex, Visible, Custom
+	const char* modelFile = data->getText(2);
+	int meshIndex = modelFile? -1: data->getIndex();
+	if(!modelFile) modelFile = data->getParent()->getText(2);
+	m_objectList->addItem(object->getName(), object, modelFile, meshIndex, true);
 	object->updateBounds();
 }
 
-void ObjectEditor::changeVisible(TreeView*, TreeNode* node, Widget*) {
-	Object* obj = node->getData(1).getValue<Object*>(0);
-	obj->setVisible(node->getData(4).getValue(true));
+void ObjectEditor::changeVisible(Listbox*, ListItem& item, Widget*) {
+	Object* obj = getObject(item);
+	obj->setVisible(item.getValue(4, true));
 	if(isSelected(obj)) clearSelection();
 }
 
-void ObjectEditor::selectObject(TreeView*, TreeNode* node) {
-	selectObject(node? node->getData(1).getValue<Object*>(0): 0);
+void ObjectEditor::selectObject(Listbox*, ListItem& item) {
+	selectObject(getObject(item));
 }
 
 void ObjectEditor::selectObject(Object* obj, bool append) {
@@ -498,14 +514,13 @@ void ObjectEditor::selectObject(Object* obj, bool append) {
 	if(!obj && !append) clearSelection();
 	if(!obj || isSelected(obj)) return;
 	if(!append) clearSelection();
-	m_selected.push_back(obj);
 
-	// select tree node
-	TreeNode* node = findTreeNode(m_sceneTree->getRootNode(), [obj](TreeNode* n){return n->getData(1)==obj;});
-	if(node) {
-		node->select();
-		m_sceneTree->scrollToItem(node);
-		m_panel->getWidget<Textbox>("property")->setText(node->getData(5).getValue<String>(""));
+	ListItem* item = m_objectList->findItem([obj](ListItem&i){ return getObject(i)==obj; });
+	if(item) {
+		m_objectList->selectItem(item->getIndex());
+		m_objectList->ensureVisible(item->getIndex());
+		m_panel->getWidget<Textbox>("property")->setText(item->getText(5));
+		// TODO: Other properties
 	}
 
 	selectionChanged();
@@ -521,34 +536,39 @@ void ObjectEditor::selectionChanged() {
 	for(SceneNode* n: m_selectGroup->children()) n->setTransform(n->getDerivedTransform());
 	m_selectGroup->setTransform(vec3(), Quaternion());
 
+	std::vector<Object*> selectedObjects;
+	selectedObjects.reserve(m_objectList->getSelectionSize());
+	for(ListItem& i: m_objectList->selectedItems()) selectedObjects.push_back(getObject(i));
+
+
 	SceneNode* gizmoRoot;
-	if(m_selected.size() == 1) {
+	if(selectedObjects.size() == 1) {
 		// Single selection uses object directly
 		while(m_selectGroup->getChildCount()) m_node->addChild(m_selectGroup->getChild((size_t)0));
-		gizmoRoot = m_selected[0];
+		gizmoRoot = selectedObjects[0];
 	}
 	else {
 		// Multi-selection puts everything in a sub-node
 		vec3 centre;
 		std::set<SceneNode*> removed(m_selectGroup->children().begin(), m_selectGroup->children().end());
-		for(Object* o: m_selected) {
+		for(Object* o: selectedObjects) {
 			centre += vec3(&o->getDerivedTransform()[12]);
 			removed.erase(o);
 			m_selectGroup->addChild(o);
 		}
-		centre /= m_selected.size();
+		centre /= selectedObjects.size();
 		for(SceneNode* n: removed) m_node->addChild(n);
-		for(Object* o: m_selected) o->move(-centre);
+		for(Object* o: selectedObjects) o->move(-centre);
 		m_selectGroup->setPosition(centre);
 		gizmoRoot = m_selectGroup;
 	}
 
 	// Use render queue for selection highlight
 	setRenderQueue(m_node, 0);
-	for(Object* o: m_selected) setRenderQueue(o, 12);
+	for(Object* o: selectedObjects) setRenderQueue(o, 12);
 
 	// Set up gizmo
-	if(m_selected.empty()) m_gizmo->setVisible(false);
+	if(selectedObjects.empty()) m_gizmo->setVisible(false);
 	else {
 		m_gizmo->setVisible(true);
 		m_gizmo->setPosition(gizmoRoot->getPosition());
@@ -559,12 +579,14 @@ void ObjectEditor::selectionChanged() {
 }
 
 bool ObjectEditor::isSelected(SceneNode* obj) const {
-	for(Object* o: m_selected) if(o==obj) return true;
+	for(const ListItem& i: m_objectList->selectedItems()) {
+		if(getObject(i)==obj) return true;
+	}
 	return false;
 }
 
 void ObjectEditor::clearSelection() {
-	m_selected.clear();
+	m_objectList->clearSelection();
 	selectionChanged();
 }
 

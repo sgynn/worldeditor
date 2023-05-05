@@ -17,8 +17,8 @@ using namespace base;
 MaterialEditor::MaterialEditor(gui::Root* gui, FileSystem* fs, bool stream): m_streaming(stream), m_fileSystem(fs), m_gui(gui) {
 	// Selector lists
 	m_textureSelector = new gui::ItemList();
-	m_textureSelector->addItem("Clipped", gui::Any(), -2);
-	m_textureSelector->addItem("Select colour", gui::Any(), -1);
+	m_textureSelector->addItem("Clipped", -2, -2);
+	m_textureSelector->addItem("Select colour", -1, -1);
 
 	// Set up gui callbacks
 	setupGui();
@@ -62,8 +62,7 @@ MaterialEditor::~MaterialEditor() {
 void MaterialEditor::selectMaterial(DynamicMaterial* m) {
 	for(size_t i=0; i<m_materials.size(); ++i) {
 		if(m == m_materials[i]) {
-			m_materialList->selectItem(i);
-			selectMaterial(m_materialList, i);
+			m_materialList->selectItem(i, true);
 			return;
 		}
 	}
@@ -254,8 +253,9 @@ TerrainTexture* MaterialEditor::createTexture(const char* name) {
 	TerrainTexture* t = new TerrainTexture();
 	t->name = name;
 	t->tiling = 1.0;
+	int index = m_textures.size();
 	m_textures.push_back(t);
-	m_textureSelector->addItem(name, gui::Any(), m_textures.size()-2); // ToDo: set icon
+	m_textureSelector->addItem(name, index, index);
 	return t;
 }
 
@@ -615,7 +615,7 @@ void MaterialEditor::selectTexture(gui::Widget* w) {
 void MaterialEditor::renameTexture(gui::Textbox* t) {
 	int i = getItemIndex(t, m_textureList);
 	m_textures[i]->name = t->getText();
-	m_textureSelector->setItemName(i+1, t->getText());
+	m_textureSelector->getItem(i+2).setValue(t->getText());
 	m_textureList->setFocus();
 }
 void MaterialEditor::renameTexture(gui::Widget* t) {
@@ -628,8 +628,7 @@ void MaterialEditor::renameTexture(gui::Widget* t) {
 
 void MaterialEditor::addMaterial(gui::Button*) {
 	createMaterial("New Material");
-	m_materialList->selectItem( m_materials.size()-1 );
-	selectMaterial(0, m_materials.size()-1);
+	m_materialList->selectItem(m_materials.size()-1, true);
 }
 
 void MaterialEditor::exportMaterial(gui::Button*) {
@@ -637,7 +636,7 @@ void MaterialEditor::exportMaterial(gui::Button*) {
 	if(mat) mat->exportMaterial();
 }
 
-void MaterialEditor::selectMaterial(gui::Combobox*, int index) {
+void MaterialEditor::selectMaterial(gui::Combobox*, gui::ListItem& item) {
 	// Clear existing
 	while(m_layerList->getWidgetCount()) {
 		gui::Widget* w = m_layerList->getWidget( m_layerList->getWidgetCount()-1 );
@@ -645,6 +644,7 @@ void MaterialEditor::selectMaterial(gui::Combobox*, int index) {
 		delete w;
 	}
 
+	int index = item.getIndex();
 	m_materialModes->selectItem((int)m_materials[index]->getMode());
 
 	// Build gui for this material
@@ -662,22 +662,23 @@ void MaterialEditor::selectMaterial(gui::Combobox*, int index) {
 	eventChangeMaterial(m);
 }
 void MaterialEditor::renameMaterial(gui::Combobox* c) {
-	m_materials[m_selectedMaterial]->setName( c->getText() );
-	m_materialList->setItemName( m_selectedMaterial, c->getText() );
+	m_materials[m_selectedMaterial]->setName(c->getText());
+	m_materialList->getItem(m_selectedMaterial).setValue(c->getText());
 	m_layerList->setFocus();
 }
-void MaterialEditor::changeMode(gui::Combobox*, int mode) {
-	m_materials[m_selectedMaterial]->setMode((MaterialMode)mode);
+void MaterialEditor::changeMode(gui::Combobox*,gui::ListItem& mode) {
+	m_materials[m_selectedMaterial]->setMode((MaterialMode)mode.getIndex());
 	rebuildMaterial();
 }
-void MaterialEditor::addLayer(gui::Combobox* c, int i) {
+void MaterialEditor::addLayer(gui::Combobox* c, gui::ListItem& type) {
 	c->setText("Add");	// Hacking Combobox into a dropdown menu
-	MaterialLayer* layer = m_materials[ m_selectedMaterial ]->addLayer( (LayerType)i );
+	MaterialLayer* layer = m_materials[ m_selectedMaterial ]->addLayer( (LayerType)type.getIndex() );
 	const char* names[] = { "Procedural layer", "Mapped Layer", "Colour layer", "Indexed Layer" };
-	layer->name = names[i];
+	layer->name = names[type.getIndex()];
 	addLayerGUI(layer);
 	m_layerList->setOffset(0, m_layerList->getPaneSize().y - m_layerList->getSize().y);	// Scroll to bottom
 	rebuildMaterial(true);
+	c->clearSelection();
 }
 void MaterialEditor::removeLayer(gui::Button*) {
 	if(m_selectedMaterial<0 || m_selectedLayer<0) return;
@@ -813,10 +814,11 @@ void MaterialEditor::setupLayerWidgets(MaterialLayer* layer, gui::Widget* w) {
 		// Texture picker
 		gui::Combobox* tex = addLayerWidget<gui::Combobox>(m_gui, w, "Texture", "toolgrouplist");
 		tex->eventSelected.bind(this, &MaterialEditor::changeTexture);
-		tex->setIconList(m_textureIcons);
+		tex->getTemplateWidget<gui::Icon>("_2")->setIcon(m_textureIcons, -1); // get icon in item template
+		tex->getTemplateWidget<gui::Listbox>("_list")->getItemWidget()->getTemplateWidget<gui::Icon>("_2")->setIcon(m_textureIcons, -1);
 		tex->shareList(m_textureSelector);
 		tex->selectItem(layer->texture+2);
-		tex->setSize( tex->getSize().x, 30 );
+		tex->setSize(tex->getSize().x, 30);
 
 		if(layer->texture == TEXTURE_COLOUR) {
 			char hexColour[12];
@@ -929,19 +931,19 @@ void MaterialEditor::rebuildMaterial(bool bindMaps) {
 	eventChangeMaterial( getMaterial() );	// Reapply material to all terrain patches
 }
 
-void MaterialEditor::changeMap(gui::Combobox* w, int i) {
+void MaterialEditor::changeMap(gui::Combobox* w, gui::ListItem& item) {
 	MaterialLayer* layer = getLayer(w);
-	layer->mapIndex = w->getItemData(i).getValue(0u);
+	layer->mapIndex = item.getValue(1, 0u);
 	rebuildMaterial(true);
 	eventChangeMaterial( getMaterial() );	// Reapply material to all terrain patches
 }
-void MaterialEditor::changeChannel(gui::Combobox* w, int i) {
-	getLayer(w)->mapData = i;
+void MaterialEditor::changeChannel(gui::Combobox* w, gui::ListItem& channel) {
+	getLayer(w)->mapData = channel.getIndex();
 	rebuildMaterial(true);
 }
-void MaterialEditor::changeTexture(gui::Combobox* w, int i) {
+void MaterialEditor::changeTexture(gui::Combobox* w, gui::ListItem& item) {
 	MaterialLayer* layer = getLayer(w);
-	int texture = i - 2; // Should use item data ?
+	int texture = item.getIndex() - 2; // Should use item data
 	bool typeChanged = layer->texture!=texture && (layer->texture<0 || texture<0);
 	layer->texture = texture;
 
@@ -950,10 +952,17 @@ void MaterialEditor::changeTexture(gui::Combobox* w, int i) {
 		panel->deleteChildWidgets();
 		setupLayerWidgets(layer, panel);
 		expandLayer(panel->getTemplateWidget<gui::Button>("expand"));
+		w = panel->getWidget<gui::Combobox>("Texture"); // widgets were recreated
 	}
+
+	gui::Icon* icon = w->getTemplateWidget<gui::Icon>("_icon");
+	icon->setIcon(m_textureIcons, texture);
+	icon->setColour(0xffffff);
 
 	// Open colour picker
 	if(texture == TEXTURE_COLOUR) {
+		icon->setIcon(w->getRoot()->getIconList("icons"), "white");
+		icon->setColour(getLayer(w)->colour);
 		ColourPicker* picker = m_gui->getWidget<ColourPicker>("picker");
 		if(picker) {
 			picker->setColour( getLayer(w)->colour );
@@ -962,7 +971,6 @@ void MaterialEditor::changeTexture(gui::Combobox* w, int i) {
 
 			m_layerForColourPicker = layer;
 			m_boxForColourPicker = w;
-			if(typeChanged) m_boxForColourPicker = panel->getWidget<gui::Combobox>("Texture");
 			picker->eventChanged.bind(this, &MaterialEditor::colourPicked);
 			picker->eventSubmit.bind(this, &MaterialEditor::colourFinish);
 			picker->eventCancel.bind(this, &MaterialEditor::colourFinish);
@@ -975,6 +983,7 @@ void MaterialEditor::colourPicked(const Colour& c) {
 	sprintf(buf, "Colour: #%06X", c.toRGB());
 	m_layerForColourPicker->colour = c;
 	m_boxForColourPicker->setText(buf);
+	m_boxForColourPicker->getTemplateWidget<gui::Icon>("_icon")->setColour(c.toRGB());
 	rebuildMaterial();
 }
 void MaterialEditor::colourFinish(const Colour& c) {
@@ -982,16 +991,16 @@ void MaterialEditor::colourFinish(const Colour& c) {
 	picker->eventChanged.unbind();
 	m_boxForColourPicker = 0;
 }
-void MaterialEditor::changeBlendMode(gui::Combobox* w, int i) {
-	getLayer(w)->blend = (BlendMode)i;
+void MaterialEditor::changeBlendMode(gui::Combobox* w, gui::ListItem& mode) {
+	getLayer(w)->blend = (BlendMode)mode.getIndex();
 	rebuildMaterial();
 }
 void MaterialEditor::changeOpacity(gui::Scrollbar* w, int v) {
 	getLayer(w)->opacity = v/1000.f;
 	updateMaterial(w);
 }
-void MaterialEditor::changeProjection(gui::Combobox* w, int i) {
-	getLayer(w)->projection = (TexProjection)i;
+void MaterialEditor::changeProjection(gui::Combobox* w, gui::ListItem& item) {
+	getLayer(w)->projection = (TexProjection)item.getIndex();
 	rebuildMaterial();
 }
 void MaterialEditor::changeScaleX(gui::Scrollbar* w, int v) {
