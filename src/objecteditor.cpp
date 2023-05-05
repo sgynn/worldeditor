@@ -137,7 +137,7 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 
 			if(model) {
 				if(meshIndex>=0 && meshIndex<model->getMeshCount()) meshName = model->getMeshName(meshIndex);
-				if(!model->getMesh(meshName)) {
+				if(meshName && !model->getMesh(meshName)) {
 					printf("Error: Model %s has no mesh '%s'\n", meshFile.str(), meshName);
 					continue;
 				}
