@@ -4,12 +4,13 @@
 #include <base/gui/gui.h>
 #include <base/vec.h>
 #include <vector>
+#include <map>
 
 #define Polygon Polygon1
 
 namespace gui { class Button; class Listbox; class ListItem; class Textbox; class Spinbox; }
 namespace base { class XMLElement; }
-namespace base { class SceneNode; class DrawableMesh; }
+namespace base { class SceneNode; class DrawableMesh; class Mesh; }
 
 class PolygonDrawable;
 
@@ -24,7 +25,9 @@ struct Polygon {
 	std::vector<vec3> points;
 	std::vector<int>  edges;
 	std::vector<ItemProperty> properties;
-	base::DrawableMesh*  drawable;
+	std::vector<base::DrawableMesh*> drawables;
+	base::Mesh* mesh = nullptr;
+	const TerrainMap* parent = nullptr;
 };
 
 /// Editor class
@@ -34,6 +37,7 @@ class PolygonEditor : public EditorPlugin {
 	~PolygonEditor();
 	void load(const base::XMLElement&, const TerrainMap* context) override;
 	base::XMLElement save(const TerrainMap* context) const override;
+	void notifyTileChanged(const Point&, const TerrainMap* tile, const TerrainMap* prev) override;
 	void update(const Mouse&, const Ray&, base::Camera*, InputState&) override;
 	void clear() override;
 	void close() override;
@@ -50,7 +54,9 @@ class PolygonEditor : public EditorPlugin {
 	void clearSelection();
 
 	protected:
-	void updateDrawable(Polygon*);
+	int countPolygons(const TerrainMap* tile) const;
+	void updateMesh(Polygon*);
+	void createDrawable(Polygon*, base::SceneNode*);
 	void destroyDrawable(Polygon*);
 
 	protected:
@@ -65,6 +71,10 @@ class PolygonEditor : public EditorPlugin {
 	DragMode m_dragging;
 	vec3 m_offset;
 	int m_vertex;			// Vertex we are dragging
+
+	std::vector<Polygon*> m_polygons;
+	std::map<Point, base::SceneNode*> m_nodes;
+
 
 	// Need a system to set edge flags
 	// - have a point mode where you select a flag then click on the edge

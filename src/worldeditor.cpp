@@ -515,7 +515,7 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	
 	// Create first tile
 	TerrainMap* tile = createTile( "Terrain" );
-	m_terrain->assign( Point(0,0), tile );
+	assignTile( Point(0,0), tile );
 	refreshMap();
 }
 void WorldEditor::cancelNewTerrain(gui::Button*) {
@@ -619,7 +619,7 @@ void WorldEditor::createNewTile(Button*) {
 		}
 	}
 	TerrainMap* map = createTile(name);
-	m_terrain->assign(m_currentTile, map);
+	assignTile(m_currentTile, map);
 	m_contextMenu->hide();
 	refreshMap();
 }
@@ -646,7 +646,7 @@ void WorldEditor::duplicateTile(::Button*) {
 	map->heightMap->setData(data);
 	delete [] data;
 	// ToDo: copy texture maps too
-	m_terrain->assign(m_currentTile, map);
+	assignTile(m_currentTile, map);
 	m_contextMenu->hide();
 	showRenameTile(0);
 }
@@ -660,13 +660,13 @@ void WorldEditor::loadTile(::Button*) {
 	m_contextMenu->hide();
 }
 void WorldEditor::unloadTile(::Button*) {
-	m_terrain->assign(m_currentTile, 0);
+	assignTile(m_currentTile, 0);
 	m_contextMenu->hide();
 	refreshMap();
 }
 
 void WorldEditor::assignTile(Listbox* list, ListItem& item) {
-	m_terrain->assign(m_currentTile, m_maps[item.getIndex()]);
+	assignTile(m_currentTile, m_maps[item.getIndex()]);
 	list->getParent()->setVisible(false);
 	refreshMap();
 }
@@ -692,6 +692,11 @@ void WorldEditor::renameTile(gui::Textbox*) {
 	renameTile((Button*)0);
 }
 
+void WorldEditor::assignTile(const Point& index, TerrainMap* map) {
+	TerrainMap* prevous = m_terrain->getMap(index);
+	m_terrain->assign(index, map);
+	for(EditorPlugin* e : m_editors) e->notifyTileChanged(index, map, prevous);
+}
 
 
 // ----------------------------------------------------------- //
@@ -1180,6 +1185,12 @@ void WorldEditor::saveWorld(const char* file) {
 			// save images
 			static_cast<EditableTexture*>(map->maps[i])->save(m_fileSystem->getFile(buffer));
 		}
+
+		// Other editors
+		for(EditorPlugin* e: m_editors) {
+			XMLElement saved = e->save(map);
+			if(saved.name()) xml.getRoot().add(saved);
+		}
 	}
 
 	// Overlays
@@ -1337,6 +1348,11 @@ void WorldEditor::loadWorld(const char* file) {
 			const char* ext = strrchr(map->file, '.');
 			if(ext && (strcmp(ext, ".tif")==0 || strcmp(ext, ".tiff")==0)) m_heightFormat = SaveFormat::TIF16;
 			else m_heightFormat = SaveFormat::RAW;
+
+
+			// Other editors - per tile data
+			for(EditorPlugin* editor: m_editors) editor->load(e, map);
+
 		}
 	}
 
@@ -1349,12 +1365,12 @@ void WorldEditor::loadWorld(const char* file) {
 			point.y = e.attribute("y", 0);
 			const char* name = e.attribute("map");
 			for(TerrainMap* m: m_maps) if(m->name==name) { map=m; break; }
-			if(map) m_terrain->assign(point, map);
+			if(map) assignTile(point, map);
 			else printf("Load error: Map %s not found\n", name);
 		}
 	}
 	
-	// Other editors
+	// Other editors - global data
 	for(EditorPlugin* e: m_editors) e->load(xml.getRoot(), 0);
 
 	// Camera position

@@ -101,6 +101,7 @@ class WorldEditor : public base::GameState {
 	TerrainMap* createTile(const char* name);				// Create a new tile using existing settings
 	TerrainMap* loadTile(const base::XMLElement&);			// Load tile from xml
 	void saveTile(TerrainMap*, base::XMLElement&) const;	// Save tile data to xml
+	void assignTile(const Point&, TerrainMap* tile);		// Assign map to tile
 
 
 	private:

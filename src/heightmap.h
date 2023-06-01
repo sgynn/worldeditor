@@ -1,5 +1,4 @@
-#ifndef _HEIGHTMAP_INTERFACE_
-#define _HEIGHTMAP_INTERFACE_
+#pragma once
 
 #include "terraineditor/editor.h"
 #include <base/scene.h>
@@ -81,6 +80,4 @@ class MapGrid : public TerrainEditorDataInterface, public base::SceneNode {
 	Range m_heightRange;
 	float m_gridSize;
 };
-
-#endif
 

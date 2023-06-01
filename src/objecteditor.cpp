@@ -111,6 +111,7 @@ inline Object* getObject(const ListItem& item) {
 }
 
 void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
+	if(context) return;
 	const XMLElement& list = e.find("objects");
 	constexpr const char* emptyString = nullptr;
 	for(const XMLElement& i: list) {
@@ -153,6 +154,7 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 }
 
 XMLElement ObjectEditor::save(const TerrainMap* context) const {
+	if(context) return XMLElement();
 	char buffer[256];
 	XMLElement xml("objects");
 	for(const ListItem& item: m_objectList->items()) {
@@ -930,8 +932,8 @@ TreeNode* ObjectEditor::addModel(const char* path, const char* name) {
 	Model* model = base::BMLoader::load(path);
 	if(!model || model->getMeshCount()==0) return 0;
 	TreeNode* node = new TreeNode(name);
-	node->setData(1, model);
-	node->setData(2, String(path));
+	node->setValue(1, model);
+	node->setValue(2, String(path));
 	if(model->getMeshCount() > 1) {
 		// Does the name of mesh i match any previous ones - used for merging meshes
 		auto isSubMesh = [model](int index) {
@@ -949,8 +951,8 @@ TreeNode* ObjectEditor::addModel(const char* path, const char* name) {
 			if(isSubMesh(i)) continue;
 			const char* mesh = model->getMeshName(i);
 			TreeNode* meshNode = new TreeNode(mesh);
-			meshNode->setData(1, model);
-			meshNode->setData(3, String(mesh));
+			meshNode->setValue(1, model);
+			meshNode->setValue(3, String(mesh));
 			node->add(meshNode);
 		}
 	}

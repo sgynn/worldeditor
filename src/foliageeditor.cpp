@@ -477,6 +477,7 @@ inline void loadRange(const XMLElement& e, ::Range& range) {
 }
 
 XMLElement FoliageEditor::save(const TerrainMap* context) const {
+	if(context || m_layerList->getItemCount()==0) return XMLElement();
 	XMLElement e("foliage");
 	for(const ListItem& item: m_layerList->items()) {
 		const FoliageLayerEditor* layer = item.getValue<FoliageLayerEditor*>(1, nullptr);
@@ -519,6 +520,7 @@ XMLElement FoliageLayerEditor::save() const {
 }
 
 void FoliageEditor::load(const XMLElement& e, const TerrainMap* context) {
+	if(context) return;
 	clear();
 	const XMLElement& list = e.find("foliage");
 	for(const XMLElement& layerData: list) {

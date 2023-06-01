@@ -5,6 +5,15 @@
 #include <base/scene.h>
 #include <base/xml.h>
 #include <base/collision.h>
+#include <base/game.h>
+#include <base/input.h>
+#include <base/mesh.h>
+#include <base/hardwarebuffer.h>
+#include <base/drawablemesh.h>
+#include <base/material.h>
+#include <base/shader.h>
+#include <base/autovariables.h>
+#include <set>
 
 using base::XMLElement;
 using namespace gui;
@@ -43,11 +52,48 @@ void PolygonEditor::close() {
 	m_panel->setVisible(false);
 }
 
+void PolygonEditor::notifyTileChanged(const Point& index, const TerrainMap* tile, const TerrainMap* previous) {
+	base::SceneNode* node = m_nodes[index];
+	if(previous) {
+		for(Polygon* p: m_polygons) {
+			if(p->parent == previous) {
+				for(size_t i=0; i<p->drawables.size(); ++i) {
+					base::DrawableMesh* d = p->drawables[i];
+					if(node->isAttached(d)) {
+						p->drawables[i] = p->drawables.back();
+						p->drawables.pop_back();
+						node->detach(d);
+						delete d;
+					}
+				}
+			}
+		}
+	}
+	else if(tile) {
+		char name[32];
+		snprintf(name, 31, "%d,%d", index.x, index.y);
+		m_nodes[index] = node = m_node->createChild(name, m_terrain->getOffset(index));
+	}
+	else {
+		delete node;
+		m_nodes.erase(index);
+	}
+	if(tile) {
+		for(Polygon* p: m_polygons) if(p->parent==tile) createDrawable(p, node);
+	}
+
+	// Refresh list
+	m_list->clearItems();
+	std::set<const TerrainMap*> active;
+	for(Point p: m_terrain->getUsedSlots()) active.insert(m_terrain->getMap(p));
+	for(Polygon* p: m_polygons) if(active.find(p->parent)!=active.end()) m_list->addItem(p->properties[0].value, p);
+}
+
+
 // ------------------------------------------------------------------------------ //
 
 void PolygonEditor::addPolygon(Button*) {
 	Polygon* p = new Polygon();
-	p->drawable = 0;
 	p->properties.push_back( ItemProperty{"name", "Polygon"} );
 	p->points.push_back( m_cameraPosition + vec3(-5,0,-5) );
 	p->points.push_back( m_cameraPosition + vec3(5,0,-5) );
@@ -58,7 +104,9 @@ void PolygonEditor::addPolygon(Button*) {
 	m_list->addItem("Polygon", p);
 	m_list->selectItem(index);
 	polygonSelected(m_list, m_list->getItem(index));
-	updateDrawable(p);
+	updateMesh(p);
+	p->parent = m_terrain->getMap(m_cameraPosition);
+	for(auto& i: m_nodes) if(m_terrain->getMap(i.first) == p->parent) createDrawable(p, i.second);
 	m_dragging = INITIAL;
 	m_selected = p;
 	m_vertex = 0;
@@ -141,19 +189,27 @@ void PolygonEditor::changeProperty(Textbox* text, const char* value) {
 void PolygonEditor::changeFlags(gui::Spinbox*, int value) {
 	if(m_selected && m_selected->edges[m_vertex] != value) {
 		m_selected->edges[m_vertex] = value;
-		updateDrawable(m_selected);
+		updateMesh(m_selected);
 	}
 }
 
 // ------------------------------------------------------------------------------ //
 
+int PolygonEditor::countPolygons(const TerrainMap* tile) const {
+	int count = 0;
+	for(const Polygon* p: m_polygons) if(p->parent==tile) ++count;
+	return count;
+}
+
 void PolygonEditor::load(const XMLElement& e, const TerrainMap* context) {
+	if(!context) return;
 	const XMLElement& list = e.find("polygons");
 	for(const XMLElement& i: list) {
 		Polygon* p = new Polygon();
+		p->parent = context;
 		int size = i.attribute("size", 0);
 		for(auto a : i.attributes()) {
-			if(strcmp(a.value,"size")==0) continue;
+			if(strcmp(a.key, "size")==0) continue;
 			p->properties.push_back( ItemProperty{a.key, (const char*)a.value});
 		}
 		// Parse values - assume well formed TODO
@@ -169,19 +225,18 @@ void PolygonEditor::load(const XMLElement& e, const TerrainMap* context) {
 			p->points.push_back(vec3(x, 0, y));
 			p->edges.push_back(flags);
 		}
-		for(vec3& v: p->points) p->edges.push_back(0), v.y = m_terrain->getHeight(v);
-		m_list->addItem(i.attribute("name"), p);
-		updateDrawable(p);
+		for(vec3& v: p->points) p->edges.push_back(0), v.y = context->heightMap->getHeight(v);
+		m_polygons.push_back(p);
 	}
 }
 
 XMLElement PolygonEditor::save(const TerrainMap* context) const {
-	if(m_list->getItemCount()==0) return XMLElement();
+	if(!context || !countPolygons(context)) return XMLElement();
 	XMLElement xml("polygons");
 	char buffer[2048];
-	for(uint i=0; i<m_list->getItemCount(); ++i) {
+	for(Polygon* poly: m_polygons) {
+		if(poly->parent != context) continue;
 		XMLElement& e = xml.add("polygon");
-		Polygon* poly = m_list->getItem(i).getValue<Polygon*>(1, nullptr);
 		for(const ItemProperty& p: poly->properties) e.setAttribute(p.key, p.value);
 		char* c = buffer;
 		int size = poly->points.size();
@@ -197,19 +252,19 @@ XMLElement PolygonEditor::save(const TerrainMap* context) const {
 }
 
 void PolygonEditor::clear() {
-	for(uint i=0; i<m_list->getItemCount(); ++i) {
-		Polygon* poly = m_list->getItem(i).getValue<Polygon*>(1, nullptr);
-		destroyDrawable(poly);
-		delete poly;
+	m_node->deleteChildren(true);
+	m_nodes.clear();
+	for(Polygon* p: m_polygons) {
+		delete p->mesh;
+		delete p;
 	}
+	m_polygons.clear();
 	m_list->clearItems();
 	clearSelection();
 }
 
 // ------------------------------------------------------------------------------ //
 
-#include <base/game.h>
-#include <base/input.h>
 
 void PolygonEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, InputState& state) {
 	m_cameraPosition = ray.start;
@@ -218,24 +273,29 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 	if(m_dragging==NONE && mouse.pressed==1 && !state.consumedMouseDown) {
 		float best = 4;
 		vec3 end = ray.point(1000);
+		vec3 base;
 		float s, t;
 		Polygon* target = 0;
-		for(uint k=0; k<m_list->getItemCount(); ++k) {
-			Polygon* polygon = m_list->getItem(k).getValue<Polygon*>(1, nullptr);
+		for(Polygon* polygon: m_polygons) {
+			if(polygon->drawables.empty()) continue;
 			int size = polygon->points.size();
-			for(int i=size-1, j=0; i<size; i=j++) {
-				float r = base::closestPointBetweenLines(ray.start, end, polygon->points[i], polygon->points[j], s, t);
-				if(r<best) {
-					target = polygon;
-					m_vertex = i;
-					// Detect mode based on t
-					float dist = polygon->points[i].distance(polygon->points[j]);
-					if(dist*t < 1 && t < 0.5) m_dragging = VERTEX;
-					else if(dist*(1-t)< 1 && t>0.5) m_dragging = VERTEX, m_vertex = j;
-					else if(state.keyMask&CTRL_MASK) m_dragging = ALL;
-					else m_dragging = EDGE;
-					m_offset = ray.point(s * 1000) - polygon->points[m_vertex];
-					best = r;
+			for(base::DrawableMesh* instance: polygon->drawables) {
+				vec3 offset(&instance->getTransform()[12]);
+				for(int i=size-1, j=0; i<size; i=j++) {
+					float r = base::closestPointBetweenLines(ray.start, end, polygon->points[i]+offset, polygon->points[j]+offset, s, t);
+					if(r<best) {
+						target = polygon;
+						m_vertex = i;
+						// Detect mode based on t
+						float dist = polygon->points[i].distance(polygon->points[j]);
+						if(dist*t < 1 && t < 0.5) m_dragging = VERTEX;
+						else if(dist*(1-t)< 1 && t>0.5) m_dragging = VERTEX, m_vertex = j;
+						else if(state.keyMask&CTRL_MASK) m_dragging = ALL;
+						else m_dragging = EDGE;
+						m_offset = ray.point(s * 1000) - polygon->points[m_vertex];
+						base = offset;
+						best = r;
+					}
 				}
 			}
 		}
@@ -245,7 +305,7 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 			m_selected->edges.insert(m_selected->edges.begin()+m_vertex, m_selected->edges[m_vertex]);
 			++m_vertex;
 			m_selected->points[m_vertex] += m_offset;
-			m_offset.set(0,0,0);
+			m_offset = base;
 			m_dragging = VERTEX;
 		}
 		// Selection changed
@@ -287,12 +347,13 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 				pt.y = m_terrain->getHeight(pt);
 			}
 		}
-		updateDrawable(m_selected);
+		updateMesh(m_selected);
 	}
 	if(mouse.released==1 && m_dragging!=NONE) {
 		m_dragging = NONE;
 		for(size_t i=1; i<m_selected->points.size(); ++i) {
 			if(m_selected->points[i-1] == m_selected->points[i]) {
+				if(i == m_vertex+1) --i; // Make sure we are deleting the correct node, affects edge flags
 				m_selected->points.erase(m_selected->points.begin()+i);
 				m_selected->edges.erase(m_selected->edges.begin()+i);
 				--i;
@@ -307,52 +368,25 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 }
 
 
-#include <base/mesh.h>
-#include <base/hardwarebuffer.h>
-#include <base/drawablemesh.h>
-#include <base/material.h>
-#include <base/shader.h>
-#include <base/autovariables.h>
 
 static const char* polygonVS = 
 "#version 150\nin vec4 vertex;\nin vec4 colour;\nuniform mat4 transform;\nout vec4 col;\nvoid main() { gl_Position=transform*vertex; col=colour; }";
 static const char* polygonFS = 
 "#version 150;\nin vec4 col;\nout vec4 fragment;\nvoid main() { fragment=col; }";
 
-void PolygonEditor::updateDrawable(Polygon* poly) {
-	// Create drawable
-	if(!poly->drawable) {
-		base::Mesh* mesh = new base::Mesh();
-		mesh->setPolygonMode(base::PolygonMode::TRIANGLE_STRIP);
+void PolygonEditor::updateMesh(Polygon* poly) {
+	// Create mesh
+	if(!poly->mesh) {
 		base::HardwareVertexBuffer* buffer = new base::HardwareVertexBuffer();
 		buffer->attributes.add(base::VA_VERTEX, base::VA_FLOAT3);
 		buffer->attributes.add(base::VA_COLOUR, base::VA_ARGB);
 		buffer->createBuffer();
-		mesh->setVertexBuffer(buffer);
-		poly->drawable = new base::DrawableMesh(mesh);
-		m_node->attach(poly->drawable);
-
-		// Create material
-		static base::Material* material = 0;
-		if(!material) {
-			base::ShaderPart* vs = new base::ShaderPart(base::VERTEX_SHADER, polygonVS);
-			base::ShaderPart* fs = new base::ShaderPart(base::FRAGMENT_SHADER, polygonFS);
-			base::Shader* shader = new base::Shader();
-			shader->attach(vs);
-			shader->attach(fs);
-			shader->bindAttributeLocation("vertex", 0);
-			shader->bindAttributeLocation("colour", 4);
-			material = new base::Material();
-			base::Pass* pass = material->addPass("default");
-			pass->getParameters().setAuto("transform", base::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
-			pass->setShader(shader);
-			pass->state.cullMode = base::CULL_NONE;
-			pass->compile();
-		}
-		poly->drawable->setMaterial(material);
+		poly->mesh = new base::Mesh();
+		poly->mesh->setPolygonMode(base::PolygonMode::TRIANGLE_STRIP);
+		poly->mesh->setVertexBuffer(buffer);
 	}
 	
-	// Update drawable
+	// Update mesh
 	float width = 1;
 	uint colours[] = { 0xffffff, 0xff0000, 0x00ff00, 0x0000ff };
 	struct Vertex { float x,y,z; uint colour; };
@@ -370,15 +404,44 @@ void PolygonEditor::updateDrawable(Polygon* poly) {
 		}
 	}
 
-	base::HardwareVertexBuffer* buffer = poly->drawable->getMesh()->getVertexBuffer();
+	base::HardwareVertexBuffer* buffer = poly->mesh->getVertexBuffer();
 	buffer->copyData(&data[0], data.size(), sizeof(Vertex));
 }
+
+void PolygonEditor::createDrawable(Polygon* poly, base::SceneNode* node) {
+	static base::Material* material = nullptr;
+	if(!material) {
+		base::ShaderPart* vs = new base::ShaderPart(base::VERTEX_SHADER, polygonVS);
+		base::ShaderPart* fs = new base::ShaderPart(base::FRAGMENT_SHADER, polygonFS);
+		base::Shader* shader = new base::Shader();
+		shader->attach(vs);
+		shader->attach(fs);
+		shader->bindAttributeLocation("vertex", 0);
+		shader->bindAttributeLocation("colour", 4);
+		material = new base::Material();
+		base::Pass* pass = material->addPass("default");
+		pass->getParameters().setAuto("transform", base::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
+		pass->setShader(shader);
+		pass->state.cullMode = base::CULL_NONE;
+		pass->compile();
+	}
+
+	if(!poly->mesh) updateMesh(poly);
+	base::DrawableMesh* d = new base::DrawableMesh(poly->mesh, material);
+	poly->drawables.push_back(d);
+	node->attach(d);
+}
+
 void PolygonEditor::destroyDrawable(Polygon* poly) {
-	if(poly->drawable) {
-		m_node->detach(poly->drawable);
-		delete poly->drawable->getMesh();
-		delete poly->drawable;
-		poly->drawable = 0;
+	if(poly->mesh) {
+		for(base::DrawableMesh* d: poly->drawables) {
+			for(auto& i: m_nodes) {
+				i.second->detach(d);
+			}
+			delete d;
+		}
+		poly->drawables.clear();
+		delete poly->mesh;
 	}
 }
 

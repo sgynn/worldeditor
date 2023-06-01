@@ -55,6 +55,7 @@ WaterEditor::~WaterEditor() {
 }
 
 void WaterEditor::load(const base::XMLElement& root, const TerrainMap* context) {
+	if(context) return;
 	if(const XMLElement& water = root.find("water")) {
 		for(const XMLElement& e: water) {
 			if(e == "river") {
@@ -93,6 +94,7 @@ void WaterEditor::load(const base::XMLElement& root, const TerrainMap* context) 
 }
 
 XMLElement WaterEditor::save(const TerrainMap* context) const {
+	if(context) return XMLElement();
 	if(m_waterSystem->lakes().empty()) return XMLElement();
 	char buffer[128];
 	auto printElements = [&buffer](std::initializer_list<float> values) {
