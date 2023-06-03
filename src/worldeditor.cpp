@@ -610,6 +610,7 @@ void WorldEditor::createNewTerrain(int size) {
 void WorldEditor::createNewTile(Button*) {
 	char name[32];
 	int e = sprintf(name, "Tile %d,%d", m_currentTile.x, m_currentTile.y);
+	if(m_maps.empty()) e = sprintf(name, "height");
 	int alt = 0;
 	bool used = true;
 	while(used) {
@@ -1187,9 +1188,9 @@ void WorldEditor::saveWorld(const char* file) {
 		}
 
 		// Other editors
-		for(EditorPlugin* e: m_editors) {
-			XMLElement saved = e->save(map);
-			if(saved.name()) xml.getRoot().add(saved);
+		for(EditorPlugin* editor: m_editors) {
+			XMLElement saved = editor->save(map);
+			if(saved.name()) e.add(saved);
 		}
 	}
 

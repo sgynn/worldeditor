@@ -353,7 +353,7 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 		m_dragging = NONE;
 		for(size_t i=1; i<m_selected->points.size(); ++i) {
 			if(m_selected->points[i-1] == m_selected->points[i]) {
-				if(i == m_vertex+1) --i; // Make sure we are deleting the correct node, affects edge flags
+				if(i == (size_t)(m_vertex+1)) --i; // Make sure we are deleting the correct node, affects edge flags
 				m_selected->points.erase(m_selected->points.begin()+i);
 				m_selected->edges.erase(m_selected->edges.begin()+i);
 				--i;

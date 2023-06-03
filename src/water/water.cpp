@@ -18,12 +18,14 @@ WaterSystem::~WaterSystem() {
 
 WaterSystem::River* WaterSystem::addRiver() {
 	River* river = new River;
+	river->type = Type::River;
 	m_rivers.push_back(river);
 	return river;
 }
 
 WaterSystem::Lake* WaterSystem::addLake(bool inside) {
 	Lake* lake = new Lake;
+	lake->type = inside? Type::Lake: Type::Ocean;
 	lake->inside = inside;
 	m_lakes.push_back(lake);
 	return lake;
