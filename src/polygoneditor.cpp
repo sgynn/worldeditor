@@ -281,7 +281,7 @@ void PolygonEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 			int size = polygon->points.size();
 			for(base::DrawableMesh* instance: polygon->drawables) {
 				vec3 offset(&instance->getTransform()[12]);
-				for(int i=size-1, j=0; i<size; i=j++) {
+				for(int i=size-1, j=0; j<size; i=j++) {
 					float r = base::closestPointBetweenLines(ray.start, end, polygon->points[i]+offset, polygon->points[j]+offset, s, t);
 					if(r<best) {
 						target = polygon;

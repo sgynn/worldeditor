@@ -227,6 +227,7 @@ template<class T> inline void rasterise(const T* water, std::vector<bool>& cells
 	BoundingBox2D bounds = getBounds(water);
 	Point a(floor(bounds.min.x/resolution), floor(bounds.min.y/resolution));
 	Point b(ceil(bounds.max.x/resolution), ceil(bounds.max.y/resolution));
+	bool offStart = a.y < 0;
 	if(a.x<0) a.x = 0;
 	if(a.y<0) a.y = 0;
 	if(b.x>=w) b.x = w - 1;
@@ -235,11 +236,12 @@ template<class T> inline void rasterise(const T* water, std::vector<bool>& cells
 	for(int x=a.x; x<=b.x; ++x) {
 		cell.min.x = x*resolution;
 		cell.max.x = cell.min.x + resolution;
-		int state=0;
+		int state = 0;
 		for(int y=a.y; y<=b.y; ++y) {
 			cell.min.y = y*resolution;
 			cell.max.y = cell.min.y + resolution;
 			if(testBox(water, cell)) state = 1;
+			else if(y==a.y && offStart && inside(water, cell.centre())) state = 2;
 			else if(state==1) {
 				if(inside(water, cell.centre())) state = 2;
 				else state = 0;
