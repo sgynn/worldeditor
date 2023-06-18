@@ -4,8 +4,8 @@
 
 	<!--Templates-->
 	<template rect="0 0 100 100" name="frame" skin="panel" category="Containers"/>
-	<template class="Checkbox" rect="840 447 16 16" name="visibility" skin="none">
-		<widget anchor="lrtb" selicon="8" template="icon" icon="9" rect="0 0 16 16"/>
+	<template class="Checkbox" rect="840 447 16 16" name="visibility" skin="none" iconlist="icons" icon="8" nicon="9">
+		<widget anchor="lrtb" template="icon" icon="9" rect="0 0 16 16" name="_icon"/>
 	</template>
 	<template class="Listbox" rect="0 0 100 100" name="iconlistbox2">
 		<widget anchor="tlrb" rect="0 0 85 100" name="_client"/>

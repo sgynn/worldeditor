@@ -20,8 +20,8 @@
 		<widget anchor="tlr" rect="0 20 100 90" name="_client" skin="panel"/>
 	</template>
 	<template class="Textbox" name="editbox" skin="panel" category="Input"/>
-	<template class="Checkbox" rect="840 447 16 16" name="visibility" skin="none">
-		<widget anchor="lrtb" selicon="8" template="icon" icon="9" rect="0 0 16 16"/>
+	<template class="Checkbox" rect="840 447 16 16" name="visibility" skin="none" icon="8" nicon="9" iconlist="icons">
+		<widget anchor="lrtb" template="icon" icon="9" rect="0 0 16 16" name="_icon"/>
 	</template>
 	<template category="Display" class="Label" name="label" skin="panel" caption="Label"/>
 	<!--Widget Layout-->
@@ -34,7 +34,7 @@
 			<widget iconlist="icons" template="iconbutton" name="local" icon="42" rect="133 6 32 31"/>
 			<widget iconlist="icons" template="iconbutton" name="global" icon="42" rect="169 6 32 31"/>
 			<widget anchor="lr" class="Widget" template="frame" rect="205 6 15 31" skin="none"/>
-			<widget icon="8" template="visibility" selicon="9" iconlist="icons" skin="button" rect="224 6 32 31" name="visible"/>
+			<widget template="visibility" skin="button" rect="224 6 32 31" name="visible"/>
 		</widget>
 		<widget anchor="lrtb" template="category" name="scene" caption="Scene" rect="0 43 262 152">
 			<widget anchor="lr" template="editbox" name="filter" rect="0 0 246 20"/>
