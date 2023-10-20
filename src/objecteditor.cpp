@@ -222,10 +222,10 @@ void ObjectEditor::setTransform(SpinboxFloat* s, float) {
 
 
 	auto val = [this](const char* key) { return m_panel->getWidget<SpinboxFloat>(key)->getValue(); };
+	auto rad = [&val](const char* key) { return val(key) * PI/180.f; };
 	vec3 pos(val("x"), val("y"), val("z"));
 	vec3 scale(val("sx"), val("sy"), val("sz"));
-	vec3 euler(val("yaw"), val("pitch"), val("roll"));
-	Quaternion rot(euler * PI/180);
+	Quaternion rot(rad("yaw"), rad("pitch"), rad("roll"));
 	m_activeObject->setTransform(pos, rot, scale);
 	m_activeObject->updateBounds();
 	selectionChanged();
@@ -590,11 +590,10 @@ void ObjectEditor::refreshTransform(Object* obj) {
 	m_panel->getWidget<SpinboxFloat>("sy")->setValue(obj->getScale().y);
 	m_panel->getWidget<SpinboxFloat>("sz")->setValue(obj->getScale().z);
 
-	vec3 euler;
-	obj->getOrientation().toEuler(euler);
-	m_panel->getWidget<SpinboxFloat>("yaw")->setValue(euler.x * 180/PI);
-	m_panel->getWidget<SpinboxFloat>("pitch")->setValue(euler.y * 180/PI);
-	m_panel->getWidget<SpinboxFloat>("roll")->setValue(euler.z * 180/PI);
+	EulerAngles euler = obj->getOrientation().getEuler();
+	m_panel->getWidget<SpinboxFloat>("yaw")->setValue(euler.yaw * 180/PI);
+	m_panel->getWidget<SpinboxFloat>("pitch")->setValue(euler.pitch * 180/PI);
+	m_panel->getWidget<SpinboxFloat>("roll")->setValue(euler.roll * 180/PI);
 	m_activeObject = obj;
 }
 
