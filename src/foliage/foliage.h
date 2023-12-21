@@ -56,7 +56,7 @@ class FoliageLayer : protected base::SceneNode {
 	protected:
 	friend class FoliageSystem;
 	FoliageSystem*   m_parent;
-	base::Material* m_material;
+	base::Material*  m_material;
 	float            m_chunkSize;
 	float            m_range;
 	float            m_density;

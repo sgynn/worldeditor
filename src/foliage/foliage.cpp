@@ -55,6 +55,7 @@ FoliageLayer::FoliageLayer(float cs, float r) : m_parent(0), m_material(0), m_ch
 	m_slopeRange.set(-1e8f, 1e8f);
 }
 FoliageLayer::~FoliageLayer() {
+	if(m_parent && m_parent != getParent()) m_parent->removeLayer(this);
 	deleteMap(m_densityMap);
 	clear();
 }
@@ -294,7 +295,7 @@ FoliageLayer::Geometry GrassLayer::generateGeometry(const Index& index) const {
 
 	RNG rng(0);
 	vec3 direction;
-	float* vdata = new float[ points.size() * 4 * 8 ];
+	float* vdata = new float[ points.size() * 4 * 11 ];
 	unsigned short* idata = new unsigned short[ points.size() * 6 ];
 	float* vx = vdata;
 	unsigned short* ix = idata;
@@ -313,17 +314,22 @@ FoliageLayer::Geometry GrassLayer::generateGeometry(const Index& index) const {
 		vec3 top = up * s + vec3(direction.z*lean,0,-direction.x*lean);
 		// Positiion
 		memcpy(vx+0,  point.position - direction,       sizeof(vec3));
-		memcpy(vx+8,  point.position - direction + top, sizeof(vec3));
-		memcpy(vx+16, point.position + direction + top, sizeof(vec3));
-		memcpy(vx+24, point.position + direction,       sizeof(vec3));
+		memcpy(vx+11, point.position - direction + top, sizeof(vec3));
+		memcpy(vx+22, point.position + direction + top, sizeof(vec3));
+		memcpy(vx+33, point.position + direction,       sizeof(vec3));
 		// Normal
 		memcpy(vx+3,  point.normal, sizeof(vec3));
-		memcpy(vx+11, point.normal, sizeof(vec3));
-		memcpy(vx+19, point.normal, sizeof(vec3));
-		memcpy(vx+27, point.normal, sizeof(vec3));
+		memcpy(vx+14, point.normal, sizeof(vec3));
+		memcpy(vx+25, point.normal, sizeof(vec3));
+		memcpy(vx+36, point.normal, sizeof(vec3));
+		// Tangent
+		memcpy(vx+6,  direction, sizeof(vec3));
+		memcpy(vx+17, direction, sizeof(vec3));
+		memcpy(vx+28, direction, sizeof(vec3));
+		memcpy(vx+39, direction, sizeof(vec3));
 		// UVs
-		vx[6] = vx[14] = vx[15] = vx[23] = 0;
-		vx[7] = vx[22] = vx[30] = vx[31] = 1;
+		vx[9]  = vx[20] = vx[21] = vx[32] = 0;
+		vx[10] = vx[31] = vx[42] = vx[43] = 1;
 		// Index
 		ix[0] = ix[3] = k;
 		ix[1] = k+1;
@@ -332,15 +338,16 @@ FoliageLayer::Geometry GrassLayer::generateGeometry(const Index& index) const {
 		// Next
 		k += 4;
 		ix += 6;
-		vx += 4*8;
+		vx += 44;
 	}
 
 	// Build buffer objects
 	HardwareVertexBuffer* vbuffer = new HardwareVertexBuffer();
-	vbuffer->setData(vdata, points.size()*4, 32, true);
 	vbuffer->attributes.add(VA_VERTEX, VA_FLOAT3);
 	vbuffer->attributes.add(VA_NORMAL, VA_FLOAT3);
+	vbuffer->attributes.add(VA_TANGENT, VA_FLOAT3);
 	vbuffer->attributes.add(VA_TEXCOORD, VA_FLOAT2);
+	vbuffer->setData(vdata, points.size()*4, vbuffer->attributes.getStride(), true);
 
 	HardwareIndexBuffer* ibuffer = new HardwareIndexBuffer();
 	ibuffer->setData(idata, points.size()*6, true);
@@ -384,6 +391,7 @@ void FoliageSystem::addLayer(FoliageLayer* l) {
 
 void FoliageSystem::removeLayer(FoliageLayer* l) {
 	removeChild(l);
+	l->m_parent = nullptr;
 	for(size_t i=0; i<m_layers.size(); ++i) {
 		if(m_layers[i] == l) {
 			m_layers[i] = m_layers.back();
