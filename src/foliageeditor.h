@@ -12,8 +12,10 @@ class MapGrid;
 class FoliageLayerEditor;
 
 enum class FoliageType { Instanced, Grass };
+using base::FoliageLayer;
+using base::FoliageMap;
 
-class Foliage : public FoliageSystem {
+class Foliage : public base::FoliageSystem {
 	public:
 	Foliage(MapGrid* grid, int threads) : FoliageSystem(threads), m_terrain(grid) {}
 	void resolvePosition(const vec3& point, vec3& position, float& height) const override;

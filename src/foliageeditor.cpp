@@ -13,6 +13,7 @@
 #include <base/texture.h>
 
 using namespace gui;
+using namespace base;
 
 void Foliage::resolvePosition(const vec3& point, vec3& position, float& height) const {
 	height = m_terrain->getHeight(point);
@@ -583,6 +584,7 @@ void FoliageLayerEditor::load(const XMLElement& e) {
  * 	- FoliageSystem::getActive() needs to skip onloaded parts.
  * 	- ChunkSize must be a multiple of mapSize
  * 	- Need multiple FoliageLayers for each layer if maps are used unless a FoliageLayer can have multiple maps
+ * 	- Option for global or local. Local uses tile clip bounds
  */
 
 
