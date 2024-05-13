@@ -300,7 +300,7 @@ void WorldEditor::update() {
 	// Resized window
 	if(Game::getSize() != m_gui->getRootWidget()->getSize()) resized();
 	bool guiHasMouse = m_gui->getWidgetUnderMouse();
-	bool editingText = m_gui->getFocusedWidget()->cast<Textbox>();
+	bool editingText = cast<Textbox>(m_gui->getFocusedWidget());
 
 
 	// Escape button - close stuff
@@ -309,7 +309,7 @@ void WorldEditor::update() {
 		bool closedSomething = false;
 		for(int i=m_gui->getRootWidget()->getWidgetCount()-1; i>0; --i) {
 			Widget* w = m_gui->getRootWidget()->getWidget(i);
-			if(w->isVisible() && w->cast<gui::Window>()) {
+			if(w->isVisible() && cast<gui::Window>(w)) {
 				for(EditorPlugin* e: m_editors) {
 					if(w == e->getPanel()) e->closeEditor();
 				}
@@ -325,7 +325,7 @@ void WorldEditor::update() {
 		static const char* names[] = { "ok", "confirm", "create", "button", "editorcreate" };
 		for(int i=m_gui->getRootWidget()->getWidgetCount()-1; i>0; --i) {
 			Widget* w = m_gui->getRootWidget()->getWidget(i);
-			if(w->isVisible() && w->cast<gui::Window>()) {
+			if(w->isVisible() && cast<gui::Window>(w)) {
 				for(const char* s: names) {
 					Button* b = w->getWidget<Button>(s);
 					if(b && b->isEnabled()) {
@@ -369,7 +369,7 @@ void WorldEditor::update() {
 		const Point& ps = m_mapMarker->getSize(); 
 		const vec3& dir = cam->getDirection();
 		m_mapMarker->setPosition(p.x * ms.x - ps.x/2, p.y * ms.y - ps.y/2);
-		m_mapMarker->cast<gui::Icon>()->setAngle( -atan2(dir.x, dir.z) );
+		m_mapMarker->as<gui::Icon>()->setAngle( -atan2(dir.x, dir.z) );
 	}
 
 	// Collide with terrain
@@ -631,7 +631,7 @@ void WorldEditor::showTileList(Button*) {
 	w->setCaption(title);
 	w->setVisible(true);
 
-	Listbox* list = w->getWidget(0)->cast<Listbox>();
+	Listbox* list = w->getWidget(0)->as<Listbox>();
 	list->clearItems();
 	for(TerrainMap* m: m_maps) list->addItem(m->name);
 	m_contextMenu->hide();
@@ -676,7 +676,7 @@ void WorldEditor::showRenameTile(Button*) {
 	Widget* w = m_gui->getWidget<Widget>("renametile");
 	if(map && w) {
 		w->setVisible(true);
-		Textbox* txt = w->getWidget(0)->cast<Textbox>();
+		Textbox* txt = w->getWidget(0)->as<Textbox>();
 		txt->setText(map->name);
 		txt->setFocus();
 		txt->select(0,99);
@@ -686,7 +686,7 @@ void WorldEditor::showRenameTile(Button*) {
 void WorldEditor::renameTile(Button*) {
 	TerrainMap* map = m_terrain->getMap(m_currentTile);
 	Widget* w = m_gui->getWidget<Widget>("renametile");
-	map->name = w->getWidget(0)->cast<Textbox>()->getText();
+	map->name = w->getWidget(0)->as<Textbox>()->getText();
 	w->setVisible(false);
 }
 void WorldEditor::renameTile(gui::Textbox*) {
@@ -954,7 +954,7 @@ void WorldEditor::messageBox(const char* c, const char* m, ...) {
 	printf("%s: %s\n", c, buffer);
 
 	gui::Window* base = m_gui->getWidget<gui::Window>("messagebox");
-	gui::Window* box = base->clone()->cast<gui::Window>();
+	gui::Window* box = base->clone()->as<gui::Window>();
 	Label* msg = box->getWidget<Label>("message");
 	Button* btn = box->getWidget<Button>("button");
 	Point s = msg->getSkin()->getFont()->getSize(buffer, msg->getSkin()->getFontSize());

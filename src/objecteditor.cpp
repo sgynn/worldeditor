@@ -202,12 +202,12 @@ void ObjectEditor::changePath(Textbox* t) {
 }
 
 void ObjectEditor::setProperty(Widget* w) {
-	String prop = w->cast<Textbox>()->getText();
+	String prop = w->as<Textbox>()->getText();
 	for(ListItem& i: m_objectList->selectedItems()) i.setValue(5, prop);
 }
 
 void ObjectEditor::setName(Widget* w) {
-	String name = w->cast<Textbox>()->getText();
+	String name = w->as<Textbox>()->getText();
 	for(ListItem& i: m_objectList->selectedItems()) i.setValue(name);
 	m_objectList->refresh();
 }
@@ -249,7 +249,7 @@ void ObjectEditor::setGizmoSpaceLocal(bool local) {
 void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* camera, InputState& state) {
 	if(!m_panel->isVisible()) return;
 
-	bool keys = !m_panel->getRoot()->getFocusedWidget()->cast<Textbox>();
+	bool keys = !cast<Textbox>(m_panel->getRoot()->getFocusedWidget());
 
 	// Placement update
 	if(m_placement) { 

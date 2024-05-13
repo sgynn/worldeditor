@@ -111,7 +111,7 @@ void WeightToolGroup::setup(Root* r) {
 }
 
 void WeightToolGroup::setChannel(int index, const char* icon) {
-	Button* b = m_panel->getWidget(index)->cast<Button>();
+	Button* b = cast<Button>(m_panel->getWidget(index));
 	if(b) b->setIcon(icon);
 }
 
@@ -134,7 +134,7 @@ void IndexToolGroup::setTextures(int count) {
 	}
 	// Update icons
 	for(int i=0; i<count; ++i) {
-		Button* b = m_panel->getWidget(i)->cast<Button>();
+		Button* b = m_panel->getWidget(i)->as<Button>();
 		if(i>=icons->size() || icons->getIconRect(i).width==0) b->setIcon(-1);
 		else b->setIcon(i);
 	}
@@ -186,12 +186,12 @@ void ColourToolGroup::openPicker(Button* b) {
 }
 void ColourToolGroup::colourChanged(const Colour& c) {
 	m_colour = c;
-	m_panel->getWidget(0)->cast<Button>()->setIconColour(c);
+	m_panel->getWidget(0)->as<Button>()->setIconColour(c);
 	getTool()->flags = c.toRGB();
 }
 
 void ColourToolGroup::setActive() {
-	Button* b = m_panel->getWidget(0)->cast<Button>();
+	Button* b = m_panel->getWidget(0)->as<Button>();
 	selectTool(b);
 }
 

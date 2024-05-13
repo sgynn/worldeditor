@@ -18,7 +18,7 @@ bool EditorPlugin::createPanel(gui::Root* gui, const char* name, const char* fil
 	}
 	if(m_panel) {
 		m_panel->setVisible(false);
-		Window* window = m_panel->cast<Window>();
+		Window* window = cast<Window>(m_panel);
 		if(window) window->eventClosed.bind(this, &EditorPlugin::panelClosed);
 	}
 	return m_panel;

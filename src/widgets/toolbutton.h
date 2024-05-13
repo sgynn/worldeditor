@@ -12,7 +12,7 @@ class ToolButton : public gui::Button {
 		// Deselect other options
 		if(isSelected()) {
 			for(int i=0, j=m_parent->getWidgetCount(); i<j; ++i) {
-				ToolButton* b = m_parent->getWidget(i)->cast<ToolButton>();
+				ToolButton* b = cast<ToolButton>(m_parent->getWidget(i));
 				if(b && b!=this) b->setSelected(false);
 			}
 		}

@@ -619,7 +619,7 @@ void MaterialEditor::renameTexture(gui::Textbox* t) {
 	m_textureList->setFocus();
 }
 void MaterialEditor::renameTexture(gui::Widget* t) {
-	renameTexture(t->cast<gui::Textbox>());
+	renameTexture(cast<gui::Textbox>(t));
 }
 
 
@@ -696,7 +696,7 @@ void MaterialEditor::removeLayer(gui::Button*) {
 }
 void MaterialEditor::renameLayer(gui::Widget* w) {
 	if(m_selectedMaterial<0) return;
-	gui::Textbox* t = w->cast<gui::Textbox>();
+	gui::Textbox* t = w->as<gui::Textbox>();
 	int layerIndex = t->getParent()->getIndex();
 	MaterialLayer* layer = m_materials[m_selectedMaterial]->getLayer( layerIndex );
 	printf("Rename layer %d: %s -> %s\n", layerIndex, layer->name.str(), t->getText());
@@ -785,7 +785,7 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 	w->getTemplateWidget<gui::Button>("visibility")->eventPressed.bind(this, &MaterialEditor::toggleLayer);
 	w->getTemplateWidget<gui::Button>("visibility")->setIcon(layer->visible? "eye_open": "eye_closed");
 	w->getTemplateWidget<gui::Button>("expand")->eventPressed.bind(this, &MaterialEditor::expandLayer);
-	w->cast<OrderableItem>()->eventReordered.bind(this, &MaterialEditor::moveLayer);
+	w->as<OrderableItem>()->eventReordered.bind(this, &MaterialEditor::moveLayer);
 
 	setupLayerWidgets(layer, w);
 }
@@ -1008,7 +1008,7 @@ void MaterialEditor::changeScaleX(gui::Scrollbar* w, int v) {
 	if(l->projection == PROJECTION_FLAT) l->scale.x = v/40.0;
 	else l->scale.x = l->scale.z = v/40.0;
 	if(w->getRoot()->getKeyMask() == gui::KeyMask::Shift) {
-		gui::Scrollbar* other = w->getParent()->getWidget(w->getIndex() + 1)->cast<gui::Scrollbar>();
+		gui::Scrollbar* other = cast<gui::Scrollbar>(w->getParent()->getWidget(w->getIndex() + 1));
 		if(other) other->setValue(v);
 		return;
 	}
