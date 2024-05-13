@@ -1,9 +1,6 @@
 editor
 maps
 shader_cache.glsl
-src/gui
-src/model
-src/scene
-src/resource
+stc/foliage
 tmp.tiff
 todo

@@ -55,40 +55,62 @@ float Foliage::getMapValue(const FoliageMap* map, const BoundingBox2D& bounds, c
 
 // ======================================================================== //
 
-static const char* shaderSourceVS =
-"#version 150\n"
-"in vec4 vertex;\nin vec3 normal;\nin vec2 texCoord;\n"
-"uniform mat4 transform;\nuniform mat4 modelMatrix;\n"
-"out vec2 texcoord;\nout vec3 worldNormal;\nout vec3 worldPos;\n"
-"void main() { gl_Position=transform*vertex; texcoord=texCoord; worldNormal=mat3(modelMatrix)*normal; worldPos=(modelMatrix * vertex).xyz; }\n";
-static const char* shaderSourceInstVS =
-"#version 150\n"
-"in vec4 vertex;\nin vec3 normal;\nin vec2 texCoord;\n"
-"in vec4 loc; in vec4 rot;\n"
-"uniform mat4 transform;\nuniform mat4 modelMatrix;\n"
-"out vec2 texcoord;\nout vec3 worldNormal;\nout vec3 worldPos;\n"
-"mat3 quatToMat(vec4 q) {\n"
-"	vec3 x = vec3( 1-2*(q.y*q.y + q.z*q.z), 2*(q.x*q.y + q.w*q.z), 2*(q.x*q.z - q.w*q.y) );\n"
-"	vec3 y = vec3( 2*(q.x*q.y - q.w*q.z), 1-2*(q.x*q.x + q.z*q.z), 2*(q.y*q.z + q.w*q.x) );\n"
-"	vec3 z = cross(x, y);\n"
-"	return mat3(x, y, z);\n}\n"
-"void main() {"
-"	mat3 m = quatToMat(rot.yzwx);\n"
-"	vec3 pos = m * vertex.xyz * loc.w + loc.xyz;\n"
-"	gl_Position = transform * vec4(pos,1);\n"
-"	texcoord = texCoord;\n"
-"	worldNormal = mat3(modelMatrix) * m * normal;\n"
-"	worldPos = (modelMatrix * vec4(pos,1)).xyz;\n"
-"}\n";
-static const char* shaderSourceFS =
-"#version 150\n"
-"in vec2 texcoord;\nin vec3 worldNormal;\nin vec3 worldPos;\nout vec4 fragment;\n"
-"uniform sampler2D diffuse;\nuniform vec3 lightDirection;\n"
-"void main() { vec4 diff=texture2D(diffuse, texcoord.st);\n"
-"if(diff.a < 0.5) discard;\n"
-"float l = dot(normalize(worldNormal), normalize(lightDirection));\n"
-"float s = (l+1)/1.3*0.2+0.1;\n"
-"fragment = vec4(diff.rgb * max(s,l), 1.0); }";
+static const char* shaderSourceVS = R"-(#version 330
+in vec4 vertex;
+in vec3 normal;
+in vec2 texCoord;
+uniform mat4 transform;
+uniform mat4 modelMatrix;
+out vec2 texcoord;
+out vec3 worldNormal;
+out vec3 worldPos;
+void main() {
+	gl_Position = transform*vertex;
+	texcoord = texCoord;
+	worldNormal = mat3(modelMatrix) * normal;
+	worldPos = (modelMatrix * vertex).xyz;
+})-";
+
+static const char* shaderSourceInstVS = R"-(#version 330
+in vec4 vertex;
+in vec3 normal;
+in vec2 texCoord;
+in vec4 loc;
+in vec4 rot;
+uniform mat4 transform;
+uniform mat4 modelMatrix;
+out vec2 texcoord;
+out vec3 worldNormal;
+out vec3 worldPos;
+mat3 quatToMat(vec4 q) {
+	vec3 x = vec3( 1-2*(q.y*q.y + q.z*q.z), 2*(q.x*q.y + q.w*q.z), 2*(q.x*q.z - q.w*q.y) );
+	vec3 y = vec3( 2*(q.x*q.y - q.w*q.z), 1-2*(q.x*q.x + q.z*q.z), 2*(q.y*q.z + q.w*q.x) );
+	vec3 z = cross(x, y);
+	return mat3(x, y, z);
+}
+void main() {
+	mat3 m = quatToMat(rot);
+	vec3 pos = m * vertex.xyz * loc.w + loc.xyz;
+	gl_Position = transform * vec4(pos, 1.0);
+	texcoord = texCoord;
+	worldNormal = mat3(modelMatrix) * m * normal;
+	worldPos = (modelMatrix * vec4(pos, 1.0)).xyz;
+})-";
+
+static const char* shaderSourceFS = R"-(#version 330
+in vec2 texcoord;
+in vec3 worldNormal;
+in vec3 worldPos;
+out vec4 fragment;
+uniform sampler2D diffuse;
+uniform vec3 lightDirection;
+void main() {
+	vec4 diff = texture(diffuse, texcoord.st);
+	if(diff.a < 0.5) discard;
+	float l = dot(normalize(worldNormal), normalize(lightDirection));
+	float s = (l+1.0) / 1.3 * 0.2 + 0.1;
+	fragment = vec4(diff.rgb * max(s,l), 1.0);
+})-";
 
 
 base::Material* FoliageEditor::createMaterial(FoliageType type, const char* diffuse) {
