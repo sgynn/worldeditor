@@ -300,18 +300,53 @@ void FoliageEditor::destroy(FoliageLayerEditor* editor) {
 // ======================================================================== //
 
 #define CONNECT(Type, name, event, callback) { Type* t=w->getWidget<Type>(name); if(t) t->event.bind(this, &FoliageLayerEditor::callback); else printf("Missing widget: %s\n", name); }
+#define CONNECTL(Type, name, event, callback) { Type* t=w->getWidget<Type>(name); if(t) t->event.bind(callback); else printf("Missing widget: %s\n", name); }
 FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, FoliageLayer* layer, FoliageType type) : m_editor(editor), m_layer(layer), m_type(type), m_panel(w) {
 	CONNECT(Textbox, "name", eventSubmit, renameLayer);
-
 	CONNECT(Combobox, "densitymap", eventSelected, setDensityMap);
-	CONNECT(Scrollbar, "density",   eventChanged, setDensity);
-	CONNECT(Scrollbar, "range",     eventChanged, setRange);
-	CONNECT(Scrollbar, "minheight", eventChanged, setMinHeight);
-	CONNECT(Scrollbar, "maxheight", eventChanged, setMaxHeight);
-	CONNECT(Scrollbar, "minslope",  eventChanged, setMinSlope);
-	CONNECT(Scrollbar, "maxslope",  eventChanged, setMaxSlope);
-	CONNECT(Scrollbar, "minscale",  eventChanged, setMinScale);
-	CONNECT(Scrollbar, "maxscale",  eventChanged, setMaxScale);
+	CONNECTL(Combobox, "distribution", eventSelected, [this](Combobox*, ListItem& i) {
+		m_distribution = i.getIndex();
+		m_panel->getWidget("cluster")->setVisible(m_distribution);
+		int h = 0;
+		for(Widget* w: m_panel) if(w->isVisible()) h = std::max(h, w->getRect().bottom());
+		h += m_panel->getSize().y - m_panel->getClientRect().height;
+		m_panel->setSize(m_panel->getSize().x, h);
+		refresh();
+	});
+
+	auto setupSlider = [this](float& value, const char* name, float max, bool regen=true) {
+		Slider slider { m_panel->getWidget<Scrollbar>(name), value, max };
+		if(slider.slider) {
+			slider.slider->setRange(0, 1000);
+			slider.slider->eventChanged.bind([this, &value, max, regen](Scrollbar*, int v) {
+				value = (float)v * max / 1000.f;
+				refresh(regen);
+			});
+			m_sliders.push_back(slider);
+		}
+		else printf("Error: Missing widget %s\n", name);
+	};
+
+	setupSlider(m_range,      "range",    1000, false);
+	setupSlider(m_density,    "density", type==FoliageType::Instanced? 0.5: 16);
+	setupSlider(m_height.min, "minheight", 500);
+	setupSlider(m_height.max, "maxheight", 500);
+	setupSlider(m_slope.min,  "minslope", 1);
+	setupSlider(m_slope.max,  "maxslope", 1);
+	setupSlider(m_scale.min,  "minscale", 10);
+	setupSlider(m_scale.max,  "maxscale", 10);
+	setupSlider(m_angle.min,  "minalign", 1);
+	setupSlider(m_angle.max,  "maxalign", 1);
+
+
+	setupSlider(m_clusterDensity, "clusterdensity", 0.05);
+	setupSlider(m_clusterRadius.min, "clustermin", 100);
+	setupSlider(m_clusterRadius.max, "clustermax", 100);
+	setupSlider(m_clusterShapeScale, "clustershapescale", 1);
+	setupSlider(m_clusterFalloff,    "clusterfalloff", 1);
+
+	CONNECTL(Scrollbar, "clustershape", eventChanged, [this](Scrollbar*, int v) { m_clusterShapePoints=v; refresh(); });
+	m_panel->getWidget<Scrollbar>("clustershape")->setRange(0, 10);
 
 	Combobox* align = 0;
 	w->getWidget<Widget>("alignrange")->setVisible(false);
@@ -321,12 +356,9 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 		CONNECT(Combobox,  "mesh",      eventSelected, setMesh);
 		CONNECT(Button,    "browsemesh", eventPressed, loadMesh);
 		CONNECT(Combobox,  "alignment",  eventSelected, setAlignment);
-		CONNECT(Scrollbar, "minalign",  eventChanged, setMinAngle);
-		CONNECT(Scrollbar, "maxalign",  eventChanged, setMaxAngle);
 		w->getWidget<Widget>("grass")->setVisible(false);
 		w->getWidget<Combobox>("mesh")->shareList(editor->m_meshList);
 		m_name = "New Instanced Layer";
-		m_densityMax = 0.5;
 		m_density = 0.01;
 
 		align = w->getWidget<Combobox>("alignment");
@@ -343,10 +375,11 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 		w->getWidget<Widget>("instanced")->setVisible(false);
 		w->getWidget<Combobox>("sprite")->shareList(editor->m_spriteList);
 		m_name = "New Grass Layer";
-		m_densityMax = 16;
 		m_density = 1;
 		break;
 	}
+
+	w->getWidget<Combobox>("distribution")->selectItem(0, true);
 
 	// Defaults
 	m_range = 100;
@@ -358,23 +391,15 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 	updateSliders();
 
 	// Icon
-	Icon* icon = w->getWidget<Icon>("icon");
-	icon->setIcon(type==FoliageType::Instanced? "Foliage": "Grass");
+	Image* icon = w->getWidget<Image>("icon");
+	icon->setImage(type==FoliageType::Instanced? "Foliage": "Grass");
 }
 
-#define SET_SLIDER(name, value, max) { Scrollbar* t=m_panel->getWidget<Scrollbar>(name); if(t) t->setValue(value*1000/(max)); }
 void FoliageLayerEditor::updateSliders() {
 	m_panel->getWidget<Textbox>("name")->setText(m_name);
-	SET_SLIDER("range", m_range, 1000);
-	SET_SLIDER("density", powf(m_density/m_densityMax,0.5), 1);
-	SET_SLIDER("minheight", m_height.min, 500);
-	SET_SLIDER("maxheight", m_height.max, 500);
-	SET_SLIDER("minslope", m_slope.min, 1);
-	SET_SLIDER("maxslope", m_slope.max, 1);
-	SET_SLIDER("minscale", m_scale.min, 10);
-	SET_SLIDER("maxscale", m_scale.max, 10);
-	SET_SLIDER("minalign", m_angle.min, 1);
-	SET_SLIDER("maxalign", m_angle.max, 1);
+	for(Slider& s: m_sliders) {
+		s.slider->setValue(s.value * 1000 / s.max);
+	}
 }
 
 void FoliageLayerEditor::setVisible(bool vis) {
@@ -387,19 +412,6 @@ void FoliageLayerEditor::renameLayer(Textbox* t) {
 }
 
 void FoliageLayerEditor::setDensityMap(Combobox*, ListItem&) {}
-void FoliageLayerEditor::setDensity(Scrollbar*, int v) { m_density=powf(v*0.001,2)*m_densityMax; refresh(); }
-void FoliageLayerEditor::setRange(Scrollbar*, int v)   { m_range=v; m_layer->setViewRange(m_range); }
-
-void FoliageLayerEditor::setMinHeight(Scrollbar*, int v) { m_height.min = v*0.5; refresh(); }
-void FoliageLayerEditor::setMaxHeight(Scrollbar*, int v) { m_height.max = v*0.5; refresh(); }
-void FoliageLayerEditor::setMinSlope(Scrollbar*, int v)  { m_slope.min = v*0.001; refresh(); }
-void FoliageLayerEditor::setMaxSlope(Scrollbar*, int v)  { m_slope.max = v*0.001; refresh(); }
-
-void FoliageLayerEditor::setMinScale(Scrollbar*, int v)  { m_scale.min = v*0.01; refresh(); }
-void FoliageLayerEditor::setMaxScale(Scrollbar*, int v)  { m_scale.max = v*0.01; refresh(); }
-
-void FoliageLayerEditor::setMinAngle(Scrollbar*, int v)  { m_angle.min = v*0.01; refresh(); }
-void FoliageLayerEditor::setMaxAngle(Scrollbar*, int v)  { m_angle.max = v*0.01; refresh(); }
 
 // -------------------------------------------------------------------------------------- //
 void FoliageLayerEditor::loadMesh(Button*) {
@@ -469,7 +481,8 @@ void FoliageLayerEditor::setSprite(Combobox* list, ListItem& item) {
 void FoliageLayerEditor::setScaleMap(Combobox*, ListItem&) {}
 // -------------------------------------------------------------------------------------- //
 
-void FoliageLayerEditor::refresh() {
+void FoliageLayerEditor::refresh(bool regen) {
+	m_layer->setViewRange(m_range);
 	m_layer->setDensity(m_density);
 	m_layer->setSlopeRange(m_slope.min, m_slope.max);
 	m_layer->setHeightRange(m_height.min, m_height.max);
@@ -482,7 +495,14 @@ void FoliageLayerEditor::refresh() {
 		FoliageInstanceLayer* inst = static_cast<FoliageInstanceLayer*>(m_layer);
 		inst->setAlignment((FoliageInstanceLayer::OrientaionMode)m_align, m_angle);
 	}
-	m_layer->regenerate();
+	if(m_distribution == 0) m_layer->setCluster(0, 0, 0);
+	else {
+		m_layer->setCluster(0, fmax(1e-6,m_clusterDensity), {m_clusterRadius.min, m_clusterRadius.max}, m_clusterFalloff);
+		m_layer->setClusterGap({m_clusterGap.min, m_clusterGap.max});
+		m_layer->setClusterShape(m_clusterShapePoints, m_clusterShapeScale);
+	}
+
+	if(regen) m_layer->regenerate();
 }
 
 // =============================================== //
@@ -518,6 +538,16 @@ XMLElement FoliageLayerEditor::save() const {
 	saveRange(e, "height", m_height);
 	saveRange(e, "slope", m_slope);
 	saveRange(e, "scale", m_scale);
+
+	if(m_distribution == 1) {
+		e.setAttribute("clusters", m_clusterDensity);
+		e.setAttribute("clusterfalloff", m_clusterFalloff);
+		saveRange(e, "radius", m_clusterRadius);
+		if(m_clusterGap.max>0) saveRange(e, "gap", m_clusterGap);
+		if(m_clusterShapePoints) e.setAttribute("shape", m_clusterShapePoints);
+		if(m_clusterShapeScale) e.setAttribute("shapescale", m_clusterShapeScale);
+	}
+
 
 	if(!((base::SceneNode*)m_layer)->isVisible()) e.setAttribute("enabled", false);
 
@@ -571,7 +601,6 @@ void FoliageLayerEditor::load(const XMLElement& e) {
 	loadRange(e.find("height"), m_height);
 	loadRange(e.find("slope"), m_slope);
 	loadRange(e.find("scale"), m_scale);
-
 	
 	if(m_type==FoliageType::Grass) {
 		const XMLElement& f = e.find("sprite");
@@ -593,6 +622,17 @@ void FoliageLayerEditor::load(const XMLElement& e) {
 
 	if(!e.attribute("enabled", true)) setVisible(false);
 
+	if(e.hasAttribute("clusters")) m_distribution = 1;
+	if(m_distribution) {
+		m_clusterDensity = e.attribute("clusters", m_clusterDensity);
+		m_clusterFalloff = e.attribute("clusterfalloff", m_clusterFalloff);
+		loadRange(e.find("radius"), m_clusterRadius);
+		loadRange(e.find("gap"), m_clusterGap);
+		m_clusterShapePoints = e.attribute("shape", m_clusterShapePoints);
+		m_clusterShapeScale = e.attribute("shapescale", m_clusterShapeScale);
+	}
+
+	m_panel->getWidget<Combobox>("distribution")->selectItem(m_distribution);
 	updateSliders();
 	refresh();
 	if(eventRenamed) eventRenamed(this);

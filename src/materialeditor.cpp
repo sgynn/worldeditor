@@ -425,7 +425,7 @@ void MaterialEditor::addTextureGUI(TerrainTexture* tex) {
 	}
 	// Icon
 	int layer = m_textureList->getWidgetCount() - 1;
-	if(layer < m_textureIcons->size()) w->getTemplateWidget<gui::Icon>("textureicon")->setIcon(m_textureIcons, layer);
+	if(layer < m_textureIcons->size()) w->getTemplateWidget<gui::Image>("textureicon")->setImage(m_textureIcons, layer);
 	
 }
 
@@ -577,7 +577,7 @@ void MaterialEditor::setTexture(const char* file) {
 	int layer = m_browseTarget & 0xff;
 	ArrayTexture* array = type==NORMAL? &m_normalMaps: &m_diffuseMaps;
 	if(loadTexture(array, layer, file, type==DIFFUSE)) {
-		w->getTemplateWidget<gui::Icon>("textureicon")->setIcon(m_textureIcons, layer);
+		w->getTemplateWidget<gui::Image>("textureicon")->setImage(m_textureIcons, layer);
 	}
 
 	if(eventChangeTextureList) eventChangeTextureList();
@@ -779,7 +779,7 @@ void MaterialEditor::addLayerGUI(MaterialLayer* layer) {
 
 	// Setup
 	const char* icons[] = { "layer_a", "layer_w", "layer_c", "layer_i", "layer_g" };
-	w->getTemplateWidget<gui::Icon>("typeicon")->setIcon( icons[layer->type] );
+	w->getTemplateWidget<gui::Image>("typeicon")->setImage( icons[layer->type] );
 	w->getTemplateWidget<gui::Textbox>("layername")->setText( layer->name );
 	w->getTemplateWidget<gui::Textbox>("layername")->eventLostFocus.bind(this, &MaterialEditor::renameLayer);
 	w->getTemplateWidget<gui::Button>("visibility")->eventPressed.bind(this, &MaterialEditor::toggleLayer);
@@ -814,8 +814,8 @@ void MaterialEditor::setupLayerWidgets(MaterialLayer* layer, gui::Widget* w) {
 		// Texture picker
 		gui::Combobox* tex = addLayerWidget<gui::Combobox>(m_gui, w, "Texture", "toolgrouplist");
 		tex->eventSelected.bind(this, &MaterialEditor::changeTexture);
-		tex->getTemplateWidget<gui::Icon>("_2")->setIcon(m_textureIcons, -1); // get icon in item template
-		tex->getTemplateWidget<gui::Listbox>("_list")->getItemWidget()->getTemplateWidget<gui::Icon>("_2")->setIcon(m_textureIcons, -1);
+		tex->getTemplateWidget<gui::Image>("_2")->setImage(m_textureIcons, -1); // get icon in item template
+		tex->getTemplateWidget<gui::Listbox>("_list")->getItemWidget()->getTemplateWidget<gui::Image>("_2")->setImage(m_textureIcons, -1);
 		tex->shareList(m_textureSelector);
 		tex->selectItem(layer->texture+2);
 		tex->setSize(tex->getSize().x, 30);
@@ -955,13 +955,13 @@ void MaterialEditor::changeTexture(gui::Combobox* w, gui::ListItem& item) {
 		w = panel->getWidget<gui::Combobox>("Texture"); // widgets were recreated
 	}
 
-	gui::Icon* icon = w->getTemplateWidget<gui::Icon>("_icon");
-	icon->setIcon(m_textureIcons, texture);
+	gui::Image* icon = w->getTemplateWidget<gui::Image>("_icon");
+	icon->setImage(m_textureIcons, texture);
 	icon->setColour(0xffffff);
 
 	// Open colour picker
 	if(texture == TEXTURE_COLOUR) {
-		icon->setIcon(w->getRoot()->getIconList("icons"), "white");
+		icon->setImage(w->getRoot()->getIconList("icons"), "white");
 		icon->setColour(getLayer(w)->colour);
 		ColourPicker* picker = m_gui->getWidget<ColourPicker>("picker");
 		if(picker) {
@@ -983,7 +983,7 @@ void MaterialEditor::colourPicked(const Colour& c) {
 	sprintf(buf, "Colour: #%06X", c.toRGB());
 	m_layerForColourPicker->colour = c;
 	m_boxForColourPicker->setText(buf);
-	m_boxForColourPicker->getTemplateWidget<gui::Icon>("_icon")->setColour(c.toRGB());
+	m_boxForColourPicker->getTemplateWidget<gui::Image>("_icon")->setColour(c.toRGB());
 	rebuildMaterial();
 }
 void MaterialEditor::colourFinish(const Colour& c) {

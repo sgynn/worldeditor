@@ -369,7 +369,7 @@ void WorldEditor::update() {
 		const Point& ps = m_mapMarker->getSize(); 
 		const vec3& dir = cam->getDirection();
 		m_mapMarker->setPosition(p.x * ms.x - ps.x/2, p.y * ms.y - ps.y/2);
-		m_mapMarker->as<gui::Icon>()->setAngle( -atan2(dir.x, dir.z) );
+		m_mapMarker->as<gui::Image>()->setAngle( -atan2(dir.x, dir.z) );
 	}
 
 	// Collide with terrain
@@ -890,7 +890,7 @@ void WorldEditor::selectToolGroup(Combobox* c, ListItem& item) {
 	ToolGroup* group = item.getValue<ToolGroup*>(1, nullptr);
 	Widget* p = c->getParent();
 	const char* icon = item.getText(2);
-	c->getTemplateWidget<Icon>("_icon")->setIcon(icon);
+	c->getTemplateWidget<gui::Image>("_icon")->setImage(icon);
 	if(m_activeGroup) {
 		m_activeGroup->deselect();
 		p->remove( m_activeGroup->getPanel() );

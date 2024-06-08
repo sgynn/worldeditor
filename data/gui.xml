@@ -124,24 +124,24 @@
 		<icon rect="160 96 32 32" name="sphere"/>
 	</iconlist>
 	<!--Templates-->
-	<template class="Icon" iconlist="icons" rect="0 0 32 32" name="icon" skin="panel" category="Display"/>
+	<template class="Image" group="icons" rect="0 0 32 32" name="icon" skin="panel" category="Display"/>
 	<template class="Button" rect="0 0 32 32" name="iconbutton" skin="button">
-		<widget anchor="tlrb" class="Icon" iconlist="icons" rect="0 0 32 32" name="_icon" skin="button" inheritstate="1"/>
+		<widget anchor="tlrb" class="Image" group="icons" rect="0 0 32 32" name="_icon" skin="button" inheritstate="1"/>
 	</template>
 	<template class="Window" rect="0 0 100 100" name="dialog">
-		<widget anchor="tr" template="iconbutton" name="_close" rect="84 0 16 16" icon="close_dialog"/>
+		<widget anchor="tr" template="iconbutton" name="_close" rect="84 0 16 16" image="close_dialog"/>
 		<widget anchor="tlr" class="Button" rect="10 0 70 20" name="_caption" skin="titlebar"/>
 		<widget anchor="tlrb" rect="5 22 90 73" name="_client"/>
 		<widget anchor="br" rect="90 90 10 10" name="_sizebr" skin="button"/>
 	</template>
 	<template class="Spinbox" rect="0 0 60 20" name="spinbox">
 		<widget anchor="tlrb" class="Textbox" rect="0 0 44 20" name="_text"/>
-		<widget anchor="trm" template="iconbutton" name="_inc" icon="scroll_up" rect="44 0 16 10"/>
-		<widget anchor="brm" template="iconbutton" name="_dec" icon="scroll_down" rect="44 10 16 10"/>
+		<widget anchor="trm" template="iconbutton" name="_inc" image="scroll_up" rect="44 0 16 10"/>
+		<widget anchor="brm" template="iconbutton" name="_dec" image="scroll_down" rect="44 10 16 10"/>
 	</template>
 	<template class="Scrollbar" rect="0 0 16 100" name="vscroll">
-		<widget anchor="tlr" template="iconbutton" name="_dec" rect="0 0 16 16" icon="scroll_up"/>
-		<widget anchor="blr" template="iconbutton" name="_inc" rect="0 84 16 16" icon="scroll_down"/>
+		<widget anchor="tlr" template="iconbutton" name="_dec" rect="0 0 16 16" image="scroll_up"/>
+		<widget anchor="blr" template="iconbutton" name="_inc" rect="0 84 16 16" image="scroll_down"/>
 		<widget anchor="tlrb" rect="0 16 16 68" name="_track">
 			<widget anchor="lr" class="Button" rect="0 0 16 24" name="_block" skin="button"/>
 		</widget>
@@ -167,14 +167,14 @@
 		<widget anchor="tlrb" rect="0 0 84 100" name="_client"/>
 	</template>
 	<template class="Combobox" rect="0 0 100 32" name="toolgrouplist" skin="darkbutton">
-		<widget class="Icon" iconlist="icons" rect="4 0 32 32" name="_icon" icon="-1"/>
+		<widget class="Image" group="icons" rect="4 0 32 32" name="_icon" image="-1"/>
 		<widget class="Label" rect="38 6 62 20" name="_text"/>
 		<widget anchor="blr" class="Listbox" rect="0 32 100 100" name="_list">
 			<widget anchor="tlrb" rect="0 0 85 100" name="_client"/>
 			<widget anchor="trb" template="vscroll" name="_scroll" rect="84 0 16 100"/>
 			<widget name="_item" rect="0 0 84 32" tangible="0" skin="none" anchor="lr">
 				<widget anchor="lr" rect="38 6 67 20" class="Label" name="_0" skin="none"/>
-				<widget class="Icon" iconlist="icons" rect="4 0 32 32" name="_2"/>
+				<widget class="Image" group="icons" rect="4 0 32 32" name="_2"/>
 			</widget>
 		</widget>
 	</template>
@@ -183,7 +183,7 @@
 		<widget anchor="lrb" class="Listbox" rect="0 20 100 100" name="_list" skin="default"/>
 	</template>
 	<template anchor="lrt" class="Widget" rect="290 607 216 100" name="textureitem" skin="border">
-		<widget class="Icon" rect="4 4 92 92" name="textureicon" skin="default"/>
+		<widget class="Image" rect="4 4 92 92" name="textureicon" skin="default"/>
 		<widget anchor="lrt" class="Textbox" hint="Name" name="texturename" skin="default" rect="100 2 108 20"/>
 		<widget tip="Diffuse map" class="Textbox" anchor="lrt" hint="Diffuse" rect="100 24 92 20" skin="default" name="diffuse"/>
 		<widget anchor="rt" class="Button" rect="192 24 16 20" name="browse_diffuse" caption="..." skin="button"/>
@@ -194,31 +194,31 @@ Metalness, Roughness, Glow, Height" class="Textbox" anchor="lrt" hint="Property"
 		<widget anchor="rt" class="Button" rect="192 60 16 20" name="browse_height" caption="..." skin="button"/>
 		<widget tip="Texture Scale" class="Scrollbar" anchor="lrt" rect="100 78 108 20" name="tiling" skin="none"/>
 	</template>
-	<template class="ToolButton" iconlist="icons" rect="0 0 34 34" name="menuoption" skin="darkbutton">
-		<widget anchor="tlrb" class="Icon" iconlist="icons" rect="1 1 32 32" name="_icon"/>
+	<template class="ToolButton" group="icons" rect="0 0 34 34" name="menuoption" skin="darkbutton">
+		<widget anchor="tlrb" class="Image" group="icons" rect="1 1 32 32" name="_icon"/>
 	</template>
 	<template class="Window" rect="0 0 100 100" name="dialogfixed">
-		<widget anchor="tr" template="iconbutton" name="_close" rect="84 0 16 16" icon="close_dialog"/>
+		<widget anchor="tr" template="iconbutton" name="_close" rect="84 0 16 16" image="close_dialog"/>
 		<widget anchor="tlr" class="Button" rect="10 0 70 20" name="_caption" skin="titlebar"/>
 		<widget anchor="tlrb" rect="5 22 90 73" name="_client"/>
 	</template>
 	<template class="Combobox" rect="377 780 100 20" name="combobox" skin="default">
 		<widget anchor="lrtb" class="Textbox" rect="0 0 82 20" name="_text" skin="none"/>
 		<widget anchor="rtb" class="Button" rect="82 0 18 20" name="_button" skin="button">
-			<widget anchor="cm" autosize="1" template="icon" rect="1 1 16 16" icon="1"/>
+			<widget anchor="cm" autosize="1" template="icon" rect="1 1 16 16" image="1"/>
 		</widget>
 		<widget anchor="lrb" class="Listbox" rect="0 20 100 100" name="_list" skin="default">
 			<widget class="Widget" rect="2 0 80 20" name="_text" skin="none"/>
 		</widget>
 	</template>
 	<template class="Button" rect="0 0 32 32" name="iconbuttondark" skin="darkbutton">
-		<widget anchor="tlrb" class="Icon" iconlist="icons" rect="0 0 32 32" name="_icon"/>
+		<widget anchor="tlrb" class="Image" group="icons" rect="0 0 32 32" name="_icon"/>
 	</template>
 	<template anchor="tlr" class="OrderableItem" rect="0 0 232 120" name="materiallayer" skin="border">
-		<widget anchor="tr" template="iconbutton" name="expand" icon="scroll_up" rect="215 1 16 16"/>
-		<widget anchor="tr" template="iconbutton" name="visibility" icon="eye_open" rect="199 1 16 16"/>
+		<widget anchor="tr" template="iconbutton" name="expand" image="scroll_up" rect="215 1 16 16"/>
+		<widget anchor="tr" template="iconbutton" name="visibility" image="eye_open" rect="199 1 16 16"/>
 		<widget anchor="tlr" class="Textbox" inheritstate="1" rect="32 0 160 20" skin="border" text="Name" name="layername"/>
-		<widget class="Icon" iconlist="icons" rect="0 0 26 26" name="typeicon"/>
+		<widget class="Image" group="icons" rect="0 0 26 26" name="typeicon"/>
 	</template>
 	<!--Widget Layout-->
 	<widget rect="300 300 300 200" visible="0" template="dialog" name="messagebox" caption="Message" skin="default">
@@ -227,9 +227,9 @@ Metalness, Roughness, Glow, Height" class="Textbox" anchor="lrt" hint="Property"
 	</widget>
 	<widget visible="0" class="FileDialog" template="dialog" name="filedialog" skin="default" rect="100 100 500 228">
 		<widget anchor="lrt" class="Textbox" rect="0 0 428 20" name="path" skin="default"/>
-		<widget rect="428 0 20 20" anchor="rt" template="iconbutton" name="up" icon="file_up" skin="panel"/>
-		<widget rect="448 0 20 20" anchor="rt" template="iconbutton" name="back" icon="file_back" skin="panel"/>
-		<widget rect="468 0 20 20" anchor="rt" template="iconbutton" name="fwd" icon="file_forward" skin="panel"/>
+		<widget rect="428 0 20 20" anchor="rt" template="iconbutton" name="up" image="file_up" skin="panel"/>
+		<widget rect="448 0 20 20" anchor="rt" template="iconbutton" name="back" image="file_back" skin="panel"/>
+		<widget rect="468 0 20 20" anchor="rt" template="iconbutton" name="fwd" image="file_forward" skin="panel"/>
 		<widget anchor="lrtb" template="iconlistbox" name="filelist" skin="default" rect="0 20 490 160"/>
 		<widget anchor="lrb" class="Textbox" rect="0 180 408 20" name="filename" skin="default"/>
 		<widget anchor="rb" class="Button" rect="408 180 80 20" name="confirm" caption="Open" skin="button"/>
@@ -264,15 +264,15 @@ Metalness, Roughness, Glow, Height" class="Textbox" anchor="lrt" hint="Property"
 		<widget anchor="lrt" template="slider" name="cameraspeed" min="10" rect="120 56 144 16"/>
 	</widget>
 	<widget class="Widget" rect="0 0 172 36" name="mainmenu" skin="default">
-		<widget template="iconbuttondark" name="newmap" icon="new" rect="2 2 32 32"/>
-		<widget template="iconbuttondark" name="openmap" icon="open" rect="36 2 32 32"/>
-		<widget template="iconbuttondark" name="savemap" icon="save" rect="70 2 32 32"/>
-		<widget template="iconbuttondark" name="options" icon="options" rect="104 2 32 32"/>
-		<widget template="iconbuttondark" name="minimap" icon="map" rect="138 2 32 32"/>
+		<widget template="iconbuttondark" name="newmap" image="new" rect="2 2 32 32"/>
+		<widget template="iconbuttondark" name="openmap" image="open" rect="36 2 32 32"/>
+		<widget template="iconbuttondark" name="savemap" image="save" rect="70 2 32 32"/>
+		<widget template="iconbuttondark" name="options" image="options" rect="104 2 32 32"/>
+		<widget template="iconbuttondark" name="minimap" image="map" rect="138 2 32 32"/>
 	</widget>
 	<widget anchor="lrt" class="Widget" layout="HorizontalLayout" margin="2" rect="174 0 906 36" skin="default" name="toolshelf" spacing="1">
-		<widget template="iconbuttondark" name="texturebutton" icon="texture" rect="2 2 32 32"/>
-		<widget template="iconbuttondark" name="materialbutton" icon="material" rect="35 2 32 32"/>
+		<widget template="iconbuttondark" name="texturebutton" image="texture" rect="2 2 32 32"/>
+		<widget template="iconbuttondark" name="materialbutton" image="material" rect="35 2 32 32"/>
 		<widget template="toolgrouplist" name="toollist" rect="68 2 160 32"/>
 	</widget>
 	<widget anchor="rt" class="Widget" rect="1080 0 200 56" name="brushinfo" skin="default">
@@ -285,7 +285,7 @@ Metalness, Roughness, Glow, Height" class="Textbox" anchor="lrt" hint="Property"
 	</widget>
 	<widget rect="800 100 140 160" visible="0" template="dialog" name="worldmap" caption="Map" skin="default">
 		<widget anchor="lrtb" class="Image" rect="1 1 128 128" name="mapimage" skin="default">
-			<widget class="Icon" iconlist="icons" rect="0 0 16 16" name="mapmarker" icon="direction" skin="default"/>
+			<widget class="Image" group="icons" rect="0 0 16 16" name="mapmarker" image="direction" skin="default"/>
 		</widget>
 	</widget>
 	<widget rect="400 100 400 500" visible="0" template="dialog" name="materials" caption="Materials" skin="default">

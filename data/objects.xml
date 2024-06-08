@@ -8,7 +8,7 @@
 		<widget anchor="brm" class="Button" rect="44 10 16 10" name="_dec" skin="panel"/>
 	</template>
 	<template rect="0 0 100 100" name="frame" skin="panel" category="Containers"/>
-	<template class="Icon" iconlist="icons" rect="0 0 32 32" name="icon" skin="panel" category="Display"/>
+	<template class="Image" group="icons" rect="0 0 32 32" name="icon" skin="panel" category="Display"/>
 	<template class="TreeView" rect="0 0 100 100" name="tree" skin="panel" category="Lists">
 		<widget anchor="tlrb" rect="1 1 86 98" name="_client" skin="none"/>
 		<widget anchor="trb" template="vscroll" name="_scroll" rect="87 0 13 100"/>
@@ -20,19 +20,19 @@
 		<widget anchor="tlr" rect="0 20 100 90" name="_client" skin="panel"/>
 	</template>
 	<template class="Textbox" name="editbox" skin="panel" category="Input"/>
-	<template class="Checkbox" rect="840 447 16 16" name="visibility" skin="none" icon="8" nicon="9" iconlist="icons">
-		<widget anchor="lrtb" template="icon" icon="9" rect="0 0 16 16" name="_icon"/>
+	<template class="Checkbox" rect="840 447 16 16" name="visibility" skin="none" icon="8" nicon="9" group="icons">
+		<widget anchor="lrtb" template="icon" image="9" rect="0 0 16 16" name="_icon"/>
 	</template>
 	<template category="Display" class="Label" name="label" skin="panel" caption="Label"/>
 	<!--Widget Layout-->
 	<widget rect="84 108 272 684" layout="VerticalLayout" template="dialog" name="objecteditor" caption="Object Editor" skin="default">
 		<widget margin="6" class="Widget" layout="HorizontalLayout" template="frame" rect="0 0 262 43" name="general" spacing="4">
-			<widget iconlist="icons" template="iconbutton" name="move" icon="39" rect="6 6 32 31"/>
-			<widget iconlist="icons" template="iconbutton" name="rotate" icon="40" rect="42 6 32 31"/>
-			<widget iconlist="icons" template="iconbutton" name="scale" icon="41" rect="78 6 32 31"/>
+			<widget group="icons" template="iconbutton" name="move" image="39" rect="6 6 32 31"/>
+			<widget group="icons" template="iconbutton" name="rotate" image="40" rect="42 6 32 31"/>
+			<widget group="icons" template="iconbutton" name="scale" image="41" rect="78 6 32 31"/>
 			<widget anchor="lr" class="Widget" template="frame" rect="114 6 15 31" skin="none"/>
-			<widget iconlist="icons" template="iconbutton" name="local" icon="42" rect="133 6 32 31"/>
-			<widget iconlist="icons" template="iconbutton" name="global" icon="42" rect="169 6 32 31"/>
+			<widget group="icons" template="iconbutton" name="local" image="42" rect="133 6 32 31"/>
+			<widget group="icons" template="iconbutton" name="global" image="42" rect="169 6 32 31"/>
 			<widget anchor="lr" class="Widget" template="frame" rect="205 6 15 31" skin="none"/>
 			<widget template="visibility" skin="button" rect="224 6 32 31" name="visible"/>
 		</widget>
@@ -44,7 +44,7 @@
 					<widget anchor="r" template="visibility" name="_4" rect="222 3 16 16" drag="1"/>
 				</widget>
 			</widget>
-			<widget anchor="r" iconlist="icons" template="iconbutton" name="clearfilter" icon="2" rect="246 3 15 14"/>
+			<widget anchor="r" group="icons" template="iconbutton" name="clearfilter" image="2" rect="246 3 15 14"/>
 		</widget>
 		<widget template="category" name="properties" caption="Properties" rect="0 195 262 157">
 			<widget template="label" caption="Name" rect="4 4 42 20"/>

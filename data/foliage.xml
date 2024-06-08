@@ -1,82 +1,101 @@
 <?xml version="1.0"?>
-<gui>
+<gui height="1024" width="1280">
 	<external file="gui.xml"/>
-
 	<!--Templates-->
 	<template rect="0 0 100 100" name="frame" skin="panel" category="Containers"/>
-	<template class="Checkbox" rect="840 447 16 16" name="visibility" skin="none" iconlist="icons" icon="8" nicon="9">
-		<widget anchor="lrtb" template="icon" icon="9" rect="0 0 16 16" name="_icon"/>
+	<template class="Image" group="icons" rect="0 0 32 32" name="icon" skin="panel" category="Display"/>
+	<template class="Button" name="button" skin="button" category="Input"/>
+	<template class="Textbox" name="editbox" skin="panel" category="Input"/>
+	<template class="Checkbox" icon="8" rect="840 447 16 16" nicon="9" group="icons" skin="none" name="visibility">
+		<widget anchor="lrtb" template="icon" rect="0 0 16 16" image="9" name="_icon"/>
 	</template>
 	<template class="Listbox" rect="0 0 100 100" name="iconlistbox2">
 		<widget anchor="tlrb" rect="0 0 85 100" name="_client"/>
 		<widget anchor="trb" template="vscroll" name="_scroll" rect="84 0 16 100"/>
-		<widget name="_item" rect="0 0 100 20" skin="none" tangible="2" anchor="lr">
-			<widget class="Label" rect="20 0 80 20" name="_0" skin="listitem" inheritstate="1"/>
-			<widget class="Icon" iconlist="icons" rect="2 2 16 16" name="_2"/>
+		<widget anchor="lr" tangible="2" rect="0 0 100 20" name="_item" skin="none">
+			<widget inheritstate="1" class="Label" rect="20 0 80 20" name="_0" skin="listitem"/>
+			<widget class="Image" group="icons" rect="2 2 16 16" name="_2"/>
 			<widget anchor="r" template="visibility" name="_3" rect="60 3 16 16" drag="1"/>
 		</widget>
 	</template>
+	<template category="Display" class="Label" name="label" skin="panel" caption="Label"/>
 	<template class="Combobox" rect="0 0 100 20" name="dropbutton">
 		<widget anchor="blr" class="Listbox" rect="0 20 100 100" name="_list"/>
 	</template>
-	<template class="Button" name="button" skin="button" category="Input"/>
-	<template class="Textbox" name="editbox" skin="panel" category="Input"/>
-	<template category="Display" class="Label" name="label" skin="panel" caption="Label"/>
-	<!--Layout-->
-	<widget visible="0" template="dialog" name="foliage" caption="Foliage" rect="216 348 299 364">
+	<!--Widget Layout-->
+	<widget anchor="lt" visible="0" rect="216 348 299 364" template="dialog" skin="default" name="foliage" caption="Foliage">
 		<widget anchor="rb" template="button" name="removefoliage" caption="Remove" rect="214 312 75 20"/>
 		<widget anchor="lrtb" template="iconlistbox2" name="foliagelist" skin="default" rect="0 0 289 308"/>
 		<widget anchor="rb" template="dropbutton" name="addfoliage" skin="button" rect="118 312 83 20">
-			<widget anchor="cm" autosize="1" align="0" caption="Add" template="label" rect="28 1 29 19"/>
 			<item>Instanced</item>
 			<item>Grass</item>
+			<widget anchor="cm" autosize="1" template="label" caption="Add" rect="28 1 29 19"/>
 		</widget>
 		<widget anchor="rb" template="button" name="clonefoliage" caption="Duplicate" rect="20 312 75 20"/>
 	</widget>
-	<widget visible="0" layout="VerticalLayout" template="dialog" name="foliagelayer" caption="Foliage Layer" rect="576 359 332 381">
-		<widget class="Widget" template="frame" rect="0 0 322 32" skin="none">
-			<widget template="icon" name="icon" icon="20" rect="0 0 32 32"/>
-			<widget anchor="lr" text="Foliage name" name="name" template="editbox" rect="39 7 253 20"/>
-			<widget anchor="r" iconlist="icons" template="iconbutton" name="visible" icon="12" rect="292 7 20 20"/>
+	<widget anchor="lt" visible="0" layout="VerticalLayout" rect="576 359 348 613" template="dialog" skin="default" name="foliagelayer" caption="Foliage Layer">
+		<widget anchor="lrt" class="Widget" template="frame" rect="0 0 338 60" skin="none">
+			<widget anchor="lt" template="icon" name="icon" image="20"/>
+			<widget anchor="lrt" text="Foliage name" name="name" template="editbox" rect="39 7 269 20"/>
+			<widget anchor="rt" group="icons" template="iconbutton" name="visible" image="12" rect="308 7 20 20"/>
+			<widget anchor="lt" class="Label" rect="2 36 38 19" caption="Distribution" skin="panel"/>
+			<widget anchor="lrt" template="droplist" name="distribution" rect="96 36 232 20">
+				<item>Uniform</item>
+				<item>Clustered</item>
+			</widget>
 		</widget>
-		<widget anchor="lr" class="Widget" template="frame" name="instanced" skin="none" rect="0 32 322 56">
-			<widget class="Label" rect="4 0 38 19" caption="Mesh" skin="panel"/>
-			<widget autosize="1" template="label" caption="Alignment" rect="4 24 72 19"/>
-			<widget anchor="lr" template="droplist" name="alignment" skin="default" rect="96 24 221 20"/>
-			<widget anchor="r" template="button" name="browsemesh" caption="..." rect="295 0 22 20"/>
-			<widget anchor="lr" template="droplist" name="mesh" skin="default" rect="96 0 199 20"/>
+		<widget anchor="lrt" class="Widget" template="frame" name="instanced" skin="none" rect="0 60 338 56">
+			<widget anchor="lt" class="Label" rect="4 0 38 19" caption="Mesh" skin="panel"/>
+			<widget anchor="lt" autosize="1" template="label" caption="Alignment" rect="4 24 72 19"/>
+			<widget anchor="lrt" template="droplist" name="alignment" rect="96 24 237 20"/>
+			<widget anchor="rt" template="button" name="browsemesh" caption="..." rect="311 0 22 20"/>
+			<widget anchor="lrt" template="droplist" name="mesh" rect="96 0 215 20"/>
 		</widget>
-		<widget anchor="lr" class="Widget" template="frame" name="alignrange" skin="none" rect="0 32 322 56">
-			<widget class="Label" rect="4 0 77 19" caption="Min Angle" skin="panel"/>
-			<widget rect="96 0 221 16" anchor="lr" value="0" name="minalign" min="0" template="slider"/>
-			<widget class="Label" rect="4 24 80 19" caption="Max Angle" skin="panel"/>
-			<widget anchor="lr" value="1000" name="maxalign" template="slider" rect="96 24 221 16"/>
+		<widget anchor="lrt" class="Widget" template="frame" name="alignrange" skin="none" rect="0 116 338 56">
+			<widget anchor="lt" class="Label" rect="4 0 77 19" caption="Min Angle" skin="panel"/>
+			<widget anchor="lrt" template="slider" name="minalign" rect="96 0 237 16"/>
+			<widget anchor="lt" class="Label" rect="4 24 80 19" caption="Max Angle" skin="panel"/>
+			<widget anchor="lrt" value="1000" name="maxalign" template="slider" rect="96 24 237 16"/>
 		</widget>
-		<widget anchor="lr" class="Widget" template="frame" name="grass" skin="none" rect="0 88 322 52">
-			<widget autosize="1" template="label" caption="Size" rect="4 24 30 19"/>
-			<widget class="Label" rect="4 0 38 19" caption="Sprite" skin="panel"/>
-			<widget anchor="lr" template="droplist" name="sprite" skin="default" rect="96 0 199 20"/>
-			<widget anchor="r" template="button" name="browsesprite" caption="..." rect="295 0 22 20"/>
+		<widget anchor="lrt" class="Widget" template="frame" name="grass" skin="none" rect="0 172 338 52">
+			<widget anchor="lt" autosize="1" template="label" caption="Size" rect="4 24 30 19"/>
+			<widget anchor="lt" class="Label" rect="4 0 38 19" caption="Sprite" skin="panel"/>
+			<widget anchor="lrt" template="droplist" name="sprite" rect="96 0 215 20"/>
+			<widget anchor="rt" template="button" name="browsesprite" caption="..." rect="311 0 22 20"/>
 		</widget>
-		<widget anchor="lr" class="Widget" template="frame" name="common" skin="none" rect="0 140 322 216">
-			<widget autosize="1" template="label" caption="Range" rect="4 24 45 19"/>
-			<widget anchor="lr" template="slider" name="range" rect="96 24 221 16"/>
-			<widget class="Label" rect="4 72 77 19" caption="Min Height" skin="panel"/>
-			<widget rect="96 72 221 16" anchor="lr" value="0" name="minheight" min="0" template="slider"/>
-			<widget class="Label" rect="4 96 80 19" caption="Max Height" skin="panel"/>
-			<widget anchor="lr" value="1000" name="maxheight" template="slider" rect="96 96 221 16"/>
-			<widget class="Label" rect="4 120 70 19" caption="Min Slope" skin="panel"/>
-			<widget anchor="lr" template="slider" name="minslope" rect="96 120 221 16"/>
-			<widget class="Label" rect="4 144 73 19" caption="Max Slope" skin="panel"/>
-			<widget anchor="lr" value="1000" name="maxslope" template="slider" rect="96 144 221 16"/>
-			<widget autosize="1" template="label" caption="Min Scale" rect="4 168 69 19"/>
-			<widget autosize="1" template="label" caption="Max Scale" rect="4 192 72 19"/>
-			<widget class="Label" rect="4 48 54 19" caption="Density" skin="panel"/>
-			<widget class="Label" rect="4 0 31 19" caption="Map" skin="panel"/>
-			<widget anchor="lr" template="slider" name="minscale" rect="96 168 221 16"/>
-			<widget rect="96 192 221 16" anchor="lr" value="0" name="maxscale" min="0" template="slider"/>
-			<widget anchor="lr" template="slider" name="density" rect="96 48 221 16"/>
-			<widget anchor="lr" template="droplist" name="densitymap" skin="default" rect="96 0 221 20"/>
+		<widget anchor="lrt" class="Widget" template="frame" name="common" skin="none" rect="0 224 338 216">
+			<widget anchor="lt" autosize="1" template="label" caption="Range" rect="4 24 45 19"/>
+			<widget anchor="lrt" template="slider" name="range" rect="96 24 237 16"/>
+			<widget anchor="lt" class="Label" rect="4 72 77 19" caption="Min Height" skin="panel"/>
+			<widget anchor="lrt" template="slider" name="minheight" rect="96 72 237 16"/>
+			<widget anchor="lt" class="Label" rect="4 96 80 19" caption="Max Height" skin="panel"/>
+			<widget anchor="lrt" value="1000" name="maxheight" template="slider" rect="96 96 237 16"/>
+			<widget anchor="lt" class="Label" rect="4 120 70 19" caption="Min Slope" skin="panel"/>
+			<widget anchor="lrt" template="slider" name="minslope" rect="96 120 237 16"/>
+			<widget anchor="lt" class="Label" rect="4 144 73 19" caption="Max Slope" skin="panel"/>
+			<widget anchor="lrt" value="1000" name="maxslope" template="slider" rect="96 144 237 16"/>
+			<widget anchor="lt" autosize="1" template="label" caption="Min Scale" rect="4 168 69 19"/>
+			<widget anchor="lt" autosize="1" template="label" caption="Max Scale" rect="4 192 72 19"/>
+			<widget anchor="lt" class="Label" rect="4 48 54 19" caption="Density" skin="panel"/>
+			<widget anchor="lt" class="Label" rect="4 0 31 19" caption="Map" skin="panel"/>
+			<widget anchor="lrt" template="slider" name="minscale" rect="96 168 237 16"/>
+			<widget anchor="lrt" template="slider" name="maxscale" rect="96 192 237 16"/>
+			<widget anchor="lrt" template="slider" name="density" rect="96 48 237 16"/>
+			<widget anchor="lrt" template="droplist" name="densitymap" rect="96 0 237 20"/>
+		</widget>
+		<widget anchor="lrt" class="Widget" template="frame" name="cluster" skin="none" rect="0 440 338 164">
+			<widget anchor="lrt" template="slider" name="clusterdensity" rect="94 4 237 16"/>
+			<widget anchor="lt" autosize="1" template="label" caption="Clusters" rect="4 2 60 19"/>
+			<widget anchor="lrt" template="slider" name="clustermin" rect="94 26 237 16"/>
+			<widget anchor="lt" autosize="1" template="label" caption="Min Radius" rect="4 24 80 19"/>
+			<widget anchor="lrt" template="slider" name="clustermax" rect="94 50 237 16"/>
+			<widget anchor="lt" autosize="1" template="label" caption="Max Radius" rect="4 48 83 19"/>
+			<widget anchor="lrt" template="slider" name="clusterfalloff" rect="94 74 237 16"/>
+			<widget anchor="lt" autosize="1" template="label" caption="Falloff" rect="4 72 43 19"/>
+			<widget anchor="lrt" template="slider" name="clustershapescale" rect="94 98 237 16"/>
+			<widget anchor="lt" autosize="1" template="label" caption="Shape Scale" rect="4 96 85 19"/>
+			<widget anchor="lrt" template="slider" name="clustershape" rect="94 122 237 16"/>
+			<widget anchor="lt" autosize="1" template="label" caption="Shape Points" rect="4 120 91 19"/>
 		</widget>
 	</widget>
 </gui>

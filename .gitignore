@@ -2,5 +2,6 @@ editor
 maps
 shader_cache.glsl
 stc/foliage
+src/base
 tmp.tiff
 todo

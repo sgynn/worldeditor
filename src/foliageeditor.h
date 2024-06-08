@@ -96,26 +96,12 @@ class FoliageLayerEditor {
 	base::XMLElement save() const;
 	void setVisible(bool);
 	void updateSliders();
-	void refresh();
+	void refresh(bool regen=true);
 
 	private:
 	void renameLayer(gui::Textbox*);
 
 	void setDensityMap(gui::Combobox*, gui::ListItem&);
-	void setDensity(gui::Scrollbar*, int);
-	void setRange(gui::Scrollbar*, int);
-
-	void setMinHeight(gui::Scrollbar*, int);
-	void setMaxHeight(gui::Scrollbar*, int);
-	void setMinSlope(gui::Scrollbar*, int);
-	void setMaxSlope(gui::Scrollbar*, int);
-
-	void setMinScale(gui::Scrollbar*, int);
-	void setMaxScale(gui::Scrollbar*, int);
-
-	void setMinAngle(gui::Scrollbar*, int);
-	void setMaxAngle(gui::Scrollbar*, int);
-
 	void loadMesh(gui::Button*);
 	void loadMeshFile(const char*);
 	void setMesh(gui::Combobox*, gui::ListItem&);
@@ -130,16 +116,28 @@ class FoliageLayerEditor {
 	Delegate<void(FoliageLayerEditor*)> eventRenamed;
 
 	protected:
+	int   m_distribution = 0;
 	float m_range;
 	float m_density;
-	float m_densityMax;
 	Range m_height;
 	Range m_slope;
 	Range m_scale;
 	Range m_angle;
 	float m_spriteSize;
 	int   m_align;
+
+	float m_clusterDensity = 0.01;
+	Range m_clusterRadius = 10;
+	Range m_clusterGap = 0;
+	float m_clusterFalloff = 1;
+	float m_clusterShapeScale = 0;
+	int   m_clusterShapePoints = 0;
+	
+
 	gui::String m_file;
+
+	struct Slider { gui::Scrollbar* slider; float& value; float max; };
+	std::vector<Slider> m_sliders;
 
 	protected:
 	FoliageEditor* m_editor;
