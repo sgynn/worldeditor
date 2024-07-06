@@ -3,7 +3,7 @@
 
 #include <base/png.h>
 #include <base/dds.h>
-#include "streaming/tiff.h"
+#include <base/tiff.h>
 
 #include <base/opengl.h>
 #include <cstring>
@@ -23,32 +23,18 @@ EditableTexture::EditableTexture(int w, int h, int ch, bool gpu) : m_mode(gpu? T
 
 EditableTexture::EditableTexture(const char* filename, bool gpu) : m_mode(gpu? TEXTURE: IMAGE), m_channels(0), m_data(0) {
 	const char* ext = strrchr(filename, '.');
-	if(strcmp(ext, ".png")==0) {
-		PNG png = PNG::load(filename);
-		if(png.data) {
-			m_width = png.width;
-			m_height = png.height;
-			m_channels = png.bpp / 8;
-			m_data = (ubyte*)png.data;
-			png.data = 0; // stop png form deleting data
-		}
-	}
-	else if(strcmp(ext, ".tif") == 0 || strcmp(ext, ".tiff")==0) {
-		printf("Non-streamed tiff files not fully implemented yet\n");
-
-	}
-	else if(strcmp(ext, ".dds")==0) {
-		DDS dds = DDS::load(filename);
-		if(dds.format) {
-			if(dds.isCompressed()) dds.decompress();	// Cant edit compressed textures
-			m_width = dds.width;
-			m_height = dds.height;
-			m_channels = (int)dds.format;
-			m_data = new ubyte[m_width*m_height*m_channels];
-			memcpy(m_data, dds.data[0], m_width*m_height*m_channels);
-		}
-	}
+	Image image;
+	if(strcmp(ext, ".png")==0) image = PNG::load(filename);
+	else if(strcmp(ext, ".tif") == 0 || strcmp(ext, ".tiff")==0) image = Tiff::load(filename);
+	else if(strcmp(ext, ".dds")==0) image = DDS::load(filename);
 	else printf("Unknown texture format %s\n", filename);
+
+	if(image) {
+		m_width = image.getWidth();
+		m_height = image.getHeight();
+		m_channels = image.getChannels();
+		m_data = image.stealData();
+	}
 
 	// Make texture
 	if(m_data && gpu) {
@@ -120,13 +106,9 @@ bool EditableTexture::save(const char* filename) {
 	if(!m_data) return false;
 	const char* ext = strrchr(filename, '.');
 	if(strcmp(ext, ".png")==0) {
-		PNG png;
-		png.width = m_width;
-		png.height = m_height;
-		png.bpp = m_channels * 8;
-		png.data = (char*)m_data;
-		png.save(filename);
-		png.data = 0;
+		Image image((Image::Format)m_channels, m_width, m_height, m_data);
+		PNG::save(image, filename);
+		image.stealData();
 		printf("Saved %s\n", filename);
 		return true;
 	}

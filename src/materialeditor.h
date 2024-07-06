@@ -5,7 +5,7 @@
 #include <base/gui/widgets.h>
 #include <base/gui/lists.h>
 
-namespace base { class XMLElement; class Texture; }
+namespace base { class XMLElement; class Texture; class Image; }
 class FileSystem;
 class EditableTexture;
 
@@ -124,7 +124,7 @@ class MaterialEditor {
 	void colourPicked(const Colour&);
 	void colourFinish(const Colour&);
 
-	int  createTextureIcon(const char* name, const base::DDS& dds);
+	int  createTextureIcon(const char* name, const base::Image& dds);
 	void deleteTextureIcon(const char* name);
 
 	bool loadTexture(ArrayTexture* target, int layer, const char* file, bool icon=false);

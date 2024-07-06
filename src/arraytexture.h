@@ -4,7 +4,7 @@
 #include <base/texture.h>
 #include <vector>
 
-namespace base { class DDS; class PNG; }
+namespace base { class Image; }
 
 /** Texture array manager class - assembles and updates the texture */
 class ArrayTexture {
@@ -12,8 +12,8 @@ class ArrayTexture {
 	ArrayTexture();
 	~ArrayTexture();
 
-	int  addTexture(base::DDS& src);				// Add a dds texture
-	int  setTexture(int index, base::DDS& src);		// Change a texture
+	int  addTexture(base::Image& src);				// Add a dds texture
+	int  setTexture(int index, base::Image& src);		// Change a texture
 	int  addBlankTexture();							// Add blank texture
 	void removeTexture(int index);					// Delete a texture
 	void moveTexture(int layer, int targetIndex);	// Change the index of a texture
@@ -26,8 +26,8 @@ class ArrayTexture {
 
 	protected:
 	void decompressAll();						// Decompress all compressed textures
-	std::vector< base::DDS* > m_layers;			// cache data for rebuilding
-	base::DDS*    m_blankLayer;
+	std::vector<base::Image*> m_layers;			// cache data for rebuilding
+	base::Image*  m_blankLayer;
 	base::Texture m_texture;					// Hardware texture object
 	int m_changed;								// Change flags
 };

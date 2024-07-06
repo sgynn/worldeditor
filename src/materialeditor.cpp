@@ -493,7 +493,7 @@ unsigned char* removeDXTAlpha(unsigned char* dxt, int w, int h) {
 	return out;
 }
 
-int MaterialEditor::createTextureIcon(const char* name, const DDS& dds) {
+int MaterialEditor::createTextureIcon(const char* name, const Image& image) {
 	int index = 0;
 	Rect rect(0,0,64,64);
 	while(index<m_textureIcons->size() && m_textureIcons->getIconRect(index).width) ++index;
@@ -509,13 +509,20 @@ int MaterialEditor::createTextureIcon(const char* name, const DDS& dds) {
 		m_textureIcons->setIconName(index, name);
 	}
 	// Update image
-	if(!dds.data) return index;
+	if(!image) return index;
+	assert(image.isCompressed());
 	int skip = 0;
-	while(dds.width>>skip > 64) ++skip;
-	unsigned char* data = dds.data[skip];
-	if(dds.format==DDS::BC2 || dds.format==DDS::BC3) data = removeDXTAlpha(data, 64, 64);
-	// Copy into texture
-	m_textureIconTexture.setPixels(rect.x, rect.y, rect.width, rect.height, Texture::BC1, data);
+	while(image.getWidth()>>skip > 64) ++skip;
+	if(image.getFormat()==Image::BC2 || image.getFormat()==Image::BC3) {
+		unsigned char* data = new unsigned char[64 * 64];
+		memcpy(data, image.getData(skip), 64 * 64);
+		data = removeDXTAlpha(data, 64, 64);
+		m_textureIconTexture.setPixels(rect.x, rect.y, rect.width, rect.height, Texture::BC1, data);
+		delete [] data;
+	}
+	else {
+		m_textureIconTexture.setPixels(rect.x, rect.y, rect.width, rect.height, Texture::BC1, image.getData(skip));
+	}
 	return index;
 }
 
@@ -531,17 +538,17 @@ void MaterialEditor::deleteTextureIcon(const char* name) {
 bool MaterialEditor::loadTexture(ArrayTexture* array, int layer, const char* filename, bool icon) {
 	if(!filename) return false;
 	String file = m_fileSystem->getFile(filename);
-	DDS dds = DDS::load( file );
-	if(dds.format != DDS::INVALID) {
+	Image image = DDS::load( file );
+	if(image) {
 		// Image icon
 		if(icon) {
 			char iconName[16];
 			sprintf(iconName, "mat%d\n", layer);
-			createTextureIcon(iconName, dds);
+			createTextureIcon(iconName, image);
 		}
 
 		// Transfer into texture array
-		array->setTexture(layer, dds);
+		array->setTexture(layer, image);
 		int r = array->build();
 		if(r) printf("Error: Texture %s is incompatible\n", file.str());
 

@@ -823,9 +823,8 @@ base::Texture* ObjectEditor::findTexture(const char* name, const char* suffix, i
 	strcpy(path, m_fileSystem->getRootPath());
 	sprintf(file, "%s%s", name, suffix);
 	if(findFile(path, file, limit)) {
-		base::PNG png = base::PNG::load(path);
-		if(png.data) {
-			return new base::Texture(base::Texture::create(png.width, png.height, png.bpp/8, png.data));
+		if(base::Image img = base::PNG::load(path)) {
+			return new base::Texture(base::Texture::create(img.getWidth(), img.getHeight(), img.getFormat(), img.getData()));
 		}
 	}
 	return 0;

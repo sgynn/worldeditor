@@ -141,9 +141,9 @@ base::Material* FoliageEditor::createMaterial(FoliageType type, const char* diff
 	pass->getParameters().setAuto("modelMatrix", base::AUTO_MODEL_MATRIX);
 	
 	if(diffuse) {
-		base::PNG png = base::PNG::load(diffuse);
-		if(png.data) {
-			base::Texture tex = base::Texture::create(png.width, png.height, png.bpp/8, png.data);
+		base::Image img = base::PNG::load(diffuse);
+		if(img) {
+			base::Texture tex = base::Texture::create(img.getWidth(), img.getHeight(), img.getFormat(), img.getData());
 			pass->setTexture("diffuse", new base::Texture(tex));
 		}
 	}
@@ -391,7 +391,7 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 	updateSliders();
 
 	// Icon
-	Image* icon = w->getWidget<Image>("icon");
+	gui::Image* icon = w->getWidget<gui::Image>("icon");
 	icon->setImage(type==FoliageType::Instanced? "Foliage": "Grass");
 }
 
