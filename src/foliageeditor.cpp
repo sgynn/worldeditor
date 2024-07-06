@@ -140,13 +140,12 @@ base::Material* FoliageEditor::createMaterial(FoliageType type, const char* diff
 	pass->getParameters().setAuto("transform", base::AUTO_MODEL_VIEW_PROJECTION_MATRIX);
 	pass->getParameters().setAuto("modelMatrix", base::AUTO_MODEL_MATRIX);
 	
-	if(diffuse) {
-		base::Image img = base::PNG::load(diffuse);
-		if(img) {
-			base::Texture tex = base::Texture::create(img.getWidth(), img.getHeight(), img.getFormat(), img.getData());
-			pass->setTexture("diffuse", new base::Texture(tex));
-		}
-	}
+
+	base::Image img;
+	if(diffuse) img = base::PNG::load(diffuse);
+	if(!img) img = base::Image(base::Image::RGB8, 1,1, new unsigned char[3] { 255,255,255 });
+	base::Texture tex = base::Texture::create(img.getWidth(), img.getHeight(), img.getFormat(), img.getData());
+	pass->setTexture("diffuse", new base::Texture(tex));
 
 	pass->compile();
 	char buffer[2048]; buffer[0] = 0;
@@ -433,12 +432,15 @@ void FoliageLayerEditor::loadMeshFile(const char* file) {
 	if(existing) list->selectItem(existing->getIndex(), true);
 	else {
 		FoliageMesh mesh { file, 0,0,0,0 };
-		mesh.material = m_editor->createMaterial(m_type, "./maps/white.png");
 		base::Model* model = base::BMLoader::load(file);
 		if(model && model->getMeshCount()) {
 			mesh.mesh = model->getMesh(0);
 			mesh.mesh->getVertexBuffer()->createBuffer();
 			mesh.mesh->getIndexBuffer()->createBuffer();
+
+			String tex = model->getMaterialName(0);
+			if(tex && !tex.endsWith(".png")) tex += ".png";
+			mesh.material = m_editor->createMaterial(m_type, m_editor->m_fileSystem->getFile(tex));
 		}
 		list->addItem(name, mesh);
 		list->selectItem(list->getItemCount()-1, true);

@@ -170,7 +170,7 @@ XMLElement ObjectEditor::save(const TerrainMap* context) const {
 		XMLElement& e = xml.add("object");
 		e.setAttribute("name", item.getText());
 		e.setAttribute("file", m_fileSystem->getRelative(item.getText(2)));
-		if(mesh) e.setAttribute("mesh", mesh);
+		if(mesh && mesh[0]) e.setAttribute("mesh", mesh);
 		
 		if(pos!=vec3()) {
 			sprintf(buffer, "%g %g %g", pos.x, pos.y, pos.z);
