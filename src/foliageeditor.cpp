@@ -637,7 +637,7 @@ void FoliageLayerEditor::load(const XMLElement& e) {
 		m_clusterShapeScale = e.attribute("shapescale", m_clusterShapeScale);
 	}
 
-	m_panel->getWidget<Combobox>("distribution")->selectItem(m_distribution);
+	m_panel->getWidget<Combobox>("distribution")->selectItem(m_distribution, true);
 	updateSliders();
 	refresh();
 	if(eventRenamed) eventRenamed(this);
