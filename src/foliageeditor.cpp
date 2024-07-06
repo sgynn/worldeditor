@@ -315,12 +315,14 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 		refresh();
 	});
 
-	auto setupSlider = [this](float& value, const char* name, float max, bool regen=true) {
-		Slider slider { m_panel->getWidget<Scrollbar>(name), value, max };
+	auto setupSlider = [this](float& value, const char* name, float max, float power=1, bool regen=true) {
+		Slider slider { m_panel->getWidget<Scrollbar>(name), value, max, power };
 		if(slider.slider) {
 			slider.slider->setRange(0, 1000);
-			slider.slider->eventChanged.bind([this, &value, max, regen](Scrollbar*, int v) {
-				value = (float)v * max / 1000.f;
+			slider.slider->eventChanged.bind([this, &value, max, regen, power](Scrollbar*, int v) {
+				float n = v / 1000.f;
+				if(power!=1) n = powf(n, power);
+				value = n * max;
 				refresh(regen);
 			});
 			m_sliders.push_back(slider);
@@ -328,8 +330,8 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 		else printf("Error: Missing widget %s\n", name);
 	};
 
-	setupSlider(m_range,      "range",    1000, false);
-	setupSlider(m_density,    "density", type==FoliageType::Instanced? 0.5: 16);
+	setupSlider(m_range,      "range",    1000, 1, false);
+	setupSlider(m_density,    "density", type==FoliageType::Instanced? 0.5: 16, 2);
 	setupSlider(m_height.min, "minheight", 500);
 	setupSlider(m_height.max, "maxheight", 500);
 	setupSlider(m_slope.min,  "minslope", 1);
@@ -340,7 +342,7 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 	setupSlider(m_angle.max,  "maxalign", 1);
 
 
-	setupSlider(m_clusterDensity, "clusterdensity", 0.05);
+	setupSlider(m_clusterDensity, "clusterdensity", 0.05, 2);
 	setupSlider(m_clusterRadius.min, "clustermin", 100);
 	setupSlider(m_clusterRadius.max, "clustermax", 100);
 	setupSlider(m_clusterShapeScale, "clustershapescale", 1);
@@ -399,7 +401,9 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 void FoliageLayerEditor::updateSliders() {
 	m_panel->getWidget<Textbox>("name")->setText(m_name);
 	for(Slider& s: m_sliders) {
-		s.slider->setValue(s.value * 1000 / s.max);
+		float n = s.value / s.max;
+		if(s.power != 1) n = powf(n, 1/s.power);
+		s.slider->setValue(n * 1000);
 	}
 }
 

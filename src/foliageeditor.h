@@ -136,7 +136,7 @@ class FoliageLayerEditor {
 
 	gui::String m_file;
 
-	struct Slider { gui::Scrollbar* slider; float& value; float max; };
+	struct Slider { gui::Scrollbar* slider; float& value; float max; float power=1; };
 	std::vector<Slider> m_sliders;
 
 	protected:
