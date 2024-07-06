@@ -257,6 +257,7 @@ void FoliageEditor::layerRenamed(FoliageLayerEditor* e) {
 	for(ListItem& item: m_layerList->items()) {
 		if(item.findValue<FoliageLayerEditor*>() == e) {
 			item.setValue(e->getName());
+			m_layerList->refresh();
 			break;
 		}
 	}
