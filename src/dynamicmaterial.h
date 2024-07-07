@@ -40,6 +40,11 @@ struct MaterialLayer {
 	// Maps
 	uint mapIndex;	 // Map index in TerrainMap maps list
 	uint mapData;	 // IndexOffset or Channel, plus flag for two textures (0x100)
+	
+	// distortion = map(uv + noise(uv*scale)*radius);
+	float mapDistortionRadius;
+	float mapDistortionScale;
+	float mapTightness;
 };
 
 class DynamicMaterial {

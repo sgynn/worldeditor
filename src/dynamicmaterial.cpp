@@ -91,6 +91,10 @@ MaterialLayer* DynamicMaterial::addLayer(LayerType type) {
 	layer->concavity.max = 1;
 	layer->concavity.blend = 0;
 
+	layer->mapDistortionRadius = 0;
+	layer->mapDistortionScale = 0;
+	layer->mapTightness = 1;
+
 	m_layers.push_back(layer);
 	m_needsCompile = true;
 	return layer;
@@ -154,6 +158,10 @@ void DynamicMaterial::update(int index) {
 	if(layer->type != LAYER_COLOUR && layer->texture>=0) {
 		if(layer->projection == PROJECTION_FLAT) m_vars->set( addIndex("scale",index), 1.0 / layer->scale.xy());
 		else m_vars->set( addIndex("scale",index), 1.0 / layer->scale);
+	}
+
+	if(layer->type == LAYER_WEIGHT) {
+		m_vars->set(addIndex("mapInfo", index), layer->mapTightness, layer->mapDistortionScale, layer->mapDistortionRadius);
 	}
 
 	// Auto parameters
@@ -325,6 +333,10 @@ bool DynamicMaterial::compile() {
 			"uniform vec3 autoMin" + index + ";\n"
 			"uniform vec3 autoMax" + index + ";\n"
 			"uniform vec3 autoBlend" + index + ";\n";
+
+		if(m_layers[i]->type == LAYER_WEIGHT) {
+			source += "uniform vec3 mapInfo" + index + ";\n";
+		}
 	}
 
 	source += "\n\n//Utility functions\n";
@@ -555,11 +567,18 @@ bool DynamicMaterial::compile() {
 			break;
 
 		case LAYER_WEIGHT:
-			if(!layer->mapIndex) valid = false;
-			else if(layer->mapData<4)
-				source +=  format("	weight = map{1}Sample.{2};\n", layer->mapIndex, rgba[layer->mapData]);
+			if(!layer->mapIndex) { valid = false; break; }
+			// Layer distortion - use trig for now - should use a noise texture
+			source += format("	float distortion{} = cos(worldPos.x * mapInfo{}.y) * cos(worldPos.z * mapInfo{}.y) * mapInfo{}.z;\n", i);
+			source += format("	vec4 smap{1} = sampleMap(map{2}, mapBounds, worldPos.xz + distortion{1});\n", i, layer->mapIndex);
+
+			if(layer->mapData<4)
+				source +=  format("	weight = smap{1}.{2};\n", i, rgba[layer->mapData]);
+				//source +=  format("	weight = map{1}Sample.{2};\n", layer->mapIndex, rgba[layer->mapData]);
 			else
 				source +=  format("	weight = 1.0 - dot(map{}Sample, vec4(1,1,1,1));\n", layer->mapIndex);
+			// Tightness
+			source += format("	weight = clamp((weight - 0.5) / mapInfo{}.x + 0.5, 0, 1);\n", i);
 			break;
 
 		case LAYER_COLOUR:
@@ -585,7 +604,7 @@ bool DynamicMaterial::compile() {
 			continue;
 		}
 
-		// CLip layer
+		// Clip layer
 		if(layer->texture == TEXTURE_CLIP) {
 			source += "	if(weight>0.5) discard;\n";
 			continue;

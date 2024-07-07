@@ -164,6 +164,11 @@ DynamicMaterial* MaterialEditor::loadMaterial(const XMLElement& e) {
 			case LAYER_WEIGHT:
 				layer->mapIndex = i->attribute("map", 0);
 				layer->mapData = enumerate(i->attribute("channel", "r"), channels, 5); // Which channel
+				layer->mapTightness = i->attribute("tight", 1.f);
+				if(const XMLElement& d = i->find("distortion")) {
+					layer->mapDistortionRadius = d.attribute("strength", 1.f);
+					layer->mapDistortionScale = d.attribute("detail", 0.5f);
+				}
 				break;
 			case LAYER_INDEXED:
 				layer->mapIndex = i->attribute("map", 0);
@@ -224,6 +229,12 @@ XMLElement MaterialEditor::serialiseMaterial(int index) {
 		case LAYER_WEIGHT:
 			layer.setAttribute("map", (int)l->mapIndex);
 			layer.setAttribute("channel", channels[l->mapData]);
+			if(l->mapTightness< 1) layer.setAttribute("tight", l->mapTightness);
+			if(l->mapDistortionRadius > 0) {
+				XMLElement& e = layer.add("distortion");
+				e.setAttribute("strength", l->mapDistortionRadius);
+				e.setAttribute("detail", l->mapDistortionScale);
+			}
 			break;
 		case LAYER_COLOUR:
 			layer.setAttribute("map", (int)l->mapIndex);
@@ -858,6 +869,17 @@ void MaterialEditor::setupLayerWidgets(MaterialLayer* layer, gui::Widget* w) {
 			channel->addItem("Remainder");
 			channel->selectItem(layer->mapData);
 			channel->eventSelected.bind(this, &MaterialEditor::changeChannel);
+		}
+		if(layer->type == LAYER_WEIGHT) {
+			auto addSlider = [this, w](const char* name, float& value, float min, float max) {
+				gui::Scrollbar* s = addLayerWidget<gui::Scrollbar>(m_gui, w, name, "slider");
+				s->setRange(min*1000, max*1000);
+				s->setValue(value * 1000);
+				s->eventChanged.bind([this, &value, w](gui::Scrollbar*, int v) { value = v/1000.f; updateMaterial(w); });
+			};
+			addSlider("Tightness", layer->mapTightness, -1, 1);
+			addSlider("Distortion", layer->mapDistortionRadius, 0, 6);
+			addSlider("Detail", layer->mapDistortionScale, 0, 2);
 		}
 	}
 	else if(layer->type == LAYER_INDEXED) {
