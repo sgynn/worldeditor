@@ -75,7 +75,7 @@ class DynamicMaterial {
 	base::Material* getMaterial() const;	// Get material pointer
 	MaterialStream* getStream() const;		// Get material stream ( not here )
 
-	void exportMaterial() const;
+	void exportMaterial(MaterialEditor*) const;
 
 	// Layers iterator
 	std::vector<MaterialLayer*>::iterator begin() { return m_layers.begin(); }

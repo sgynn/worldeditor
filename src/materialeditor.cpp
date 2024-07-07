@@ -651,7 +651,7 @@ void MaterialEditor::addMaterial(gui::Button*) {
 
 void MaterialEditor::exportMaterial(gui::Button*) {
 	DynamicMaterial* mat = getMaterial();
-	if(mat) mat->exportMaterial();
+	if(mat) mat->exportMaterial(this);
 }
 
 void MaterialEditor::selectMaterial(gui::Combobox*, gui::ListItem& item) {
@@ -879,7 +879,7 @@ void MaterialEditor::setupLayerWidgets(MaterialLayer* layer, gui::Widget* w) {
 			};
 			addSlider("Tightness", layer->mapTightness, -1, 1);
 			addSlider("Distortion", layer->mapDistortionRadius, 0, 6);
-			addSlider("Detail", layer->mapDistortionScale, 0, 2);
+			addSlider("Detail", layer->mapDistortionScale, 0, 8);
 		}
 	}
 	else if(layer->type == LAYER_INDEXED) {

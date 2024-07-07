@@ -139,9 +139,9 @@ std::string str(const String& s) { return (const char*)s; }
 
 
 // Warning: use carefuly as buffer is shared */
-const char* addIndex(const char* base, int index) {
+const char* addIndex(const char* prefix, int index, const char* suffix="") {
 	static char buffer[32];
-	sprintf(buffer, "%s%d", base, index);
+	sprintf(buffer, "%s%d%s", prefix, index, suffix);
 	return buffer;
 }
 
@@ -279,7 +279,7 @@ bool DynamicMaterial::compile() {
 	bool hasMaps = false;
 	bool hasTriplanar = false;
 	for(MaterialLayer* layer: m_layers) {
-		if(layer->type==LAYER_WEIGHT || layer->type == LAYER_AUTO) hasTextureArray=true;
+		if(layer->type==LAYER_WEIGHT || layer->type == LAYER_AUTO) hasTextureArray |= layer->texture >= 0;
 		if(layer->type==LAYER_WEIGHT || layer->type == LAYER_COLOUR) hasMaps = true; 
 		if(layer->type == LAYER_INDEXED) hasIndexed = hasTextureArray = hasMaps = true;
 		if(layer->projection != PROJECTION_FLAT) hasTriplanar = true;
@@ -305,12 +305,14 @@ bool DynamicMaterial::compile() {
 	uint64 mapMask = 0;
 	uint64 doubleMapMask = 0;
 	for(MaterialLayer* layer: m_layers) {
-		if(~mapMask & 1<<layer->mapIndex) {
-			mapMask |= 1<<layer->mapIndex;
-			source += format("uniform sampler2D map{1};\n", layer->mapIndex);
-			if(layer->mapData&0x100) {
-				doubleMapMask |= 1<<layer->mapIndex;
-				source += format("uniform sampler2D map{1}W;\n", layer->mapIndex);
+		if(layer->type == LAYER_WEIGHT || layer->type == LAYER_COLOUR || layer->type == LAYER_INDEXED) {
+			if(~mapMask & 1<<layer->mapIndex) {
+				mapMask |= 1<<layer->mapIndex;
+				source += format("uniform sampler2D map{1};\n", layer->mapIndex);
+				if(layer->mapData&0x100) {
+					doubleMapMask |= 1<<layer->mapIndex;
+					source += format("uniform sampler2D map{1}W;\n", layer->mapIndex);
+				}
 			}
 		}
 	}
@@ -372,6 +374,14 @@ bool DynamicMaterial::compile() {
 	"	vec3 r = smoothstep(vmin-vblend, vmin, value) * smoothstep(vmax+vblend, vmax, value);\n"
 	"	return r.x * r.y * r.z;\n"
 	"}\n";
+
+	if(hasMaps) source +=
+	"vec2 distortion(vec2 pos, vec3 info) {\n"
+	"	vec2 x = cos(pos * info.y);\n"
+	"	vec2 y = cos(pos * info.y + 1.2345);\n"
+	"	return vec2(dot(x, vec2(1.0,1.0)), dot(y, vec2(1.0,1.0))) * info.z;\n"
+	"}\n";
+
 
 	if(hasMaps) source +=
 	"vec4 sampleMap(sampler2D map, vec4 info, vec2 coord) {\n"
@@ -569,7 +579,7 @@ bool DynamicMaterial::compile() {
 		case LAYER_WEIGHT:
 			if(!layer->mapIndex) { valid = false; break; }
 			// Layer distortion - use trig for now - should use a noise texture
-			source += format("	float distortion{} = cos(worldPos.x * mapInfo{}.y) * cos(worldPos.z * mapInfo{}.y) * mapInfo{}.z;\n", i);
+			source += format("	vec2 distortion{} = distortion(worldPos.xz, mapInfo{});\n", i);
 			source += format("	vec4 smap{1} = sampleMap(map{2}, mapBounds, worldPos.xz + distortion{1});\n", i, layer->mapIndex);
 
 			if(layer->mapData<4)
@@ -746,7 +756,7 @@ bool DynamicMaterial::compile() {
 
 #include <base/xml.h>
 using base::XMLElement;
-void DynamicMaterial::exportMaterial() const {
+void DynamicMaterial::exportMaterial(MaterialEditor* src) const {
 	// export shader file
 	Pass* pass = m_material->getPass(0);
 	const char* vs = "";
@@ -775,7 +785,27 @@ void DynamicMaterial::exportMaterial() const {
 	auto addVar1 = [&xml](const char* name, float value) { XMLElement& e=xml.getRoot().add("variable"); e.setAttribute("name", name); e.setAttribute("type", "float"); e.setAttribute("value", value); };
 	auto addVar2 = [&xml](const char* name, vec2 value) { XMLElement& e=xml.getRoot().add("variable"); e.setAttribute("name", name); e.setAttribute("type", "vec2"); char buf[64]; sprintf(buf,"%g %g",value.x, value.y); e.setAttribute("value", buf); };
 	auto addVar3 = [&xml](const char* name, vec3 value) { XMLElement& e=xml.getRoot().add("variable"); e.setAttribute("name", name); e.setAttribute("type", "vec3"); char buf[64]; sprintf(buf,"%g %g %g",value.x, value.y, value.z); e.setAttribute("value", buf); };
+	auto addVar4 = [&xml](const char* name, vec4 value) { XMLElement& e=xml.getRoot().add("variable"); e.setAttribute("name", name); e.setAttribute("type", "vec4"); char buf[64]; sprintf(buf,"%g %g %g %g",value.x, value.y, value.z, value.w); e.setAttribute("value", buf); };
 
+	// Map variables
+	uint usedMaps = 0;
+	for(size_t index=0; index<m_layers.size(); ++index) {
+		const MaterialLayer* layer = m_layers[index];
+		if(layer->type == LAYER_WEIGHT || layer->type == LAYER_COLOUR || layer->type == LAYER_INDEXED) {
+			if(!usedMaps) addVar4("mapBounds", m_coords);
+			if(~usedMaps & 1 << layer->mapIndex) {
+				usedMaps |= 1 << layer->mapIndex;
+				const MaterialEditor::MapData& map = src->getMap(layer->mapIndex);
+				addVar2(addIndex("map", layer->mapIndex, "Size"), vec2(map.size, map.size));
+
+				XMLElement& m = xml.getRoot().add("texture");
+				m.setAttribute("name", addIndex("map", layer->mapIndex));
+				m.setAttribute("file", addIndex("map", layer->mapIndex, ".png"));
+			}
+		}
+	}
+	
+	// Layer data
 	for(size_t index=0; index<m_layers.size(); ++index) {
 		const MaterialLayer* layer = m_layers[index];
 		if(layer->texture != TEXTURE_CLIP) {
@@ -786,6 +816,10 @@ void DynamicMaterial::exportMaterial() const {
 		if(layer->type != LAYER_COLOUR && layer->texture>=0) {
 			if(layer->projection == PROJECTION_FLAT) addVar2( addIndex("scale",index), 1.0 / layer->scale.xy());
 			else addVar3( addIndex("scale",index), 1.0 / layer->scale);
+		}
+
+		if(layer->type == LAYER_WEIGHT) {
+			addVar3(addIndex("mapInfo", index), vec3(layer->mapTightness, layer->mapDistortionScale, layer->mapDistortionRadius));
 		}
 
 		// Auto parameters
