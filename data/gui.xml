@@ -167,7 +167,7 @@
 		<widget anchor="tlrb" rect="0 0 84 100" name="_client"/>
 	</template>
 	<template class="Combobox" rect="0 0 100 32" name="toolgrouplist" skin="darkbutton">
-		<widget class="Image" group="icons" rect="4 0 32 32" name="_icon" image="-1"/>
+		<widget class="Image" group="icons" rect="4 0 32 32" name="_icon" image="-1" tangible="0"/>
 		<widget class="Label" rect="38 6 62 20" name="_text"/>
 		<widget anchor="blr" class="Listbox" rect="0 32 100 100" name="_list">
 			<widget anchor="tlrb" rect="0 0 85 100" name="_client"/>
@@ -183,7 +183,7 @@
 		<widget anchor="lrb" class="Listbox" rect="0 20 100 100" name="_list" skin="default"/>
 	</template>
 	<template anchor="lrt" class="Widget" rect="290 607 216 100" name="textureitem" skin="border">
-		<widget class="Image" rect="4 4 92 92" name="textureicon" skin="default"/>
+		<widget class="Image" rect="4 4 92 92" name="textureicon" skin="default" tangible="0"/>
 		<widget anchor="lrt" class="Textbox" hint="Name" name="texturename" skin="default" rect="100 2 108 20"/>
 		<widget tip="Diffuse map" class="Textbox" anchor="lrt" hint="Diffuse" rect="100 24 92 20" skin="default" name="diffuse"/>
 		<widget anchor="rt" class="Button" rect="192 24 16 20" name="browse_diffuse" caption="..." skin="button"/>
@@ -218,7 +218,7 @@ Metalness, Roughness, Glow, Height" class="Textbox" anchor="lrt" hint="Property"
 		<widget anchor="tr" template="iconbutton" name="expand" image="scroll_up" rect="215 1 16 16"/>
 		<widget anchor="tr" template="iconbutton" name="visibility" image="eye_open" rect="199 1 16 16"/>
 		<widget anchor="tlr" class="Textbox" inheritstate="1" rect="32 0 160 20" skin="border" text="Name" name="layername"/>
-		<widget class="Image" group="icons" rect="0 0 26 26" name="typeicon"/>
+		<widget class="Image" group="icons" rect="0 0 26 26" name="typeicon" tangible="0"/>
 	</template>
 	<!--Widget Layout-->
 	<widget rect="300 300 300 200" visible="0" template="dialog" name="messagebox" caption="Message" skin="default">
@@ -285,7 +285,7 @@ Metalness, Roughness, Glow, Height" class="Textbox" anchor="lrt" hint="Property"
 	</widget>
 	<widget rect="800 100 140 160" visible="0" template="dialog" name="worldmap" caption="Map" skin="default">
 		<widget anchor="lrtb" class="Image" rect="1 1 128 128" name="mapimage" skin="default">
-			<widget class="Image" group="icons" rect="0 0 16 16" name="mapmarker" image="direction" skin="default"/>
+			<widget class="Image" group="icons" rect="0 0 16 16" name="mapmarker" image="direction" skin="default" tangible="0"/>
 		</widget>
 	</widget>
 	<widget rect="400 100 400 500" visible="0" template="dialog" name="materials" caption="Materials" skin="default">
