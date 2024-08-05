@@ -7,7 +7,7 @@
 
 class ColourPicker : public gui::Window {
 	WIDGET_TYPE(ColourPicker);
-	ColourPicker(const Rect&, gui::Skin*);
+	ColourPicker();
 	~ColourPicker();
 	void initialise(const gui::Root*, const gui::PropertyMap&);
 

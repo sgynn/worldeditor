@@ -4,7 +4,7 @@
 
 using namespace gui;
 
-ColourPicker::ColourPicker(const Rect& r, Skin* s) : Window(r, s), m_freeze(false) {}
+ColourPicker::ColourPicker() : m_freeze(false) {}
 ColourPicker::~ColourPicker() {
 }
 

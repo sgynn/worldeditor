@@ -9,7 +9,7 @@ namespace gui {
 
 class FileDialog : public gui::Window {
 	WIDGET_TYPE(FileDialog);
-	FileDialog(const Rect&, gui::Skin*);
+	FileDialog();
 	~FileDialog();
 
 

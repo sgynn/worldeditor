@@ -7,7 +7,7 @@
 
 class BoxSelect : public gui::Widget {
 	public:
-	BoxSelect(int colour=0xffffff) : Widget(Rect(0,0,0,0), 0) {
+	BoxSelect(int colour=0xffffff) {
 		setColour(colour);
 		setTangible(gui::Tangible::NONE);
 		setVisible(false);

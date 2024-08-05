@@ -1,6 +1,6 @@
 #include "orderableitem.h"
 
-OrderableItem::OrderableItem(const Rect& r, gui::Skin* s) : Widget(r, s), m_held(-1), m_targetIndex(-1) {
+OrderableItem::OrderableItem() : m_held(-1), m_targetIndex(-1) {
 }
 
 void OrderableItem::setSize(int w, int h) {

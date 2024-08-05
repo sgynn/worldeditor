@@ -6,7 +6,7 @@
 /** Reorderable items for textures and material layers */
 class OrderableItem : public gui::Widget {
 	WIDGET_TYPE(OrderableItem);
-	OrderableItem(const Rect& r, gui::Skin* s);
+	OrderableItem();
 	void setSize(int w, int h);
 	public:
 	int  getIndex() const;

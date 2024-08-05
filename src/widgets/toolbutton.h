@@ -6,7 +6,6 @@
 /** Tool button - only one selected */
 class ToolButton : public gui::Button {
 	WIDGET_TYPE(ToolButton);
-	ToolButton(const Rect& r, gui::Skin* s) : Button(r, s) {}
 	void setSelected(bool s) override {
 		Button::setSelected(s);
 		// Deselect other options
