@@ -764,6 +764,8 @@ void WorldEditor::createNewEditor(gui::Button* b) {
 	layer->name = "Map";
 	layer->mapIndex = mapIndex;
 	m_materials->selectMaterial(mat);
+
+	for(EditorPlugin* e: m_editors) e->notifyMapAdded(mapIndex, name, mode, channels);
 }
 
 void WorldEditor::cancelNewEditor(gui::Button*) {
@@ -1286,6 +1288,7 @@ void WorldEditor::loadWorld(const char* file) {
 			int flags = enumerate(e.attribute("type"), modes, 3);
 			m_materials->addMap(index, name, size, channels, flags);
 			m_terrain->loadMapDefinition(index, size, channels, flags);
+			for(EditorPlugin* e: m_editors) e->notifyMapAdded(index, name, flags, channels);
 			ToolGroup* group = 0;
 			if(flags==2 && channels>1) flags=3;
 			switch(flags) {

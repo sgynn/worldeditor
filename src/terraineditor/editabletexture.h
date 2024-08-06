@@ -49,6 +49,7 @@ class EditableTexture : public EditableMap {
 	void setPixel(int x, int y, ubyte* pixel);
 	void clampPoint(Point& p) const;
 	void clampRect(Rect& r) const;
+	const ubyte* getData() const { return m_data; }
 
 	protected:
 	Mode   m_mode;

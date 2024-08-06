@@ -58,6 +58,8 @@ class FoliageEditor : public EditorPlugin {
 	base::Material* createMaterial(FoliageType type, const char* diffuse);
 	FoliageLayerEditor* addLayer(FoliageType type);
 	void showEditor(FoliageLayerEditor* layer);
+
+	void notifyMapAdded(int id, const char* name, int type, int channels) override;
 	
 	protected:
 	void layerSelected(gui::Listbox*, gui::ListItem&);
@@ -82,6 +84,7 @@ class FoliageEditor : public EditorPlugin {
 
 	gui::ItemList* m_spriteList;
 	gui::ItemList* m_meshList;
+	gui::ItemList* m_mapList;
 };
 
 class FoliageLayerEditor {
@@ -112,6 +115,8 @@ class FoliageLayerEditor {
 	void setSprite(gui::Combobox*, gui::ListItem&);
 	void setScaleMap(gui::Combobox*, gui::ListItem&);
 
+	base::FoliageMap* createMap(int mapIndex, int channel) const;
+
 	public:
 	Delegate<void(FoliageLayerEditor*)> eventRenamed;
 
@@ -132,7 +137,10 @@ class FoliageLayerEditor {
 	float m_clusterFalloff = 1;
 	float m_clusterShapeScale = 0;
 	int   m_clusterShapePoints = 0;
-	
+
+	struct Map { int id=-1, channel=0; };
+	Map m_densityMap;
+	Map m_scaleMap;
 
 	gui::String m_file;
 

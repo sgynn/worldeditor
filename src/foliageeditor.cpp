@@ -1,6 +1,7 @@
 #include "foliageeditor.h"
 #include "filesystem.h"
 #include "heightmap.h"
+#include "terraineditor/editabletexture.h"
 #include <base/material.h>
 #include <base/shader.h>
 #include <base/autovariables.h>
@@ -49,7 +50,7 @@ int Foliage::getActive(const vec3& p, float cs, float range, IndexList& out) con
 float Foliage::getMapValue(const FoliageMap* map, const BoundingBox2D& bounds, const vec3& position) const {
 	// wrap map
 	float x = position.x / m_terrain->getTileSize();
-	float y = position.y / m_terrain->getTileSize();
+	float y = position.z / m_terrain->getTileSize();
 	return map->getValue(x-floor(x), y-floor(y));
 }
 
@@ -163,6 +164,7 @@ FoliageEditor:: FoliageEditor(Root* gui, FileSystem* fs, MapGrid* terrain, base:
 FoliageEditor::~FoliageEditor() {
 	clear();
 	delete m_foliage;
+	delete m_mapList;
 	delete m_meshList;
 	delete m_spriteList;
 }
@@ -185,12 +187,23 @@ void FoliageEditor::setupGui(Root* gui) {
 
 	m_meshList = new ItemList;
 	m_spriteList = new ItemList;
+	m_mapList = new ItemList;
+	m_mapList->addItem("None", -1);
 }
 
 void FoliageEditor::close() {
 	for(const ListItem& item: m_layerList->items()) {
 		FoliageEditor* editor = item.findValue<FoliageEditor*>();
 		if(editor) editor->getPanel()->setVisible(false);
+	}
+}
+
+void FoliageEditor::notifyMapAdded(int id, const char* name, int type, int channels) {
+	if(type == 1) {
+		const char* channelNames[] = { " Red", " Green", " Blue", " Alpha" };
+		for(int i=0; i<channels; ++i) {
+			m_mapList->addItem(String::cat(name, channelNames[i]), id, i);
+		}
 	}
 }
 
@@ -329,6 +342,8 @@ FoliageLayerEditor::FoliageLayerEditor(FoliageEditor* editor, Widget* w, Foliage
 		else printf("Error: Missing widget %s\n", name);
 	};
 
+	m_panel->getWidget<Combobox>("densitymap")->shareList(editor->m_mapList);
+
 	setupSlider(m_range,      "range",    1000, 1, false);
 	setupSlider(m_density,    "density", type==FoliageType::Instanced? 0.5: 16, 2);
 	setupSlider(m_height.min, "minheight", 500);
@@ -415,7 +430,12 @@ void FoliageLayerEditor::renameLayer(Textbox* t) {
 	if(eventRenamed) eventRenamed(this);
 }
 
-void FoliageLayerEditor::setDensityMap(Combobox*, ListItem&) {}
+void FoliageLayerEditor::setDensityMap(Combobox*, ListItem& item) {
+	m_densityMap.id = item.getValue(1, -1);
+	m_densityMap.channel = item.getValue(2, -1);
+	m_layer->setDensityMap(createMap(m_densityMap.id, m_densityMap.channel));
+	refresh();
+}
 
 // -------------------------------------------------------------------------------------- //
 void FoliageLayerEditor::loadMesh(Button*) {
@@ -485,8 +505,22 @@ void FoliageLayerEditor::setSprite(Combobox* list, ListItem& item) {
 	m_layer->setMaterial(sprite.material);
 	refresh();
 }
-void FoliageLayerEditor::setScaleMap(Combobox*, ListItem&) {}
+void FoliageLayerEditor::setScaleMap(Combobox*, ListItem& item) {
+	m_scaleMap.id = item.getValue(1, -1);
+	m_scaleMap.channel = item.getValue(2, -1);
+	dynamic_cast<GrassLayer*>(m_layer)->setScaleMap(createMap(m_scaleMap.id, m_scaleMap.channel));
+	refresh();
+}
+
 // -------------------------------------------------------------------------------------- //
+
+FoliageMap* FoliageLayerEditor::createMap(int mapIndex, int channel) const {
+	if(mapIndex < 0) return nullptr;
+	// FIXME: This only works for a single tile
+	const EditableMap* mapData = m_editor->m_terrain->getMap(Point(0,0))->maps[mapIndex];
+	const EditableTexture* map = dynamic_cast<const EditableTexture*>(mapData);
+	return new FoliageMap(map->getWidth(), map->getHeight(), map->getData()+channel, map->getChannels());
+}
 
 void FoliageLayerEditor::refresh(bool regen) {
 	m_layer->setViewRange(m_range);
@@ -494,6 +528,10 @@ void FoliageLayerEditor::refresh(bool regen) {
 	m_layer->setSlopeRange(m_slope.min, m_slope.max);
 	m_layer->setHeightRange(m_height.min, m_height.max);
 	m_layer->setScaleRange(m_scale.min, m_scale.max);
+
+	float s = m_editor->m_terrain->getTileSize();
+	m_layer->setMapBounds(BoundingBox2D(0,0,s,s));
+
 	if(m_type == FoliageType::Grass) {
 		// set sprite
 	}

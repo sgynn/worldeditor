@@ -37,6 +37,7 @@ class EditorPlugin {
 	virtual void close() {}		// Close all associated gui elements
 	virtual void activate() {}	// Make plugin active - open panel etc.
 	virtual void notifyTileChanged(const Point&, const TerrainMap* tile, const TerrainMap* previous) {} // Called when a tile is loaded or unloaded
+	virtual void notifyMapAdded(int id, const char* name, int type, int channels) {}
 
 	void registerPlugin(gui::Widget* toolPanel);
 	Delegate<void(EditorPlugin*)> eventActivated;
