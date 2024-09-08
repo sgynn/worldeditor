@@ -519,7 +519,7 @@ FoliageMap* FoliageLayerEditor::createMap(int mapIndex, int channel) const {
 	// FIXME: This only works for a single tile
 	const EditableMap* mapData = m_editor->m_terrain->getMap(Point(0,0))->maps[mapIndex];
 	const EditableTexture* map = dynamic_cast<const EditableTexture*>(mapData);
-	return new FoliageMap(map->getWidth(), map->getHeight(), map->getData()+channel, map->getChannels());
+	return new FoliageMap(map->getWidth(), map->getHeight(), map->getData()+channel, map->getChannels(), false);
 }
 
 void FoliageLayerEditor::refresh(bool regen) {
@@ -583,6 +583,9 @@ XMLElement FoliageLayerEditor::save() const {
 	saveRange(e, "height", m_height);
 	saveRange(e, "slope", m_slope);
 	saveRange(e, "scale", m_scale);
+
+	if(m_densityMap.id>=0) {
+	}
 
 	if(m_distribution == 1) {
 		e.setAttribute("clusters", m_clusterDensity);
