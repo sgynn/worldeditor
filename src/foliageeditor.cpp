@@ -585,6 +585,9 @@ XMLElement FoliageLayerEditor::save() const {
 	saveRange(e, "scale", m_scale);
 
 	if(m_densityMap.id>=0) {
+		XMLElement& dm = e.add("density");
+		dm.setAttribute("map", m_densityMap.id);
+		dm.setAttribute("channel", m_densityMap.channel);
 	}
 
 	if(m_distribution == 1) {
@@ -649,6 +652,15 @@ void FoliageLayerEditor::load(const XMLElement& e) {
 	loadRange(e.find("height"), m_height);
 	loadRange(e.find("slope"), m_slope);
 	loadRange(e.find("scale"), m_scale);
+
+	if(const XMLElement& density = e.find("density")) {
+		m_densityMap.id = density.attribute("map", 0);
+		m_densityMap.channel = density.attribute("channel", 0);
+		Combobox* list = m_panel->getWidget<Combobox>("densitymap");
+		const ListItem* item = list->findItem([this](ListItem& i) { return i.getValue(1,-1)==m_densityMap.id && i.getValue(2,-1)==m_densityMap.channel; });
+		list->selectItem(item? item->getIndex(): -1);
+		if(item) m_layer->setDensityMap(createMap(m_densityMap.id, m_densityMap.channel));
+	}
 	
 	if(m_type==FoliageType::Grass) {
 		const XMLElement& f = e.find("sprite");
