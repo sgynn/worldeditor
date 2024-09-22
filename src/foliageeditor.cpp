@@ -51,7 +51,14 @@ float Foliage::getMapValue(const FoliageMap* map, const BoundingBox2D& bounds, c
 	// wrap map
 	float x = position.x / m_terrain->getTileSize();
 	float y = position.z / m_terrain->getTileSize();
-	return map->getValue(x-floor(x), y-floor(y));
+	x -= floor(x);
+	y -= floor(y);
+	
+	vec2 size = bounds.size();
+	x *= size.x / (size.x+1);
+	y *= size.y / (size.y+1);
+
+	return map->getValue(x, y);
 }
 
 // ======================================================================== //
