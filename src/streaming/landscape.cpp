@@ -7,6 +7,7 @@
 #include <base/game.h>
 #include <base/input.h>
 #include <base/collision.h>
+#include <base/assert.h>
 
 using base::Camera;
 
