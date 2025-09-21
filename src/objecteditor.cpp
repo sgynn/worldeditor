@@ -616,7 +616,7 @@ void ObjectEditor::selectionChanged() {
 	SceneNode* gizmoRoot;
 	if(selectedObjects.size() == 1) {
 		// Single selection uses object directly
-		while(m_selectGroup->getChildCount()) m_node->addChild(m_selectGroup->getChild((size_t)0));
+		while(m_selectGroup->getChildCount()) m_node->addChild(m_selectGroup->getChild(0));
 		gizmoRoot = selectedObjects[0];
 	}
 	else {
