@@ -26,6 +26,7 @@
 #include "widgets/toolbutton.h"
 #include "widgets/orderableitem.h"
 #include "widgets/colourpicker.h"
+#include "widgets/curveeditor.h"
 
 #include <cstdarg>
 
@@ -130,6 +131,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_ac
 	Root::registerClass<ToolButton>();
 	Root::registerClass<OrderableItem>();
 	Root::registerClass<ColourPicker>();
+	Root::registerClass<CurveEditor>();
 	m_gui = new Root(Game::width(), Game::height());
 	m_gui->getRenderer()->setImagePath(appPath);
 	m_gui->load(appPath + "data/gui.xml");
@@ -364,7 +366,7 @@ void WorldEditor::update() {
 	// Map marker
 	if(m_mapMarker) {
 		vec2 p = m_minimap->getNormalisedPosition(m_camera->getPosition());
-		const Point& ms = m_mapMarker->getParent()->getAbsoluteClientRect().size();
+		const Point ms = m_mapMarker->getParent()->getAbsoluteClientRect().size();
 		const Point& ps = m_mapMarker->getSize(); 
 		const vec3& dir = cam->getDirection();
 		m_mapMarker->setPosition(p.x * ms.x - ps.x/2, p.y * ms.y - ps.y/2);

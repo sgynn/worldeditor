@@ -1,0 +1,137 @@
+# World Editor #
+
+
+
+[ Concepts ]
+
+
+	Terrain
+		The geometry loaded from a heightmap.
+
+	Editor
+		Tools for editing something specific.
+
+	Map
+		Image overlayed on the terrain for colouring
+		or specifying where textures are drawn.
+		Maps can be large streamed tiff files or
+		smaller png files (max 4096x4096)
+
+	Texture
+		Combination of diffuse and normal map textures
+		that are tiled over the landscape.
+		Textures should all be the same resolution and format.
+		Set them in the textures window and they should appear
+		in the layer material section.
+
+	Material
+		Defines how the terrain is rendered.
+		You can create multiple materials and switch between
+		them for diferent display modes.
+
+
+[ Settings ]
+	
+	Most of these are self explanitory.
+	Collision stops the camera going under the terrain.
+	Tablet mode does not lock the mouse when rotating the camera.
+
+
+[ Materials ]
+
+	Materials are constructed from layers. The layers are applied
+	in order from the top of the list to the bottom.
+	Layers can be re-ordered by drag and drop.
+
+	There are four different types of layers:
+
+		Auto
+			Applies a texture or colour based on the terrain height
+			and slope.
+
+		Mapped
+			Applies a texture or colour based on a specified channel of a map
+
+		Colour
+			RGB value of a map applied directly
+
+		Indexed
+			Not implemented yet. Uses two maps to apply many textures.
+			Uses its own editing mode
+
+	All layers have a blend mode and opacity.
+
+
+	Layers that apply textures have a choice of three projections:
+		
+		Flat
+			Basic top down projection
+
+		Triplanar
+			Texture is projected in all three axes based on the terrain normal
+
+		Vertical
+			Similar to triplanar but skips the top down projection
+
+
+[ Editors ]
+
+	You can edit either the terrain topology or a single map.
+	The ability to edit multiple things at once will come later perhaps ...
+	Select the current editor from the menu.
+
+	The brush settings are on sliders, and also bound to the mouse wheel with
+	ctrl and shift modifiers for the different options.
+
+	Editors
+		
+		Geometry
+			Editing topology. Currently has four tools.
+			Hold shift to modify their behaviour.
+
+		Weight
+			Edits a map by channel. Select which channel to paint to.
+			Shift to erase.
+
+			Note: If the material is set up to use this map channel to
+			display a texture, you will essentially be painting that texture.
+
+		Colour
+			Select an RGB colour to paint on the map.
+
+		Indexed
+			Not done yet. Uses two maps. You will be able to select textures
+			from the tool list and paint them to the texture.
+
+
+[ Additional tools ]
+
+	Object placement
+		place and edit objects in the world
+	
+	Foliage mode
+		Add foliage to the world.
+		There are two types of foliage layers:
+			Grass Layers     - Random textured planes
+			Instanced Layers - Instanced meshes
+		There are many sliders to affect the foliage placement
+		You can also use Maps to affect density or scale
+
+	Erosion tool
+		Simulates rain flow to erode and deposit sediment
+		Applies to the whole map, may be very slow for large maps or some settings
+		Press clear to undo the last result
+	
+	Water tool
+		Place rivers and lakes using splines
+		Click and drag spline nodes or handles
+		Hold shift to adjust the handles when dragging a node
+		Hold alt for vertical movement
+
+
+	
+
+
+
+
+

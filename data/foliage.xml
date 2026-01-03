@@ -1,20 +1,161 @@
 <?xml version="1.0"?>
 <gui height="1024" width="1280">
 	<external file="gui.xml"/>
+	<!--Font list-->
+	<font name="helvetica" size="24"/>
+	<!--Generated Images-->
+	<genimage glyphs="16" name="glyphs"/>
+	<genimage name="default" core="2 2" line="1">
+		<state back="#800d1241" name="normal" line="#ff061cd5"/>
+		<state back="#80000020" name="disabled" line="#ff004050"/>
+		<state back="#800d1241" name="selected normal" line="#ffffff00"/>
+	</genimage>
+	<genimage name="button" core="2 2" line="1">
+		<state back="#ff0060c0" name="normal" line="#ff0060c0"/>
+		<state back="#ff40a080" name="selected normal" line="#ff40a080"/>
+	</genimage>
+	<!--Widget Skins-->
+	<skin name="none">
+		<font name="helvetica" size="16"/>
+		<state name="normal"/>
+	</skin>
+	<skin name="panel">
+		<font name="helvetica" size="16"/>
+		<image file="default"/>
+		<state border="2 2 2 2" coord="0 0 4 4" name="normal"/>
+		<state coord="4 0 4 4" name="highlight"/>
+		<state coord="0 4 4 4" name="pressed"/>
+		<state coord="4 4 4 4" name="disabled"/>
+		<state coord="0 8 4 4" name="selected normal"/>
+	</skin>
+	<skin name="titlebar">
+		<font align="middlecentre" name="helvetica" size="16"/>
+		<image file="data/gui.png"/>
+		<state border="2 2 2 2" coord="0 8 4 4" name="normal"/>
+	</skin>
+	<skin name="default">
+		<font name="helvetica" size="16"/>
+		<image file="data/gui.png"/>
+		<state border="2 2 2 2" coord="0 0 4 4" name="normal"/>
+	</skin>
+	<skin name="listitem">
+		<font name="helvetica" size="16"/>
+		<state name="normal"/>
+		<state forecolour="#ffff80" name="highlight"/>
+		<state forecolour="#ffffff" name="pressed"/>
+		<state forecolour="#808080" name="disabled"/>
+		<state forecolour="#ff9040" name="selected normal"/>
+	</skin>
+	<skin name="button">
+		<font align="middlecentre" name="helvetica" size="16"/>
+		<image file="button"/>
+		<state border="2 2 2 2" coord="0 0 4 4" forecolour="#80c0ff" name="normal"/>
+		<state coord="4 0 4 4" forecolour="#ffa0a0" name="highlight"/>
+		<state coord="0 4 4 4" forecolour="#4080a0" name="pressed"/>
+		<state coord="4 4 4 4" forecolour="#607080" name="disabled"/>
+		<state coord="0 8 4 4" name="selected normal"/>
+	</skin>
+	<!--Icon sets-->
+	<iconlist name="glyphs">
+		<image file="glyphs"/>
+		<icon rect="2 4 13 8" name="up"/>
+		<icon rect="18 5 13 8" name="down"/>
+		<icon rect="36 2 8 13" name="left"/>
+		<icon rect="5 18 8 13" name="right"/>
+		<icon rect="18 18 13 13" name="dot"/>
+		<icon rect="35 19 12 12" name="cross"/>
+	</iconlist>
+	<iconlist name="icons">
+		<image file="data/gui.png"/>
+		<icon rect="16 0 16 16" name="scroll_up"/>
+		<icon rect="16 16 16 16" name="scroll_down"/>
+		<icon rect="0 64 16 16" name="close_dialog"/>
+		<icon rect="16 64 16 16" name="file_up"/>
+		<icon rect="32 64 16 16" name="file_back"/>
+		<icon rect="48 64 16 16" name="file_forward"/>
+		<icon rect="0 80 16 16" name="folder"/>
+		<icon rect="16 80 16 16" name="file"/>
+		<icon rect="32 80 16 16" name="eye_open"/>
+		<icon rect="48 80 16 16" name="eye_closed"/>
+		<icon rect="32 0 32 32" name="new"/>
+		<icon rect="64 0 32 32" name="open"/>
+		<icon rect="96 0 32 32" name="save"/>
+		<icon rect="96 64 32 32" name="options"/>
+		<icon rect="0 32 32 32" name="terrain"/>
+		<icon rect="32 32 32 32" name="texture"/>
+		<icon rect="64 32 32 32" name="Foliage"/>
+		<icon rect="96 32 32 32" name="Objects"/>
+		<icon rect="224 32 32 32" name="Grass"/>
+		<icon rect="224 64 32 32" name="Polygon"/>
+		<icon rect="128 64 32 32" name="material"/>
+		<icon rect="192 64 32 32" name="neweditor"/>
+		<icon rect="160 64 32 32" name="map"/>
+		<icon rect="0 96 16 16" name="direction"/>
+		<icon rect="128 0 32 32" name="raise"/>
+		<icon rect="160 0 32 32" name="smooth"/>
+		<icon rect="192 0 32 32" name="level"/>
+		<icon rect="224 0 32 32" name="flatten"/>
+		<icon rect="128 32 32 32" name="noise"/>
+		<icon rect="0 16 8 8" name="red"/>
+		<icon rect="8 16 8 8" name="green"/>
+		<icon rect="0 24 8 8" name="blue"/>
+		<icon rect="8 24 8 8" name="alpha"/>
+		<icon rect="13 13 2 2" name="white"/>
+		<icon rect="64 64 16 16" name="layer_a"/>
+		<icon rect="80 64 16 16" name="layer_w"/>
+		<icon rect="64 80 16 16" name="layer_c"/>
+		<icon rect="80 80 16 16" name="layer_i"/>
+		<icon rect="161 32 32 32" name="Water"/>
+		<icon rect="32 96 32 32" name="move"/>
+		<icon rect="64 96 32 32" name="rotate"/>
+		<icon rect="96 96 32 32" name="scale"/>
+		<icon rect="128 96 32 32" name="block"/>
+		<icon rect="160 96 32 32" name="sphere"/>
+	</iconlist>
 	<!--Templates-->
 	<template rect="0 0 100 100" name="frame" skin="panel" category="Containers"/>
-	<template class="Image" group="icons" rect="0 0 32 32" name="icon" skin="panel" category="Display"/>
+	<template category="Display" class="Image" rect="0 0 32 32" name="icon" group="icons" skin="panel"/>
+	<template class="Button" rect="0 0 32 32" name="iconbutton" skin="button">
+		<widget anchor="tlrb" class="Image" group="icons" inheritstate="1" rect="0 0 32 32" skin="button" name="_icon"/>
+	</template>
+	<template class="Window" rect="0 0 100 100" name="dialog">
+		<widget anchor="tr" image="close_dialog" template="iconbutton" name="_close" rect="84 0 16 16"/>
+		<widget anchor="tlr" class="Button" rect="10 0 70 20" name="_caption" skin="titlebar"/>
+		<widget anchor="tlrb" rect="5 22 90 73" name="_client"/>
+		<widget anchor="br" rect="90 90 10 10" name="_sizebr" skin="button"/>
+	</template>
+	<template class="Scrollbar" rect="0 0 16 100" name="vscroll">
+		<widget anchor="tlr" image="scroll_up" template="iconbutton" name="_dec" rect="0 0 16 16"/>
+		<widget anchor="blr" image="scroll_down" template="iconbutton" name="_inc" rect="0 84 16 16"/>
+		<widget anchor="tlrb" rect="0 16 16 68" name="_track">
+			<widget anchor="lr" class="Button" rect="0 0 16 24" name="_block" skin="button"/>
+		</widget>
+	</template>
+	<template class="Checkbox" group="glyphs" icon="4" rect="0 0 16 16" skin="none" category="Input" name="checkbox">
+		<widget anchor="lm" inheritstate="1" tangible="0" rect="0 0 15 15" name="_box" skin="panel">
+			<widget anchor="lt" template="icon" rect="4 4 7 7" group="glyphs" name="_icon"/>
+		</widget>
+		<widget inheritstate="1" class="Label" anchor="lrtb" rect="19 0 0 16" skin="none" align="13" name="_text"/>
+	</template>
+	<template max="1000" class="Scrollbar" rect="0 0 100 16" name="slider" skin="none" orientation="horizontal">
+		<widget anchor="mlr" inheritstate="1" tangible="0" rect="0 6 100 4" skin="button"/>
+		<widget anchor="tb" class="Button" rect="0 0 12 16" name="_block" skin="button"/>
+	</template>
+	<template class="Combobox" rect="476 798 100 20" name="droplist" skin="default">
+		<widget anchor="lrtb" class="Label" rect="0 0 100 20" name="_text" skin="none"/>
+		<widget anchor="lrb" class="Listbox" rect="0 20 100 100" name="_list" skin="default"/>
+	</template>
 	<template class="Button" name="button" skin="button" category="Input"/>
 	<template class="Textbox" name="editbox" skin="panel" category="Input"/>
-	<template class="Checkbox" icon="8" rect="840 447 16 16" nicon="9" group="icons" skin="none" name="visibility">
-		<widget anchor="lrtb" template="icon" rect="0 0 16 16" image="9" name="_icon"/>
+	<template class="Checkbox" icon="8" group="icons" rect="840 447 16 16" nicon="9" skin="none" name="visibility">
+		<widget anchor="lrtb" image="9" template="icon" rect="0 0 16 16" name="_icon"/>
 	</template>
 	<template class="Listbox" rect="0 0 100 100" name="iconlistbox2">
 		<widget anchor="tlrb" rect="0 0 85 100" name="_client"/>
 		<widget anchor="trb" template="vscroll" name="_scroll" rect="84 0 16 100"/>
 		<widget anchor="lr" tangible="2" rect="0 0 100 20" name="_item" skin="none">
 			<widget inheritstate="1" class="Label" rect="20 0 80 20" name="_0" skin="listitem"/>
-			<widget class="Image" group="icons" rect="2 2 16 16" name="_2"/>
+			<widget class="Image" rect="2 2 16 16" name="_2" group="icons"/>
 			<widget anchor="r" template="visibility" name="_3" rect="60 3 16 16" drag="1"/>
 		</widget>
 	</template>
@@ -35,9 +176,9 @@
 	</widget>
 	<widget anchor="lt" visible="0" layout="VerticalLayout" rect="576 359 348 613" template="dialog" skin="default" name="foliagelayer" caption="Foliage Layer">
 		<widget anchor="lrt" class="Widget" template="frame" rect="0 0 338 60" skin="none">
-			<widget anchor="lt" template="icon" name="icon" image="20"/>
+			<widget anchor="lt" image="20" template="icon" name="icon"/>
 			<widget anchor="lrt" text="Foliage name" name="name" template="editbox" rect="39 7 269 20"/>
-			<widget anchor="rt" group="icons" template="iconbutton" name="visible" image="12" rect="308 7 20 20"/>
+			<widget anchor="rt" image="12" template="iconbutton" name="visible" group="icons" rect="308 7 20 20"/>
 			<widget anchor="lt" class="Label" rect="2 36 38 19" caption="Distribution" skin="panel"/>
 			<widget anchor="lrt" template="droplist" name="distribution" rect="96 36 232 20">
 				<item>Uniform</item>
@@ -97,5 +238,10 @@
 			<widget anchor="lrt" template="slider" name="clustershape" rect="94 122 237 16"/>
 			<widget anchor="lt" autosize="1" template="label" caption="Shape Points" rect="4 120 91 19"/>
 		</widget>
+	</widget>
+	<widget rect="408 540 348 324" anchor="lt" template="dialog" name="graph" caption="Graph Editor" skin="default">
+		<widget anchor="lrtb" class="CurveEditor" name="grapheditor" rect="0 0 338 274"/>
+		<widget anchor="lb" template="label" name="graphvalue" caption="X: 0  Y: 0" rect="12 276 61 19"/>
+		<widget anchor="rb" template="checkbox" name="clamp" caption="Clamp" rect="265 273 72 27"/>
 	</widget>
 </gui>

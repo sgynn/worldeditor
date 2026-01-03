@@ -3,7 +3,7 @@
 #include "editorplugin.h"
 #include <base/gui/widgets.h>
 #include <base/gui/lists.h>
-#include "foliage/foliage.h"
+#include <base/world/foliage.h>
 
 namespace base { class XMLElement; class Texture;  class Mesh;  }
 class FileSystem;
