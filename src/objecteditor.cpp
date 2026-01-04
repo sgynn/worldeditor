@@ -121,8 +121,8 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 			const char* name = i.attribute("name");
 			const char* file = i.attribute("file");
 			const char* data = i.attribute("data");
-			int meshIndex = i.attribute("mesh", -1);
 			const char* meshName = i.attribute("mesh", emptyString);
+
 			sscanf(i.attribute("scale"), "%g %g %g", &scale.x, &scale.y, &scale.z);
 			sscanf(i.attribute("position"), "%g %g %g", &pos.x, &pos.y, &pos.z);
 			sscanf(i.attribute("orientation"), "%g %g %g %g", &rot.w, &rot.x, &rot.y, &rot.z);
@@ -137,7 +137,9 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 			}
 
 			if(model) {
-				if(meshIndex>=0 && meshIndex<model->getMeshCount()) meshName = model->getMeshName(meshIndex);
+				if(meshName && meshName[0]>='0' && meshName[0]<='9' && !model->getMesh(meshName)) {
+					meshName = model->getMeshName(atoi(meshName));
+				}
 				if(meshName && !model->getMesh(meshName)) {
 					printf("Error: Model %s has no mesh '%s'\n", meshFile.str(), meshName);
 					continue;
