@@ -12,6 +12,7 @@
 #include <base/xml.h>
 #include <base/collision.h>
 #include <base/directory.h>
+#include <base/debuggeometry.h>
 
 #include "extensions.h"
 #include <base/model.h>
@@ -25,6 +26,8 @@
 #include <base/png.h>
 #include <set>
 
+#include "objectspline.h"
+
 
 using base::XMLElement;
 using namespace gui;
@@ -33,11 +36,18 @@ using base::Mesh;
 using base::SceneNode;
 using base::Drawable;
 using base::DrawableMesh;
+using base::DebugGeometry;
 
 extern gui::String appPath;
 
 #define CONNECT(Type, name, event, callback) { Type* t=m_panel->getWidget<Type>(name); if(t) t->event.bind(this, &ObjectEditor::callback); else printf("Missing widget: %s\n", name); }
 #define CONNECT_I(Type, name, event, ...) { Type* t=m_panel->getWidget<Type>(name); if(t) t->event.bind(__VA_ARGS__); else printf("Error: Missing widget %s\n", name); }
+
+
+const char* MeshReference::getName() const {
+	if(mesh) return mesh;
+	else return strrchr(model.str(), '/') + 1;
+}
 
 ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, SceneNode* scene)
 	: m_fileSystem(fs), m_terrain(terrain), m_placement(0), m_mode(SINGLE), m_collideObjects(true), m_gizmo(0)
@@ -49,6 +59,7 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 	m_node = scene->createChild("Objects");
 	m_objectList = m_panel->getWidget<Listbox>("objectlist");
 	m_resourceList = m_panel->getWidget<TreeView>("resources");
+	m_templateEditors = m_panel->getWidget<Combobox>("newtemplate");
 	
 	CONNECT(Textbox,  "path", eventSubmit, changePath);
 	CONNECT(Listbox, "objectlist", eventSelected, selectObject);
@@ -74,6 +85,14 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 	CONNECT_I(Button, "scale", eventPressed, [this](Button*) { setGizmoMode(2); });
 	CONNECT_I(Button, "local", eventPressed, [this](Button*) { setGizmoSpaceLocal(true); });
 	CONNECT_I(Button, "global", eventPressed, [this](Button*) { setGizmoSpaceLocal(false); });
+
+	CONNECT(Combobox, "newtemplate", eventSelected, createTemplate);
+	CONNECT(Listbox, "templatelist", eventSelected, templateSelected);
+	CONNECT(Button, "templateedit", eventPressed, editTemplate);
+	//CONNECT(Button, "templatedel", eventPressed, deleteTemplate);
+
+	m_templateEditors->setText("Create Template");
+	addGroupEditor("Spline", new ObjectSplineEditor(), "objectspline");
 
 	CONNECT_I(Checkbox, "visible", eventChanged, [this](Button* b) { m_node->setVisible(b->isSelected()); });
 	m_panel->getWidget("visible")->setSelected(true);
@@ -252,6 +271,32 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 	if(!m_panel->isVisible()) return;
 
 	bool keys = !cast<Textbox>(m_panel->getRoot()->getFocusedWidget());
+	bool skipSelection = false;
+
+	if(m_placementGroup) {
+		float t;
+		bool hit = m_terrain->trace(ray, t);
+		if(m_collideObjects) hit |= pick(m_node, ray, true, t) != 0;
+		if(hit) {
+			m_placementGroup->getData()->editor->moveGroup(m_placementGroup, ray.point(t) + m_altitude);
+			m_placementGroup->setVisible(true);
+		}
+		else m_placementGroup->setVisible(false);
+
+		if((mouse.released == 1 || mouse.pressed==1) && !state.overGUI) {
+			m_placementGroup->getData()->editor->placeGroup(m_placementGroup, ray.point(t) + m_altitude);
+			m_objectList->addItem(m_placementGroup->getData()->name, m_placementGroup);
+			m_activeGroup = m_placementGroup;
+			m_placementGroup = nullptr;
+		}
+	}
+	if(m_activeGroup) {
+		static DebugGeometry g(base::SDG_ALWAYS);
+		ObjectGroupEditor* editor = m_activeGroup->getData()->editor;
+		skipSelection = editor->updateEditor(m_activeGroup, mouse, ray, camera, state);
+		editor->updateLines(m_activeGroup, g);
+	}
+
 
 	// Placement update
 	if(m_placement) { 
@@ -362,6 +407,22 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 			m_mode = SINGLE;
 		}
 
+		// Drop on sub-editor widget
+		if(m_placement && state.overGUI && mouse.released&1) {
+			for(const ListItem& i : m_templateEditors->items()) {
+				ObjectGroupEditor* editor = i.getValue<ObjectGroupEditor*>(1, nullptr);
+				if(!editor->getPanel() || !editor->getPanel()->isVisible()) continue;
+				Widget* w = m_panel->getRoot()->getWidgetUnderMouse();
+				while(w && w!= editor->getPanel()) w = w->getParent();
+				if(!w) continue;
+				MeshReference ref;
+				ref.model = m_resource->getText(2);
+				ref.mesh = ref.model? nullptr: m_resource->getText();
+				if(!ref.model) ref.model = m_resource->getParent()->getText(2);
+				if(editor->dropMesh(m_panel->getRoot()->getWidgetUnderMouse(), ref)) cancelPlacement();
+				break;
+			}
+		}
 
 		// Finalise
 		if(mouse.released&1) {
@@ -498,7 +559,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 	}
 
 	// Picking
-	if(!m_placement && !m_gizmo->isHeld()) {
+	if(!m_placement && !m_placementGroup && !m_gizmo->isHeld() && !skipSelection) {
 		if(mouse.pressed==1 && !state.consumedMouseDown) {
 			printf("Start box\n");
 			m_box->start();
@@ -531,10 +592,18 @@ void ObjectEditor::cancelPlacement() {
 		m_placement->deleteChildren(true);
 		delete m_placement;
 	}
+	else if(m_placementGroup) {
+		delete m_placementGroup;
+	}
 	m_chain.clear();
-	m_placement = 0;
+	m_placement = nullptr;
+	m_placementGroup = nullptr;
 	m_resourceList->clearSelection();
 	if(m_mode == ROTATE) m_mode = SINGLE;
+}
+
+float ObjectEditor::getTerrainHeight(const vec3& p) const {
+	return m_terrain->getHeight(p);
 }
 
 void ObjectEditor::placeObject(Object* object, TreeNode* data) {
@@ -580,6 +649,8 @@ void ObjectEditor::selectObject(Object* obj, bool append) {
 		m_panel->getWidget<Label>("model")->setCaption(model);
 		refreshTransform(obj);
 	}
+
+	m_activeGroup = obj->getGroup();
 
 	selectionChanged();
 }
@@ -656,13 +727,27 @@ bool ObjectEditor::isSelected(SceneNode* obj) const {
 	for(const ListItem& i: m_objectList->selectedItems()) {
 		if(getObject(i)==obj) return true;
 	}
+	if(m_activeGroup) for(Object* o: m_activeGroup->objects) {
+		if(o == obj) return true;
+	}
+	if(m_placementGroup) for(Object* o: m_placementGroup->objects) {
+		if(o == obj) return true;
+	}
+	if(obj == m_placement) return true;
 	return false;
 }
 
 void ObjectEditor::clearSelection() {
 	m_activeObject = nullptr;
+	m_activeGroup = nullptr;
 	m_objectList->clearSelection();
 	selectionChanged();
+}
+
+bool ObjectEditor::trace(const Ray& ray, float& t) const {
+	bool hit = m_terrain->trace(ray, t);
+	if(m_collideObjects) hit |= pick(m_node, ray, true, t) != 0;
+	return hit;
 }
 
 Object* ObjectEditor::pick(SceneNode* node, const Ray& ray, bool ignoreSelection, float& t) const {
@@ -859,7 +944,17 @@ base::Material* ObjectEditor::getMaterial(const char* name, bool nmap, bool col)
 	return material;
 }
 
-Object* ObjectEditor::createObject(const char* name, Model* model, const char* mesh) {
+Object* ObjectEditor::createObject(const MeshReference& mesh, ObjectGroup* group) {
+	Model* nope = (Model*)(size_t)1;
+	Model* model = m_models.get(mesh.model.str(), nope);
+	if(model == nope) {
+		model = base::BMLoader::load(mesh.model);
+		m_models[mesh.model.str()] = model;
+	}
+	return createObject(mesh.getName(), model, mesh.mesh, group);
+}
+
+Object* ObjectEditor::createObject(const char* name, Model* model, const char* mesh, ObjectGroup* group) {
 	if(!model) return nullptr;
 	
 	auto createDrawableFromMesh = [&](int meshIndex) {
@@ -875,12 +970,12 @@ Object* ObjectEditor::createObject(const char* name, Model* model, const char* m
 		return d;
 	};
 
-	Object* object = new Object();
+	Object* object = new Object(group);
 	object->setName(name);
 	m_node->addChild(object);
 
 	if(mesh) {
-		printf("Created named mesh %s\n", name);
+		if(!group) printf("Created named mesh %s\n", name);
 		for(int i=0; i<model->getMeshCount(); ++i) {
 			if(strcmp(model->getMeshName(i), mesh)==0) {
 				object->attach(createDrawableFromMesh(i));
@@ -1001,6 +1096,70 @@ void ObjectEditor::setResourcePath(const char* root) {
 	m_resourceList->getRootNode()->expandAll();
 }
 
+// ================================================================== //
+
+void ObjectEditor::addGroupEditor(const char* name, ObjectGroupEditor* editor, const char* panel) {
+	editor->setup(this, m_panel->getRoot()->getWidget(panel));
+	m_templateEditors->addItem(name, editor);
+}
+
+void ObjectEditor::createTemplate(Combobox* box, ListItem& item) {
+	ObjectGroupEditor* editor = item.getValue<ObjectGroupEditor*>(1, nullptr);
+	if(editor) {
+		std::vector<Object*> selectedObjects;
+		selectedObjects.reserve(m_objectList->getSelectionSize());
+		for(ListItem& i: m_objectList->selectedItems()) selectedObjects.push_back(getObject(i));
+
+		Listbox* list = m_panel->getWidget<Listbox>("templatelist");
+		ObjectGroupData* group = editor->createTemplate(selectedObjects);
+		if(!group) return;
+
+		list->addItem(group->name, group, 0);
+		list->selectItem(list->getItemCount() - 1);
+		editor->showPanel(group);
+	}
+	box->clearSelection();
+	box->setText("Create Template");
+}
+
+void ObjectEditor::editTemplate(Button*) {
+	if(m_placementGroup) cancelPlacement();
+	Listbox* list = m_panel->getWidget<Listbox>("templatelist");
+	const ListItem* active = list->getSelectedItem();
+	if(active) {
+		ObjectGroupData* groupData = active->getValue<ObjectGroupData*>(1, nullptr);
+		if(groupData) groupData->editor->showPanel(groupData);
+	}
+}
+
+void ObjectEditor::templateSelected(Listbox*, ListItem& item) {
+	clearSelection();
+	cancelPlacement();
+	ObjectGroupData* groupData = item.getValue<ObjectGroupData*>(1, nullptr);
+	if(groupData) {
+		m_placementGroup = groupData->editor->createGroup(groupData, vec3());
+	}
+}
+
+void ObjectEditor::notifyTemplateRenamed(ObjectGroupData* data) {
+	Listbox* list = m_panel->getWidget<Listbox>("templatelist");
+	for(ListItem& i: list->items()) {
+		if(i.getData(1) == data) {
+			i.setValue(data->name);
+			break;
+		}
+	}
+}
+
+void ObjectEditor::notifyTemplateChanged(ObjectGroupData* data) {
+	for(ListItem& i: m_objectList->items()) {
+		ObjectGroup* group = i.getValue<ObjectGroup*>(1, nullptr);
+		if(group && group->getData() == data) {
+			group->getData()->editor->createObjects(group);
+		}
+	}
+}
+
 
 // ================================================================== //
 
@@ -1020,5 +1179,12 @@ void Object::updateBounds() {
 	}
 }
 
+void ObjectGroup::setVisible(bool vis) {
+	for(Object* o: objects) o->setVisible(vis);
+}
+
+ObjectGroup::~ObjectGroup() {
+	for(Object* o: objects) delete o;
+}
 
 

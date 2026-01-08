@@ -13,8 +13,10 @@ EditorPlugin::~EditorPlugin() {
 bool EditorPlugin::createPanel(gui::Root* gui, const char* name, const char* file) {
 	m_panel = gui->getWidget(name);
 	if(!m_panel && file) {
+		int n = gui->getRootWidget()->getWidgetCount();
 		gui->load(appPath + "data/" + file);
 		m_panel = gui->getWidget(name);
+		for(int i=gui->getRootWidget()->getWidgetCount()-1; i>=n; --i) gui->getRootWidget()->getWidget(i)->setVisible(false);
 	}
 	if(m_panel) {
 		m_panel->setVisible(false);

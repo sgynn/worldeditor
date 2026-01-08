@@ -158,6 +158,12 @@
 			<widget name="_1" template="icon" rect="2 2 16 16"/>
 		</widget>
 	</template>
+	<template class="TreeView" rect="0 0 100 100" name="tree" skin="panel" category="Lists">
+		<widget anchor="tlrb" rect="1 1 86 98" name="_client" skin="none"/>
+		<widget anchor="trb" template="vscroll" name="_scroll" rect="87 0 13 100"/>
+		<widget rect="0 6 8 8" name="_expand" skin="panel"/>
+		<widget class="Label" rect="0 0 100 20" name="_item" skin="listitem"/>
+	</template>
 	<template max="1000" class="Scrollbar" rect="0 0 100 16" name="slider" skin="none" orientation="horizontal">
 		<widget anchor="mlr" inheritstate="1" tangible="0" rect="0 6 100 4" skin="button"/>
 		<widget anchor="tb" class="Button" rect="0 0 12 16" name="_block" skin="button"/>
