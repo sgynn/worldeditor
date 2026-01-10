@@ -190,7 +190,7 @@
 		</widget>
 		<widget anchor="lrt" template="category" name="properties" caption="Properties" rect="0 192 262 167">
 			<widget anchor="lt" template="label" caption="Name" rect="4 4 42 20"/>
-			<widget anchor="lt" template="label" caption="Model" rect="4 24 42 20"/>
+			<widget anchor="lt" template="label" name="modellabel" caption="Model" rect="4 24 42 20"/>
 			<widget anchor="lt" template="label" caption="Position" rect="4 44 42 20"/>
 			<widget anchor="lt" template="label" caption="Orentation" rect="4 64 42 20"/>
 			<widget anchor="lt" template="label" caption="Scale" rect="4 84 42 20"/>
@@ -233,7 +233,7 @@
 			<widget anchor="lrb" template="editbox" name="path" rect="0 109 262 20"/>
 		</widget>
 	</widget>
-	<widget anchor="lt" template="window" name="objectspline" caption="Object Spline" rect="432 348 240 324">
+	<widget anchor="lt" template="window" name="objectspline" caption="Object Spline" rect="444 348 240 324">
 		<widget anchor="lrt" template="droplist" name="mode" rect="72 28 156 20">
 			<item>Projected</item>
 			<item>Direct</item>
@@ -245,21 +245,23 @@
 		<widget anchor="lrt" template="spinboxf" name="spacing" rect="72 76 156 20"/>
 		<widget anchor="lt" template="label" caption="Name" rect="4 4 42 20"/>
 		<widget anchor="lrt" submit="2" template="editbox" name="name" rect="71 4 157 20"/>
-		<widget anchor="lrtb" class="Widget" layout="VerticalLayout" rect="4 99 220 191" skin="none">
+		<widget anchor="lrtb" class="Widget" layout="VerticalLayout" rect="4 123 220 167" skin="none">
 			<widget anchor="lt" template="label" caption="Segments" rect="0 0 42 20"/>
-			<widget anchor="lrtb" template="listbox" name="segments" skin="default" rect="0 20 220 75">
+			<widget anchor="lrtb" template="listbox" name="segments" skin="default" rect="0 20 220 63">
 				<widget anchor="lrt" class="Widget" template="frame" rect="12 12 163 24" skin="none" name="_item" tangible="2">
 					<widget inheritstate="1" anchor="lrtb" template="label" name="_0" skin="listitem" rect="0 0 129 24"/>
-					<widget inheritstate="1" anchor="rt" align="2" name="_2" template="spinboxf" rect="108 0 48 24"/>
+					<widget inheritstate="1" anchor="rt" template="spinboxf" name="_1" rect="108 0 48 24"/>
 				</widget>
 			</widget>
-			<widget anchor="lt" template="label" caption="Nodes" rect="0 95 42 20"/>
-			<widget anchor="lrtb" template="listbox" name="nodes" skin="default" rect="0 115 220 75">
+			<widget anchor="lt" template="label" caption="Nodes" rect="0 83 42 20"/>
+			<widget anchor="lrtb" template="listbox" name="nodes" skin="default" rect="0 103 220 63">
 				<widget anchor="lrt" class="Widget" template="frame" rect="10 35 163 24" skin="none" name="_item" tangible="2">
 					<widget inheritstate="1" anchor="lrtb" template="label" name="_0" skin="listitem" rect="0 0 129 24"/>
-					<widget inheritstate="1" anchor="rt" align="2" name="_2" template="spinboxf" rect="108 0 48 24"/>
+					<widget inheritstate="1" anchor="rt" template="spinboxf" name="_1" rect="108 0 48 24"/>
 				</widget>
 			</widget>
 		</widget>
+		<widget anchor="lt" template="label" caption="Offset" rect="4 99 42 20"/>
+		<widget anchor="lrt" template="spinboxf" name="pivotoffset" rect="72 99 156 20"/>
 	</widget>
 </gui>

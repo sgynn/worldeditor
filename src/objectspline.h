@@ -4,12 +4,15 @@
 
 struct ObjectSplineData : public ObjectGroupData {
 	enum Mode { PROJECTED, DIRECT };
+	enum Sequence { RANDOM, SEQUENTIAL };
 	struct Item { MeshReference mesh; float chance; float length; vec3 offset; };
 	std::vector<Item> segments;
 	std::vector<Item> nodes;
 	float maxSlope = 90;
 	float separation = 0;
+	float pivotHeight = 0;
 	Mode mode = PROJECTED;
+	Sequence sequence = RANDOM;
 };
 
 class ObjectSpline : public ObjectGroup {

@@ -55,6 +55,7 @@ class ObjectEditor : public EditorPlugin {
 
 	void setResourcePath(const char* path);
 	void selectObject(Object*, bool append=false);
+	void selectObjectGroup(ObjectGroup*);
 	Object* pick(base::SceneNode* node, const Ray& ray, bool ignoreSelection, float& t) const;
 	static bool pickMesh(const Ray& ray, const base::Mesh* mesh, const Matrix& transform, float& t);
 	bool trace(const Ray& ray, float& t) const;

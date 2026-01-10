@@ -285,7 +285,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 
 		if((mouse.released == 1 || mouse.pressed==1) && !state.overGUI) {
 			m_placementGroup->getData()->editor->placeGroup(m_placementGroup, ray.point(t) + m_altitude);
-			m_objectList->addItem(m_placementGroup->getData()->name, m_placementGroup);
+			m_objectList->addItem(m_placementGroup->getData()->name, m_placementGroup, Any(), Any(), true);
 			m_activeGroup = m_placementGroup;
 			m_placementGroup = nullptr;
 		}
@@ -476,18 +476,21 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 		return;
 	}
 
+	// Delete selection
+	if(base::Game::Pressed(base::KEY_DEL) && keys) {
+		while(m_objectList->getSelectionSize()) {
+			ListItem item = *m_objectList->getSelectedItem();
+			delete item.getValue<ObjectGroup*>(1, nullptr);
+			delete getObject(item);
+			m_objectList->removeItem(item.getIndex());
+		}
+		clearSelection();
+		return;
+	}
+
 	// Edit selected objects
 	if(m_gizmo->isVisible()) {
 
-		// Delete selection
-		if(base::Game::Pressed(base::KEY_DEL) && keys) {
-			while(m_objectList->getSelectionSize()) {
-				delete getObject(*m_objectList->getSelectedItem());
-				m_objectList->removeItem(m_objectList->getSelectedItem()->getIndex());
-			}
-			m_gizmo->setVisible(false);
-			return;
-		}
 
 		// Gizmo update
 		bool wasHeld = m_gizmo->isHeld();
@@ -616,19 +619,26 @@ void ObjectEditor::placeObject(Object* object, TreeNode* data) {
 }
 
 void ObjectEditor::changeVisible(Listbox*, ListItem& item, Widget*) {
-	Object* obj = getObject(item);
-	obj->setVisible(item.getValue(4, true));
-	if(isSelected(obj)) clearSelection();
+	if(Object* obj = getObject(item)) {
+		obj->setVisible(item.getValue(4, true));
+		if(isSelected(obj)) clearSelection();
+	}
+	else if(ObjectGroup* g = item.getValue<ObjectGroup*>(1, nullptr)) {
+		g->setVisible(item.getValue(4, true));
+		if(m_activeGroup == g) clearSelection();
+	}
 }
 
 void ObjectEditor::selectObject(Listbox* list, ListItem& item) {
 	cancelPlacement();
 	if(item.isValid()) list->deselectItem(item.getIndex());
-	if(list->getSelectionSize() == 0) selectObject(getObject(item));
-	else selectObject(getObject(item), true);
+	bool append = list->getSelectionSize() > 0;
+	if(ObjectGroup* g = item.getValue<ObjectGroup*>(1, nullptr)) selectObjectGroup(g);
+	else selectObject(getObject(item), append);
 }
 
 void ObjectEditor::selectObject(Object* obj, bool append) {
+	if(obj && obj->getGroup()) { selectObjectGroup(obj->getGroup()); return; }
 	printf("Select object %s\n", obj? obj->getName(): "none");
 	if(!obj && !append) clearSelection();
 	if(!obj || isSelected(obj)) return;
@@ -647,11 +657,28 @@ void ObjectEditor::selectObject(Object* obj, bool append) {
 		m_panel->getWidget<Textbox>("name")->setText(item->getText());
 		m_panel->getWidget<Textbox>("property")->setText(item->getText(5));
 		m_panel->getWidget<Label>("model")->setCaption(model);
+		m_panel->getWidget<Label>("modellabel")->setCaption("Model");
 		refreshTransform(obj);
 	}
 
-	m_activeGroup = obj->getGroup();
+	selectionChanged();
+}
 
+void ObjectEditor::selectObjectGroup(ObjectGroup* group) {
+	clearSelection();
+	if(!group) return;
+	ListItem* item = m_objectList->findItem([group](ListItem&i){ return i.getData(1)==group; });
+	if(item) {
+		m_objectList->selectItem(item->getIndex());
+		m_objectList->ensureVisible(item->getIndex());
+		m_panel->getWidget<Textbox>("name")->setText(item->getText());
+		m_panel->getWidget<Textbox>("property")->setText(item->getText(5));
+		m_panel->getWidget<Label>("model")->setCaption(group->getData()->name);
+		m_panel->getWidget<Label>("modellabel")->setCaption("Template");
+		printf("Select object group %s\n", item->getText());
+	}
+	else printf("Select object group Unknown\n");
+	m_activeGroup = group;
 	selectionChanged();
 }
 
@@ -683,8 +710,9 @@ void ObjectEditor::selectionChanged() {
 
 	std::vector<Object*> selectedObjects;
 	selectedObjects.reserve(m_objectList->getSelectionSize());
-	for(ListItem& i: m_objectList->selectedItems()) selectedObjects.push_back(getObject(i));
-
+	for(ListItem& i: m_objectList->selectedItems()) {
+		if(Object* o = getObject(i)) selectedObjects.push_back(o);
+	}
 
 	SceneNode* gizmoRoot;
 	if(selectedObjects.size() == 1) {
@@ -1146,6 +1174,7 @@ void ObjectEditor::notifyTemplateRenamed(ObjectGroupData* data) {
 	for(ListItem& i: list->items()) {
 		if(i.getData(1) == data) {
 			i.setValue(data->name);
+			list->refresh();
 			break;
 		}
 	}

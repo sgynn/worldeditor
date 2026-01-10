@@ -1,5 +1,6 @@
 #include "objectspline.h"
 
+#include <base/camera.h>
 #include <base/random.h>
 #include <base/debuggeometry.h>
 #include <base/gui/lists.h>
@@ -47,6 +48,16 @@ void ObjectSplineEditor::setup(ObjectEditor* parent, Widget* panel) {
 		m_data->separation = value;
 		m_parent->notifyTemplateChanged(m_data);
 	});
+	CONNECT(SpinboxFloat, "pivotoffset", eventChanged, [this](SpinboxFloat*, float value) {
+		m_data->pivotHeight = value;
+		m_parent->notifyTemplateChanged(m_data);
+	});
+	CONNECT(Listbox, "segments", eventCustom, [this](Listbox*, ListItem& i, Widget*) {
+		m_data->segments[i.getIndex()].chance = i.getValue<float>(1, 1);
+	});
+	CONNECT(Listbox, "nodes", eventCustom, [this](Listbox*, ListItem& i, Widget*) {
+		m_data->nodes[i.getIndex()].chance = i.getValue<float>(1, 1);
+	});
 }
 
 void ObjectSplineEditor::showPanel(ObjectGroupData* group) {
@@ -63,6 +74,7 @@ void ObjectSplineEditor::showPanel(ObjectGroupData* group) {
 	m_panel->getWidget<Combobox>("mode")->selectItem(data.mode);
 	m_panel->getWidget<SpinboxFloat>("slope")->setValue(data.maxSlope);
 	m_panel->getWidget<SpinboxFloat>("spacing")->setValue(data.separation);
+	m_panel->getWidget<SpinboxFloat>("pivotoffset")->setValue(data.pivotHeight);
 	Listbox* seg = m_panel->getWidget<Listbox>("segments");
 	Listbox* nod = m_panel->getWidget<Listbox>("nodes");
 	seg->clearItems();
@@ -75,9 +87,9 @@ void ObjectSplineEditor::showPanel(ObjectGroupData* group) {
 bool ObjectSplineEditor::dropMesh(Widget* over, const MeshReference& mesh) {
 	if(Listbox* list = cast<Listbox>(over)) {
 		for(ListItem& i: list->items()) if(i.getData(2) == mesh) return true; // already there
-		list->addItem(mesh.getName(), 100);
+		list->addItem(mesh.getName(), 1.f);
 		std::vector<ObjectSplineData::Item>& meshList = list->getName() == "segments"? m_data->segments: m_data->nodes;
-		meshList.push_back({mesh, 100, 3});
+		meshList.push_back({mesh, 1.f, 3});
 		m_parent->notifyTemplateChanged(m_data);
 		return true;
 	}
@@ -86,7 +98,7 @@ bool ObjectSplineEditor::dropMesh(Widget* over, const MeshReference& mesh) {
 
 bool ObjectSplineEditor::updateEditor(ObjectGroup* object, const Mouse& mouse, const Ray& ray, base::Camera* camera, InputState& state) {
 	// Drag the handles
-	if(mouse.pressed == 1 && !state.overGUI) {
+	if(mouse.pressed == 1 && !state.overGUI && !m_heldObject) {
 		float closest = 4;
 		vec3 closestPoint;
 		Ray localRay = ray;
@@ -124,8 +136,8 @@ bool ObjectSplineEditor::updateEditor(ObjectGroup* object, const Mouse& mouse, c
 			const ObjectSpline::Node& n = spline->m_nodes[i];
 			if(overPoint(n.point)) m_heldObject = spline, m_heldPart = 1, m_heldIndex = i;
 			if(!m_heldObject) {
-				if(overPoint(n.point - n.direction*n.a)) m_heldObject=spline, m_heldPart=2, m_heldIndex=i;
-				if(overPoint(n.point + n.direction*n.b)) m_heldObject=spline, m_heldPart=3, m_heldIndex=i;
+				if(overPoint(n.point - n.direction*n.a)) m_heldObject=spline, m_heldPart=3, m_heldIndex=i;
+				if(overPoint(n.point + n.direction*n.b)) m_heldObject=spline, m_heldPart=2, m_heldIndex=i;
 			}
 		}
 		// Create new node
@@ -133,7 +145,7 @@ bool ObjectSplineEditor::updateEditor(ObjectGroup* object, const Mouse& mouse, c
 			float split = -1;
 			for(size_t i=1; i<spline->m_nodes.size(); ++i) {
 				if(overSpline(spline->m_nodes[i-1], spline->m_nodes[i], 1, split)) {
-					spline->m_nodes.insert(spline->m_nodes.begin()+i, spline->m_nodes[i]);
+					spline->m_nodes.insert(spline->m_nodes.begin()+i, {spline->m_nodes[i].point, vec3(), 0, 0});
 					m_heldObject = spline;
 					m_heldIndex = i;
 					m_heldPart = 1;
@@ -151,15 +163,31 @@ bool ObjectSplineEditor::updateEditor(ObjectGroup* object, const Mouse& mouse, c
 		}
 	}
 	else if(mouse.button == 1 && m_heldObject) {
-		if(m_heldPart == 1) { // Node
-			float t;
+		float t;
+		bool shift = m_panel->getRoot()->getKeyMask() & gui::KeyMask::Shift;
+		ObjectSpline::Node& node = m_heldObject->m_nodes[m_heldIndex];
+		if(m_heldPart == 1 && !shift) { // Node
 			if(m_parent->trace(ray, t)) {
-				m_heldObject->m_nodes[m_heldIndex].point = ray.point(t);
+				node.point = ray.point(t);
 				createObjects(object);
 			}
 		}
 		else {
-			// planar
+			// Planar handle
+			vec3 n = camera->getDirection();
+			intersectRayPlane(ray.start, ray.direction, n, n.dot(node.point), t);
+			vec3 p = ray.point(t);
+			if(m_heldPart == 3) {
+				node.direction = node.point - p;
+				node.a = node.direction.normaliseWithLength();
+				if(shift) node.b = node.a;
+			}
+			else {
+				node.direction = p - node.point;
+				node.b = node.direction.normaliseWithLength();
+				if(shift) node.a = node.b;
+			}
+			createObjects(object);
 		}
 	}
 	else if(m_heldObject) {
@@ -197,8 +225,8 @@ ObjectGroupData* ObjectSplineEditor::createTemplate(std::vector<Object*>& m_sele
 
 ObjectGroup* ObjectSplineEditor::createGroup(const ObjectGroupData* data, const vec3& position) const {
 	ObjectSpline* spline = new ObjectSpline(data);
-	spline->m_nodes.push_back({position - vec3(2,0,0), vec3(1,0,0), 1, 1});
-	spline->m_nodes.push_back({position + vec3(2,0,0), vec3(1,0,0), 1, 1});
+	spline->m_nodes.push_back({position - vec3(2,0,0), vec3(1,0,0), 0, 0});
+	spline->m_nodes.push_back({position + vec3(2,0,0), vec3(1,0,0), 0, 0});
 	createObjects(spline);
 	return spline;
 }
@@ -224,49 +252,67 @@ void ObjectSplineEditor::createObjects(ObjectGroup* object) const {
 	ObjectSplineData& data = *(ObjectSplineData*)object->getData();
 	if(data.segments.empty()) return;
 
-	vec3 start = spline.m_nodes[0].point;
 	float end = spline.m_nodes.size() - 1;
 	RNG rng(rand());
+	int lastChosen[4] = { 0,0,0,0 }; // For sequential mode
 
 	const float step = 0.01; 
+	auto projectPoint = [this, &data](vec3& p) {
+		p.y = m_parent->getTerrainHeight(p) + data.pivotHeight;
+	};
 	auto getPoint = [&](float t) {
-		if(t <= 0) return spline.m_nodes[0].point;
-		if(t >= end) return spline.m_nodes.back().point + spline.m_nodes.back().direction * (t-end);
-		int index = floor(t);
-		const ObjectSpline::Node& a = spline.m_nodes[index];
-		const ObjectSpline::Node& b = spline.m_nodes[index+1];
-		vec3 in[4] = { a.point, a.point+a.direction*a.b, b.point-b.direction*b.a, b.point };
-		return bezierPoint(in, t - index);
-	};
-	auto projectPoint = [this](vec3& p) {
-		p.y = m_parent->getTerrainHeight(p);
-	};
-	auto selectMesh = [&rng](std::vector<ObjectSplineData::Item>& list) {
-		float accum = 0;
-		const ObjectSplineData::Item* chosen = nullptr;
-		for(const ObjectSplineData::Item& i: list) {
-			if(i.chance <= 0) continue;
-			if(rng.randf()*accum + i.chance >= accum) chosen = &i;
-			accum += i.chance;
+		vec3 result;
+		if(t <= 0) result = spline.m_nodes[0].point;
+		else if(t >= end) result = spline.m_nodes.back().point + spline.m_nodes.back().direction * (t-end);
+		else {
+			int index = floor(t);
+			const ObjectSpline::Node& a = spline.m_nodes[index];
+			const ObjectSpline::Node& b = spline.m_nodes[index+1];
+			vec3 in[4] = { a.point, a.point+a.direction*a.b, b.point-b.direction*b.a, b.point };
+			result = bezierPoint(in, t - index);
 		}
-		return chosen;
+		if(data.mode == ObjectSplineData::PROJECTED) projectPoint(result);
+		return result;
+	};
+	auto selectMesh = [&](const std::vector<ObjectSplineData::Item>& list) -> const ObjectSplineData::Item* {
+		if(list.size() == 1) return list.data();
+		if(list.empty()) return nullptr;
+		if(data.sequence == ObjectSplineData::RANDOM) {
+			float accum = 0;
+			const ObjectSplineData::Item* chosen = nullptr;
+			for(const ObjectSplineData::Item& i: list) {
+				if(i.chance <= 0) continue;
+				if(rng.randf()*accum + i.chance >= accum) chosen = &i;
+				accum += i.chance;
+			}
+			return chosen;
+		}
+		else if(data.sequence == ObjectSplineData::SEQUENTIAL) {
+			int* last = &list == &data.segments? lastChosen: lastChosen+2;
+			if(last[1]++ > list[last[0]].chance) {
+				last[1] = 0;
+				++last[0] %= list.size();
+			}
+			return &list[last[0]];
+		}
+		return nullptr;
 	};
 
 	// ToDo: reuse objects ?
 	for(Object* o: spline.objects) delete o;
 	spline.objects.clear();
 
-	float t = step;
+	float t = 0;
 	vec3 p = getPoint(t);
+	vec3 start = p;
+	const vec3 pivotOffset(0, data.pivotHeight, 0);
 	const Quaternion fix(0.707107, 0, 0.707107, 0);
-	if(data.mode == ObjectSplineData::PROJECTED) projectPoint(start);
 	while(t < end) {
 		const ObjectSplineData::Item* post = selectMesh(data.nodes);
 		if(post) {
 			vec3 n = getPoint(t+0.001);
-			if(data.mode == ObjectSplineData::PROJECTED) projectPoint(p);
 			Object* o = m_parent->createObject(post->mesh, object);
-			o->setTransform(start, fix * Quaternion(n-start));
+			o->setTransform(start - pivotOffset, Quaternion(n-start) * fix);
 			o->updateBounds();
 			spline.objects.push_back(o);
 		}
@@ -276,20 +322,21 @@ void ObjectSplineEditor::createObjects(ObjectGroup* object) const {
 		while(p.distance2(start) < length2) {
 			t += step;
 			p = getPoint(t);
-			if(data.mode == ObjectSplineData::PROJECTED) projectPoint(p);
 		}
 		// Tighten margin
 		float substep = -step / 2;
 		for(int i=0; i<12; ++i) {
 			t += substep;
 			p = getPoint(t);
-			if(data.mode == ObjectSplineData::PROJECTED) projectPoint(p);
 			if(p.distance2(start) < length2) substep = fabs(substep/2);
 			else substep = -fabs(substep/2);
 		}
+		if(t > end) break;
+
 		// Place object
 		Object* o = m_parent->createObject(model->mesh, object);
-		o->setTransform((start + p)/2, fix*Quaternion(p-start));
+		o->setTransform((start + p)/2, Quaternion(p-start) * fix);
+		o->moveLocal(-pivotOffset);
 		o->updateBounds();
 		spline.objects.push_back(o);
 		start = p;
