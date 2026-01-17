@@ -389,17 +389,40 @@ void ObjectSplineEditor::createObjects(ObjectGroup* object) const {
 
 // ======================================================== //
 
-base::XMLElement ObjectSplineEditor::saveGroup(ObjectGroup*) const {
-	return {};
+
+XMLElement ObjectSplineEditor::saveGroup(ObjectGroup* group) const {
+	const ObjectSpline& spline = *(ObjectSpline*)group;
+	XMLElement e("group");
+	//e.setAttribute("name", m_parent->getObjectName(group));
+	e.setAttribute("data", group->getData()->name);
+	for(const ObjectSpline::Node& n: spline.m_nodes) {
+		XMLElement& node = e.add("node");
+		node.setAttribute("pos", String::format("%g %g %g", n.point.x, n.point.y, n.point.z));
+		node.setAttribute("pdir", String::format("%g %g %g", n.direction.x, n.direction.y, n.direction.z));
+		node.setAttribute("a", n.a);
+		node.setAttribute("b", n.b);
+	}
+	for(Object* o: group->objects) {
+		// Save the objects too so they can be loaded without the spline data
+		e.add(m_parent->saveObject(o));
+	}
+	return e;
 }
 
 void ObjectSplineEditor::loadGroup(const XMLElement&, ObjectGroup*) const {
 }
 
-base::XMLElement ObjectSplineEditor::saveTemplate(const ObjectGroupData*) const {
-	return {};
+XMLElement ObjectSplineEditor::saveTemplate(const ObjectGroupData* data) const {
+	const ObjectSplineData& spline = *(ObjectSplineData*)data;
+	XMLElement e("splinedata");
+	e.setAttribute("name", spline.name);
+	if(spline.maxSlope < 90) e.setAttribute("slope", spline.maxSlope);
+	if(spline.separation != 0) e.setAttribute("separation", spline.separation);
+	return e;
 }
 
 ObjectGroupData* ObjectSplineEditor::loadTemplate(const XMLElement&) const {
+	
 	return nullptr;
 }
+

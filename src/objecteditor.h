@@ -60,6 +60,8 @@ class ObjectEditor : public EditorPlugin {
 	static bool pickMesh(const Ray& ray, const base::Mesh* mesh, const Matrix& transform, float& t);
 	bool trace(const Ray& ray, float& t) const;
 
+	const char* getObjectName(const ObjectGroup*) const;
+	base::XMLElement saveObject(const Object*) const;
 	Object* createObject(const MeshReference&, ObjectGroup* group=nullptr);
 	float getTerrainHeight(const vec3& p) const;
 	void notifyTemplateChanged(ObjectGroupData*);

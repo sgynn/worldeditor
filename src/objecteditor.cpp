@@ -211,6 +211,11 @@ XMLElement ObjectEditor::save(const TerrainMap* context) const {
 	return xml;
 }
 
+XMLElement ObjectEditor::saveObject(const Object* o) const {
+	XMLElement e("object");
+	return e;
+}
+
 void ObjectEditor::clear() {
 	m_node->deleteChildren(true);
 	m_objectList->clearItems();
