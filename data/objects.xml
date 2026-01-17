@@ -146,6 +146,12 @@
 		<widget anchor="tlrb" rect="0 0 84 100" name="_client"/>
 		<widget anchor="trb" template="vscroll" name="_scroll" rect="84 0 16 100"/>
 	</template>
+	<template class="Checkbox" group="glyphs" icon="4" rect="0 0 16 16" skin="none" category="Input" name="checkbox">
+		<widget anchor="lm" inheritstate="1" tangible="0" rect="0 0 15 15" name="_box" skin="panel">
+			<widget anchor="lt" template="icon" rect="4 4 7 7" group="glyphs" name="_icon"/>
+		</widget>
+		<widget inheritstate="1" class="Label" anchor="lrtb" rect="19 0 0 16" skin="none" align="13" name="_text"/>
+	</template>
 	<template class="TreeView" rect="0 0 100 100" name="tree" skin="panel" category="Lists">
 		<widget anchor="tlrb" rect="1 1 86 98" name="_client" skin="none"/>
 		<widget anchor="trb" template="vscroll" name="_scroll" rect="87 0 13 100"/>
@@ -233,7 +239,7 @@
 			<widget anchor="lrb" template="editbox" name="path" rect="0 109 262 20"/>
 		</widget>
 	</widget>
-	<widget anchor="lt" template="window" name="objectspline" caption="Object Spline" rect="444 348 240 324">
+	<widget anchor="lt" template="window" name="objectspline" caption="Object Spline" rect="444 348 240 312">
 		<widget anchor="lrt" template="droplist" name="mode" rect="72 28 156 20">
 			<item>Projected</item>
 			<item>Direct</item>
@@ -245,20 +251,25 @@
 		<widget anchor="lrt" template="spinboxf" name="spacing" rect="72 76 156 20"/>
 		<widget anchor="lt" template="label" caption="Name" rect="4 4 42 20"/>
 		<widget anchor="lrt" submit="2" template="editbox" name="name" rect="71 4 157 20"/>
-		<widget anchor="lrtb" class="Widget" layout="VerticalLayout" rect="4 123 220 167" skin="none">
+		<widget anchor="lrtb" class="Widget" layout="VerticalLayout" rect="4 120 220 158" skin="none">
 			<widget anchor="lt" template="label" caption="Segments" rect="0 0 42 20"/>
-			<widget anchor="lrtb" template="listbox" name="segments" skin="default" rect="0 20 220 63">
+			<widget anchor="lrtb" template="listbox" name="segments" skin="default" rect="0 20 220 51">
 				<widget anchor="lrt" class="Widget" template="frame" rect="12 12 163 24" skin="none" name="_item" tangible="2">
 					<widget inheritstate="1" anchor="lrtb" template="label" name="_0" skin="listitem" rect="0 0 129 24"/>
 					<widget inheritstate="1" anchor="rt" template="spinboxf" name="_1" rect="108 0 48 24"/>
 				</widget>
 			</widget>
-			<widget anchor="lt" template="label" caption="Nodes" rect="0 83 42 20"/>
-			<widget anchor="lrtb" template="listbox" name="nodes" skin="default" rect="0 103 220 63">
+			<widget anchor="lt" template="label" caption="Nodes" rect="0 71 42 20"/>
+			<widget anchor="lrtb" template="listbox" name="nodes" skin="default" rect="0 91 220 51">
 				<widget anchor="lrt" class="Widget" template="frame" rect="10 35 163 24" skin="none" name="_item" tangible="2">
 					<widget inheritstate="1" anchor="lrtb" template="label" name="_0" skin="listitem" rect="0 0 129 24"/>
 					<widget inheritstate="1" anchor="rt" template="spinboxf" name="_1" rect="108 0 48 24"/>
 				</widget>
+			</widget>
+			<widget anchor="lrt" class="Widget" layout="HorizontalLayout" rect="0 142 220 16" skin="none">
+				<widget anchor="lt" template="checkbox" name="verticalnodes" caption="Vertical" rect="0 0 84 16"/>
+				<widget anchor="lt" template="checkbox" name="startnode" caption="Start" rect="84 0 60 16"/>
+				<widget anchor="lt" template="checkbox" name="endnode" caption="End" rect="144 0 61 16"/>
 			</widget>
 		</widget>
 		<widget anchor="lt" template="label" caption="Offset" rect="4 99 42 20"/>

@@ -54,9 +54,23 @@ void ObjectSplineEditor::setup(ObjectEditor* parent, Widget* panel) {
 	});
 	CONNECT(Listbox, "segments", eventCustom, [this](Listbox*, ListItem& i, Widget*) {
 		m_data->segments[i.getIndex()].chance = i.getValue<float>(1, 1);
+		m_parent->notifyTemplateChanged(m_data);
 	});
 	CONNECT(Listbox, "nodes", eventCustom, [this](Listbox*, ListItem& i, Widget*) {
 		m_data->nodes[i.getIndex()].chance = i.getValue<float>(1, 1);
+		m_parent->notifyTemplateChanged(m_data);
+	});
+	CONNECT(Checkbox, "verticalnodes", eventChanged, [this](Button* b) {
+		m_data->verticalNodes = b->isSelected(); 
+		m_parent->notifyTemplateChanged(m_data);
+	});
+	CONNECT(Checkbox, "startnode", eventChanged, [this](Button* b) {
+		m_data->startNode = b->isSelected();
+		m_parent->notifyTemplateChanged(m_data);
+	});
+	CONNECT(Checkbox, "endnode", eventChanged, [this](Button* b) {
+		m_data->endNode = b->isSelected();
+		m_parent->notifyTemplateChanged(m_data);
 	});
 }
 
@@ -75,6 +89,9 @@ void ObjectSplineEditor::showPanel(ObjectGroupData* group) {
 	m_panel->getWidget<SpinboxFloat>("slope")->setValue(data.maxSlope);
 	m_panel->getWidget<SpinboxFloat>("spacing")->setValue(data.separation);
 	m_panel->getWidget<SpinboxFloat>("pivotoffset")->setValue(data.pivotHeight);
+	m_panel->getWidget<Checkbox>("verticalnodes")->setChecked(data.verticalNodes);
+	m_panel->getWidget<Checkbox>("startnode")->setChecked(data.startNode);
+	m_panel->getWidget<Checkbox>("endnode")->setChecked(data.endNode);
 	Listbox* seg = m_panel->getWidget<Listbox>("segments");
 	Listbox* nod = m_panel->getWidget<Listbox>("nodes");
 	seg->clearItems();
@@ -89,7 +106,7 @@ bool ObjectSplineEditor::dropMesh(Widget* over, const MeshReference& mesh) {
 		for(ListItem& i: list->items()) if(i.getData(2) == mesh) return true; // already there
 		list->addItem(mesh.getName(), 1.f);
 		std::vector<ObjectSplineData::Item>& meshList = list->getName() == "segments"? m_data->segments: m_data->nodes;
-		meshList.push_back({mesh, 1.f, 3});
+		meshList.push_back({mesh, 1.f, 0});
 		m_parent->notifyTemplateChanged(m_data);
 		return true;
 	}
@@ -302,20 +319,24 @@ void ObjectSplineEditor::createObjects(ObjectGroup* object) const {
 	for(Object* o: spline.objects) delete o;
 	spline.objects.clear();
 
+	// Setup any missing lengths
+	for(ObjectSplineData::Item& seg: data.segments) {
+		if(seg.length == 0) {
+			Object* o = m_parent->createObject(seg.mesh, object);
+			o->updateBounds();
+			seg.length = o->getBounds().size().x;
+			delete o;
+		}
+	}
+
 	float t = 0;
 	vec3 p = getPoint(t);
 	vec3 start = p;
 	const vec3 pivotOffset(0, data.pivotHeight, 0);
 	const Quaternion fix(0.707107, 0, 0.707107, 0);
+	const float maxSlopeRadians = data.maxSlope * PI/180;
+	static DebugGeometry dd(base::SDG_AUTOMATIC);
 	while(t < end) {
-		const ObjectSplineData::Item* post = selectMesh(data.nodes);
-		if(post) {
-			vec3 n = getPoint(t+0.001);
-			Object* o = m_parent->createObject(post->mesh, object);
-			o->setTransform(start - pivotOffset, Quaternion(n-start) * fix);
-			o->updateBounds();
-			spline.objects.push_back(o);
-		}
 
 		const ObjectSplineData::Item* model = selectMesh(data.segments);
 		const float length2 = powf(model->length + data.separation, 2);
@@ -331,11 +352,34 @@ void ObjectSplineEditor::createObjects(ObjectGroup* object) const {
 			if(p.distance2(start) < length2) substep = fabs(substep/2);
 			else substep = -fabs(substep/2);
 		}
+
+		// post
+		if((t<=end||data.endNode) && (!spline.objects.empty()||data.startNode)) {
+			const ObjectSplineData::Item* post = selectMesh(data.nodes);
+			if(post) {
+				vec3 dir = p-start;
+				if(t > end) dir.set(0,0,0);
+				if(!spline.objects.empty()) dir = dir.normalise() - spline.objects.back()->getOrientation().xAxis();
+				if(data.verticalNodes) dir.y = 0;
+
+				Object* o = m_parent->createObject(post->mesh, object);
+				o->setTransform(start - pivotOffset, Quaternion(dir) * fix);
+				o->updateBounds();
+				spline.objects.push_back(o);
+			}
+		}
+
 		if(t > end) break;
 
 		// Place object
 		Object* o = m_parent->createObject(model->mesh, object);
-		o->setTransform((start + p)/2, Quaternion(p-start) * fix);
+		vec3 dir = p - start;
+		float horizontal = dir.xz().length();
+		if(fabs(atan2(dir.y, horizontal)) > maxSlopeRadians) {
+			dir = vec3(dir.x/horizontal, 0, dir.z/horizontal) * cos(maxSlopeRadians);
+			dir.y = sin(maxSlopeRadians) * fsign(p.y - start.y);
+		}
+		o->setTransform((start + p)/2, Quaternion(dir) * fix);
 		o->moveLocal(-pivotOffset);
 		o->updateBounds();
 		spline.objects.push_back(o);

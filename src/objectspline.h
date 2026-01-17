@@ -13,6 +13,9 @@ struct ObjectSplineData : public ObjectGroupData {
 	float pivotHeight = 0;
 	Mode mode = PROJECTED;
 	Sequence sequence = RANDOM;
+	bool verticalNodes = false;
+	bool startNode = true;
+	bool endNode = true;
 };
 
 class ObjectSpline : public ObjectGroup {
