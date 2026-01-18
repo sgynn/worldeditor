@@ -27,12 +27,12 @@ class ObjectGroupEditor {
 	virtual void placeGroup(ObjectGroup*, const vec3& position) {}
 	virtual bool updateEditor(ObjectGroup*, const Mouse& mouse, const Ray& ray, base::Camera*, InputState& state) = 0;
 	virtual void updateLines(ObjectGroup*, base::DebugGeometry&) {}
-	virtual void loadGroup(const base::XMLElement&, ObjectGroup*) const = 0;
-	virtual ObjectGroupData* loadTemplate(const base::XMLElement&) const = 0;
-	virtual ObjectGroupData* createTemplate(std::vector<Object*>& m_selection) = 0;
+	virtual ObjectGroup* loadGroup(ObjectGroupData* data, const base::XMLElement&) const = 0;
 	virtual ObjectGroup* createGroup(const ObjectGroupData* data, const vec3& position) const = 0;
-	virtual base::XMLElement saveGroup(ObjectGroup*) const = 0;
-	virtual base::XMLElement saveTemplate(const ObjectGroupData*) const = 0;
+	virtual ObjectGroupData* loadTemplate(const base::XMLElement&) = 0;
+	virtual ObjectGroupData* createTemplate(std::vector<Object*>& m_selection) = 0;
+	virtual void saveGroup(ObjectGroup*, base::XMLElement& out) const = 0;
+	virtual void saveTemplate(const ObjectGroupData*, base::XMLElement& out) const = 0;
 	virtual void showPanel(ObjectGroupData*) {}
 	virtual void setup(ObjectEditor* parent, gui::Widget* panel) { m_parent = parent; m_panel = panel; }
 	virtual bool dropMesh(gui::Widget* widget, const MeshReference& mesh) { return false; }
@@ -60,7 +60,8 @@ class ObjectEditor : public EditorPlugin {
 	static bool pickMesh(const Ray& ray, const base::Mesh* mesh, const Matrix& transform, float& t);
 	bool trace(const Ray& ray, float& t) const;
 
-	const char* getObjectName(const ObjectGroup*) const;
+	void saveMeshReference(const MeshReference& ref, base::XMLElement& out) const;
+	MeshReference loadMeshReference(const base::XMLElement&) const;
 	base::XMLElement saveObject(const Object*) const;
 	Object* createObject(const MeshReference&, ObjectGroup* group=nullptr);
 	float getTerrainHeight(const vec3& p) const;
@@ -125,6 +126,7 @@ class ObjectEditor : public EditorPlugin {
 	gui::TreeView* m_resourceList;
 	gui::TreeNode* m_resource;
 	gui::Listbox* m_objectList;
+	gui::Listbox* m_templateList;
 	gui::Combobox* m_templateEditors;
 	base::HashMap<base::Model*> m_models;
 };

@@ -44,6 +44,10 @@ void ObjectSplineEditor::setup(ObjectEditor* parent, Widget* panel) {
 		m_data->maxSlope = value;
 		m_parent->notifyTemplateChanged(m_data);
 	});
+	CONNECT(SpinboxFloat, "scale", eventChanged, [this](SpinboxFloat*, float value) {
+		m_data->scale = value;
+		m_parent->notifyTemplateChanged(m_data);
+	});
 	CONNECT(SpinboxFloat, "spacing", eventChanged, [this](SpinboxFloat*, float value) {
 		m_data->separation = value;
 		m_parent->notifyTemplateChanged(m_data);
@@ -87,6 +91,7 @@ void ObjectSplineEditor::showPanel(ObjectGroupData* group) {
 	m_panel->getWidget<Textbox>("name")->setText(data.name);
 	m_panel->getWidget<Combobox>("mode")->selectItem(data.mode);
 	m_panel->getWidget<SpinboxFloat>("slope")->setValue(data.maxSlope);
+	m_panel->getWidget<SpinboxFloat>("scale")->setValue(data.scale);
 	m_panel->getWidget<SpinboxFloat>("spacing")->setValue(data.separation);
 	m_panel->getWidget<SpinboxFloat>("pivotoffset")->setValue(data.pivotHeight);
 	m_panel->getWidget<Checkbox>("verticalnodes")->setChecked(data.verticalNodes);
@@ -339,7 +344,7 @@ void ObjectSplineEditor::createObjects(ObjectGroup* object) const {
 	while(t < end) {
 
 		const ObjectSplineData::Item* model = selectMesh(data.segments);
-		const float length2 = powf(model->length + data.separation, 2);
+		const float length2 = powf(model->length * data.scale + data.separation, 2);
 		while(p.distance2(start) < length2) {
 			t += step;
 			p = getPoint(t);
@@ -363,7 +368,7 @@ void ObjectSplineEditor::createObjects(ObjectGroup* object) const {
 				if(data.verticalNodes) dir.y = 0;
 
 				Object* o = m_parent->createObject(post->mesh, object);
-				o->setTransform(start - pivotOffset, Quaternion(dir) * fix);
+				o->setTransform(start - pivotOffset, Quaternion(dir) * fix, data.scale);
 				o->updateBounds();
 				spline.objects.push_back(o);
 			}
@@ -379,7 +384,7 @@ void ObjectSplineEditor::createObjects(ObjectGroup* object) const {
 			dir = vec3(dir.x/horizontal, 0, dir.z/horizontal) * cos(maxSlopeRadians);
 			dir.y = sin(maxSlopeRadians) * fsign(p.y - start.y);
 		}
-		o->setTransform((start + p)/2, Quaternion(dir) * fix);
+		o->setTransform((start + p)/2, Quaternion(dir) * fix, data.scale);
 		o->moveLocal(-pivotOffset);
 		o->updateBounds();
 		spline.objects.push_back(o);
@@ -390,39 +395,80 @@ void ObjectSplineEditor::createObjects(ObjectGroup* object) const {
 // ======================================================== //
 
 
-XMLElement ObjectSplineEditor::saveGroup(ObjectGroup* group) const {
+void ObjectSplineEditor::saveGroup(ObjectGroup* group, XMLElement& e) const {
 	const ObjectSpline& spline = *(ObjectSpline*)group;
-	XMLElement e("group");
-	//e.setAttribute("name", m_parent->getObjectName(group));
-	e.setAttribute("data", group->getData()->name);
 	for(const ObjectSpline::Node& n: spline.m_nodes) {
 		XMLElement& node = e.add("node");
 		node.setAttribute("pos", String::format("%g %g %g", n.point.x, n.point.y, n.point.z));
-		node.setAttribute("pdir", String::format("%g %g %g", n.direction.x, n.direction.y, n.direction.z));
-		node.setAttribute("a", n.a);
-		node.setAttribute("b", n.b);
+		if(n.a+n.b>0) node.setAttribute("dir", String::format("%g %g %g", n.direction.x, n.direction.y, n.direction.z));
+		if(n.a > 0) node.setAttribute("a", n.a);
+		if(n.b > 0) node.setAttribute("b", n.b);
 	}
-	for(Object* o: group->objects) {
-		// Save the objects too so they can be loaded without the spline data
-		e.add(m_parent->saveObject(o));
-	}
-	return e;
 }
 
-void ObjectSplineEditor::loadGroup(const XMLElement&, ObjectGroup*) const {
+ObjectGroup* ObjectSplineEditor::loadGroup(ObjectGroupData* data, const XMLElement& e) const {
+	ObjectSpline* spline = new ObjectSpline(data);
+	for(const XMLElement& i: e) {
+		if(i == "node") {
+			ObjectSpline::Node node;
+			sscanf(i.attribute("pos"), "%g %g %g", &node.point.x, &node.point.y, &node.point.z);
+			sscanf(i.attribute("dir"), "%g %g %g", &node.direction.x, &node.direction.y, &node.direction.z);
+			node.a = i.attribute("a", 0.f);
+			node.b = i.attribute("b", 0.f);
+			spline->m_nodes.push_back(node);
+		}
+	}
+	createObjects(spline);
+	return spline;
 }
 
-XMLElement ObjectSplineEditor::saveTemplate(const ObjectGroupData* data) const {
+void ObjectSplineEditor::saveTemplate(const ObjectGroupData* data, XMLElement& e) const {
 	const ObjectSplineData& spline = *(ObjectSplineData*)data;
-	XMLElement e("splinedata");
+	e.setAttribute("type", "spline");
 	e.setAttribute("name", spline.name);
+	if(spline.scale != 1) e.setAttribute("scale", spline.scale);
 	if(spline.maxSlope < 90) e.setAttribute("slope", spline.maxSlope);
 	if(spline.separation != 0) e.setAttribute("separation", spline.separation);
-	return e;
+	if(spline.pivotHeight != 0) e.setAttribute("pivot", spline.pivotHeight);
+	if(spline.mode != 0) e.setAttribute("mode", spline.mode);
+	if(spline.sequence != 0) e.setAttribute("sequence", spline.sequence);
+	if(!spline.nodes.empty()) {
+		if(spline.verticalNodes) e.setAttribute("verticalnodes", 1);
+		if(!spline.startNode) e.setAttribute("start", 0);
+		if(!spline.endNode) e.setAttribute("end", 0);
+	}
+	for(const ObjectSplineData::Item& seg: spline.segments) {
+		XMLElement& s = e.add("segment");
+		s.setAttribute("chance", seg.chance);
+		m_parent->saveMeshReference(seg.mesh, s);
+	}
+	for(const ObjectSplineData::Item& node: spline.nodes) {
+		XMLElement& s = e.add("node");
+		s.setAttribute("chance", node.chance);
+		m_parent->saveMeshReference(node.mesh, s);
+	}
 }
 
-ObjectGroupData* ObjectSplineEditor::loadTemplate(const XMLElement&) const {
-	
-	return nullptr;
+ObjectGroupData* ObjectSplineEditor::loadTemplate(const XMLElement& e) {
+	if(strcmp(e.attribute("type"), "spline") != 0) return nullptr;
+	ObjectSplineData* data = new ObjectSplineData { this, e.attribute("name") };
+	data->scale = e.attribute("scale", 1.f);
+	data->maxSlope = e.attribute("slope", 90.f);
+	data->separation = e.attribute("separation", 0.f);
+	data->pivotHeight = e.attribute("pivot", 0.f);
+	data->mode = (ObjectSplineData::Mode)e.attribute("mode", 0);
+	data->sequence = (ObjectSplineData::Sequence)e.attribute("sequence", 0);
+	data->verticalNodes = e.attribute("verticalnodes", 0);
+	data->startNode = e.attribute("start", 1);
+	data->endNode = e.attribute("end", 1);
+	for(const XMLElement& m : e) {
+		ObjectSplineData::Item item;
+		item.mesh = m_parent->loadMeshReference(m);
+		item.chance = m.attribute("chance", 1.f);
+		item.length = 0;
+		if(m == "segment") data->segments.push_back(std::move(item));
+		else if(m == "node") data->nodes.push_back(std::move(item));
+	}
+	return data;
 }
 

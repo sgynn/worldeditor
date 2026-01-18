@@ -58,6 +58,7 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 
 	m_node = scene->createChild("Objects");
 	m_objectList = m_panel->getWidget<Listbox>("objectlist");
+	m_templateList = m_panel->getWidget<Listbox>("templatelist");
 	m_resourceList = m_panel->getWidget<TreeView>("resources");
 	m_templateEditors = m_panel->getWidget<Combobox>("newtemplate");
 	
@@ -129,6 +130,15 @@ inline Object* getObject(const ListItem& item) {
 	return item.getValue<Object*>(1, nullptr);
 }
 
+void ObjectEditor::saveMeshReference(const MeshReference& ref, XMLElement& out) const {
+	out.setAttribute("model", m_fileSystem->getRelative(ref.model));
+	if(ref.mesh) out.setAttribute("mesh", ref.mesh);
+}
+
+MeshReference ObjectEditor::loadMeshReference(const XMLElement& e) const {
+	return MeshReference { m_fileSystem->getFile(e.attribute("model")), e.attribute("mesh") };
+}
+
 void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 	if(context) return;
 	const XMLElement& list = e.find("objects");
@@ -171,6 +181,23 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 				m_objectList->addItem(name, object, meshFile, meshName, true, data);
 			}
 		}
+		else if(i == "groupdata") {
+			for(const ListItem& e : m_templateEditors->items()) {
+				ObjectGroupEditor* editor = e.getValue<ObjectGroupEditor*>(1, nullptr);
+				if(ObjectGroupData* data = editor->loadTemplate(i)) {
+					m_templateList->addItem(data->name, data, 0);
+				}
+			}
+		}
+		else if(i == "group") {
+			if(ListItem* dataItem = m_templateList->findItem(i.attribute("data"))) {
+				if(ObjectGroupData* data = dataItem->getValue<ObjectGroupData*>(1, nullptr)) {
+					ObjectGroup* group = data->editor->loadGroup(data, i);
+					m_objectList->addItem(i.attribute("name"), group, Any(), Any(), true);
+					data->editor->createObjects(group);
+				}
+			}
+		}
 	}
 }
 
@@ -178,7 +205,21 @@ XMLElement ObjectEditor::save(const TerrainMap* context) const {
 	if(context) return XMLElement();
 	char buffer[256];
 	XMLElement xml("objects");
+	for(const ListItem& item : m_templateList->items()) {
+		ObjectGroupData* data = item.getValue<ObjectGroupData*>(1, nullptr);
+		XMLElement& out = xml.add("groupdata");
+		data->editor->saveTemplate(data, out);
+	}
+
 	for(const ListItem& item: m_objectList->items()) {
+		if(ObjectGroup* group = item.getValue<ObjectGroup*>(1, nullptr)) {
+			XMLElement& out = xml.add("group");
+			out.setAttribute("name", item.getText());
+			out.setAttribute("data", group->getData()->name);
+			group->getData()->editor->saveGroup(group, out);
+			continue;
+		}
+
 		Object* object = getObject(item);
 		if(!object) continue;
 		const vec3 scl = object->getScale();
@@ -1143,12 +1184,11 @@ void ObjectEditor::createTemplate(Combobox* box, ListItem& item) {
 		selectedObjects.reserve(m_objectList->getSelectionSize());
 		for(ListItem& i: m_objectList->selectedItems()) selectedObjects.push_back(getObject(i));
 
-		Listbox* list = m_panel->getWidget<Listbox>("templatelist");
 		ObjectGroupData* group = editor->createTemplate(selectedObjects);
 		if(!group) return;
 
-		list->addItem(group->name, group, 0);
-		list->selectItem(list->getItemCount() - 1);
+		m_templateList->addItem(group->name, group, 0);
+		m_templateList->selectItem(m_templateList->getItemCount() - 1);
 		editor->showPanel(group);
 	}
 	box->clearSelection();
@@ -1157,8 +1197,7 @@ void ObjectEditor::createTemplate(Combobox* box, ListItem& item) {
 
 void ObjectEditor::editTemplate(Button*) {
 	if(m_placementGroup) cancelPlacement();
-	Listbox* list = m_panel->getWidget<Listbox>("templatelist");
-	const ListItem* active = list->getSelectedItem();
+	const ListItem* active = m_templateList->getSelectedItem();
 	if(active) {
 		ObjectGroupData* groupData = active->getValue<ObjectGroupData*>(1, nullptr);
 		if(groupData) groupData->editor->showPanel(groupData);
@@ -1175,11 +1214,10 @@ void ObjectEditor::templateSelected(Listbox*, ListItem& item) {
 }
 
 void ObjectEditor::notifyTemplateRenamed(ObjectGroupData* data) {
-	Listbox* list = m_panel->getWidget<Listbox>("templatelist");
-	for(ListItem& i: list->items()) {
+	for(ListItem& i: m_templateList->items()) {
 		if(i.getData(1) == data) {
 			i.setValue(data->name);
-			list->refresh();
+			m_templateList->refresh();
 			break;
 		}
 	}
