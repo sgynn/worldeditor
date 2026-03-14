@@ -33,6 +33,11 @@ ArrayTexture::~ArrayTexture() {
 
 // ------------------------------------------------------------ //
 
+const Image* ArrayTexture::getLayer(int index) const {
+	if(index<0||index>=layers()) return nullptr;
+	return m_layers[index];
+}
+
 int ArrayTexture::addTexture(Image& src) {
 	// Move to heap
 	m_layers.push_back(new Image(std::move(src)));
@@ -150,8 +155,18 @@ int ArrayTexture::build() {
 	}
 
 	// Convert formats
-	static const Texture::Format fmap[] = { Texture::NONE, Texture::R8, Texture::RG8, Texture::RGB8, Texture::RGBA8, Texture::BC1, Texture::BC2, Texture::BC3, Texture::BC4, Texture::BC5 };
-	static const int glmap[] = { 0, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA, GL_COMPRESSED_RGB_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_COMPRESSED_RED_RGTC1, GL_COMPRESSED_RG_RGTC2 };
+	static const Texture::Format fmap[] = {
+		Texture::NONE,
+		Texture::R8, Texture::RG8, Texture::RGB8, Texture::RGBA8,
+		Texture::BC1, Texture::BC2, Texture::BC3,
+		Texture::BC4, Texture::BC5 
+	};
+	static const int glmap[] = {
+		0, GL_RED, GL_RG, GL_RGB, GL_RGBA,
+		GL_R16, GL_RG16, GL_RGB16, GL_RGBA16,
+		GL_COMPRESSED_RGB_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,
+		GL_COMPRESSED_RED_RGTC1, GL_COMPRESSED_RG_RGTC2
+	};
 	Texture::Format format = fmap[ m_layers[0]->getFormat() ];
 	int glFormat = glmap[ format ];
 

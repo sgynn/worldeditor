@@ -22,6 +22,7 @@ class ArrayTexture {
 
 	int layers() const { return m_layers.size(); }
 	const base::Texture& getTexture() const { return m_texture; }
+	const base::Image* getLayer(int) const;
 	void createBlankTexture(unsigned colour, int channels=4, int w=2048, int h=2048);
 
 	protected:

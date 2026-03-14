@@ -1,5 +1,4 @@
-#ifndef _DYNAMIC_MATERIAL_
-#define _DYNAMIC_MATERIAL_
+#pragma once
 
 #include <base/math.h>
 #include <vector>
@@ -49,13 +48,14 @@ struct MaterialLayer {
 
 class DynamicMaterial {
 	public:
-	DynamicMaterial(bool stream=false);
+	DynamicMaterial(bool stream=false, bool arrays=true);
 	~DynamicMaterial();
 
 	void setName(const char*);
 	const char* getName() const;
 	void setMode(MaterialMode mode);
 	MaterialMode getMode() const { return m_mode; } 
+	uint64 getUsedTextures() const;
 
 	void setCoordinates(const vec2& size, const vec2& offset) const;
 	void setTilingData(float*);
@@ -85,18 +85,15 @@ class DynamicMaterial {
 	String m_name;
 	MaterialMode m_mode = COMPOSITE;
 	std::vector<MaterialLayer*> m_layers;
-	base::Material*   m_material;
-	base::ShaderVars* m_vars;
-	base::ShaderPart* m_vertexShader;
-	base::ShaderPart* m_fragmentShader;
-	MaterialStream* m_stream;
+	base::Material*   m_material = nullptr;
+	base::ShaderVars* m_vars = nullptr;
+	base::ShaderPart* m_vertexShader = nullptr;
+	base::ShaderPart* m_fragmentShader = nullptr;
+	MaterialStream* m_stream = nullptr;
 	bool            m_streaming;
-	bool            m_needsCompile;
+	bool            m_needsCompile = true;
 	mutable float   m_coords[4];
 	float           m_textureTiling[256];
+	bool            m_useTextureArrays;
 };
-
-
-
-#endif
 

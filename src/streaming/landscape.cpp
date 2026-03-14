@@ -163,12 +163,11 @@ int Patch::getCount() const {
 
 
 
-Patch::Patch(Landscape* land) {
-	memset(this, 0, sizeof(Patch));
-	m_landscape = land;
-	m_lod = 0;
-	m_error = 0;
-
+Patch::Patch(Landscape* land) : m_landscape(land)
+	, m_adjacent{0,0,0,0}, m_child{0,0,0,0}, m_parent(nullptr)
+	, m_depth(0), m_lod(0), m_split(false), m_error(0)
+	, m_changed(0), m_edge{0,0,0,0}
+{
 	float s = land->m_size;
 	m_corner[0] = land->m_position;
 	m_corner[1] = land->m_position + vec3(s,0,0);
@@ -176,10 +175,11 @@ Patch::Patch(Landscape* land) {
 	m_corner[3] = land->m_position + vec3(s,0,s);
 }
 
-Patch::Patch(Patch* parent, int index) {
-	memset(this, 0, sizeof(Patch));
-	m_landscape = parent->m_landscape;
-	m_parent = parent;
+Patch::Patch(Patch* parent, int index) : m_landscape(parent->m_landscape)
+	, m_adjacent{0,0,0,0}, m_child{0,0,0,0}, m_parent(parent)
+	, m_depth(0), m_lod(0), m_split(false), m_error(0)
+	, m_changed(0), m_edge{0,0,0,0}
+{
 	m_depth  = parent->m_depth + 1;
 
 	// Calculate corners from parent

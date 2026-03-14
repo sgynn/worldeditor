@@ -15,6 +15,8 @@ using namespace base;
 
 
 MaterialEditor::MaterialEditor(gui::Root* gui, FileSystem* fs, bool stream): m_streaming(stream), m_fileSystem(fs), m_gui(gui) {
+	m_useTextureArrays = false;
+
 	// Selector lists
 	m_textureSelector = new gui::ItemList();
 	m_textureSelector->addItem("Clipped", -2, -2);
@@ -99,7 +101,7 @@ DynamicMaterial* MaterialEditor::getMaterial(const char* name) const {
 	return 0;
 }
 DynamicMaterial* MaterialEditor::createMaterial(const char* name) {
-	DynamicMaterial* m = new DynamicMaterial(m_streaming);
+	DynamicMaterial* m = new DynamicMaterial(m_streaming, m_useTextureArrays);
 	m->setName(name);
 	m->setTilingData(m_textureTiling);
 	m->setCoordinates(m_terrainSize, vec2());
@@ -307,12 +309,36 @@ XMLElement MaterialEditor::serialiseTexture(int index) {
 }
 
 void MaterialEditor::buildTextures() {
-	int rd = m_diffuseMaps.build();
-	int rn = m_normalMaps.build();
-	int rh = m_heightMaps.build();
-	if(rd) printf("Error: Texture %s is incompatible\n", (const char*)m_textures[rd&0xff]->diffuse);
-	if(rn) printf("Error: Texture %s is incompatible\n", (const char*)m_textures[rn&0xff]->normal);
-	if(rh) printf("Error: Texture %s is incompatible\n", (const char*)m_textures[rn&0xff]->height);
+	if(m_useTextureArrays) {
+		int rd = m_diffuseMaps.build();
+		int rn = m_normalMaps.build();
+		int rh = m_heightMaps.build();
+		if(rd) printf("Error: Texture %s is incompatible\n", (const char*)m_textures[rd&0xff]->diffuse);
+		if(rn) printf("Error: Texture %s is incompatible\n", (const char*)m_textures[rn&0xff]->normal);
+		if(rh) printf("Error: Texture %s is incompatible\n", (const char*)m_textures[rn&0xff]->height);
+	}
+	else { // Individual textures
+		while((int)m_flatTextures.size() < m_diffuseMaps.layers()) m_flatTextures.push_back({0,0,0});
+		auto createTexture = [](const base::Image* image)->Texture* {
+			if(!image) return nullptr;
+			assert(image->getMode() == Image::FLAT);
+			static constexpr const Texture::Format formats[] = {
+				Texture::NONE, Texture::R8, Texture::RG8, Texture::RGB8, Texture::RGBA8,
+				Texture::BC1, Texture::BC2, Texture::BC3, Texture::BC4, Texture::BC5,
+				Texture::R16, Texture::R16F, Texture::R32F 
+			};
+			bool generateMipMaps = image->getMips()==1 && image->getWidth() == image->getHeight();
+			Texture* tex = new Texture();
+			tex->setData(Texture::TEX2D, image->getWidth(), image->getHeight(), 1, formats[image->getFormat()], (void**)image->getDataPtr(), image->getMips(), generateMipMaps);
+			return tex;
+		};
+		for(int i=0; i<m_diffuseMaps.layers(); ++i) {
+			FlatTexture& tex = m_flatTextures[i];
+			if(!tex.diffuse) tex.diffuse = createTexture(m_diffuseMaps.getLayer(i));
+			if(!tex.normal) tex.normal = createTexture(m_normalMaps.getLayer(i));
+		}
+		if(m_selectedMaterial >= 0)	m_materials[m_selectedMaterial]->setTextures(this);
+	}
 }
 
 const base::Texture& MaterialEditor::getDiffuseArray() const {
@@ -323,6 +349,18 @@ const base::Texture& MaterialEditor::getNormalArray() const {
 }
 const base::Texture& MaterialEditor::getHeightArray() const {
 	return m_heightMaps.getTexture();
+}
+base::Texture* MaterialEditor::getDiffuseMap(int index) const {
+	if(index > (int)m_flatTextures.size()) return nullptr;
+	return m_flatTextures[index].diffuse;
+}
+base::Texture* MaterialEditor::getNormalMap(int index) const {
+	if(index > (int)m_flatTextures.size()) return nullptr;
+	return m_flatTextures[index].normal;
+}
+base::Texture* MaterialEditor::getHeightMap(int index) const {
+	if(index > (int)m_flatTextures.size()) return nullptr;
+	return m_flatTextures[index].height;
 }
 
 // ------------------------------------------------------------------------------ //

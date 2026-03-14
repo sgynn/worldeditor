@@ -19,7 +19,45 @@ using base::Material;
 using base::Shader;
 using base::Pass;
 
-DynamicMaterial::DynamicMaterial(bool stream) : m_material(0), m_stream(0), m_streaming(stream), m_needsCompile(true) {
+int str(char* out, int v) { return sprintf(out, "%d", v); }
+int str(char* out, uint v) { return sprintf(out, "%u", v); }
+int str(char* out, size_t v) { return sprintf(out, "%lu", v); }
+int str(char* out, float v) { return sprintf(out, "%g", v); }
+int str(char* out, const char* v) { return sprintf(out, "%s", v); }
+
+template<typename T>
+int formatarg(char* out, int index, T& v) {
+	if(index==0) return str(out, v);
+	return 0;
+}
+template<typename T, typename... R>
+int formatarg(char* out, int index, T& v, R&... args) {
+	if(index==0) return str(out, v);
+	else return formatarg(out, index-1, args...);
+}
+// String format function that uses "Blah{0}" format. Uses above str() functions for conversion.
+template<typename... T>
+const char* format(char* out, const char* s, T&... args) {
+	char* start = out;
+	for(const char* c=s; *c; ++c) {
+		if(c[0]=='{' && c[1]>='0' && c[1]<='9' && c[2]=='}') {
+			out += formatarg(out, c[1]-'1', args...);
+			c+=2;
+		}
+		else if(c[0]=='{' && c[1]=='}') {
+			out += formatarg(out, 0, args...);
+			c+=1;
+		}
+		else *out=*c, ++out;
+	}
+	*out = 0;
+	return start;
+}
+// --------------------------------------------------------------- //
+
+
+
+DynamicMaterial::DynamicMaterial(bool stream, bool arrays) : m_streaming(stream), m_useTextureArrays(arrays) {
 	Shader* shader = new Shader();
 	m_vertexShader = new ShaderPart(base::VERTEX_SHADER);
 	m_fragmentShader = new ShaderPart(base::FRAGMENT_SHADER);
@@ -55,7 +93,17 @@ void DynamicMaterial::setMode(MaterialMode mode) {
 }
 
 void DynamicMaterial::setTilingData(float* data) {
-	m_vars->set("textureTiling", 1, 32, data);
+	if(m_useTextureArrays) {
+		m_vars->set("textureTiling", 1, 32, data);
+	}
+	else {
+		char buffer[128];
+		uint64 mask = getUsedTextures();
+		for(int i=0; i<64; ++i) {
+			if(~mask&1ull<<i) continue;
+			m_vars->set(format(buffer, "textureTiling{}", i), data[i]);
+		}
+	}
 }
 
 void DynamicMaterial::setCoordinates(const vec2& s, const vec2& o) const {
@@ -127,6 +175,14 @@ size_t DynamicMaterial::size() const {
 	return m_layers.size();
 }
 
+uint64 DynamicMaterial::getUsedTextures() const {
+	uint64 used = 0;
+	for(MaterialLayer* layer: m_layers) {
+		if(layer->texture >= 0) used |= 1 << layer->texture;
+	}
+	return used;
+}
+
 // ------------------------------------------------------------------------------------------------------ //
 
 
@@ -183,22 +239,37 @@ void DynamicMaterial::update(int index) {
 void DynamicMaterial::setTextures(MaterialEditor* src) {
 	if(!m_material) return;
 	if(m_stream) m_stream->build();
+	char buffer[128];
 
 	// Map bounds
 	m_vars->set("mapBounds", 4, 1, m_coords);
 
 
 	// Textures
-	m_material->getPass(0)->setTexture("diffuseArray", &src->getDiffuseArray());
-	m_material->getPass(0)->setTexture("normalArray", &src->getNormalArray());
-	if(m_stream) {
-		m_stream->setTexture("diffuseArray", src->getDiffuseArray());
-		m_stream->setTexture("normalArray", src->getNormalArray());
-		printf("Textures set\n");
+	if(m_useTextureArrays) {
+		m_material->getPass(0)->setTexture("diffuseArray", &src->getDiffuseArray());
+		m_material->getPass(0)->setTexture("normalArray", &src->getNormalArray());
+		if(m_stream) {
+			m_stream->setTexture("diffuseArray", src->getDiffuseArray());
+			m_stream->setTexture("normalArray", src->getNormalArray());
+		}
+	}
+	else {
+		uint64 mask = getUsedTextures();
+		for(int i=0; i<64; ++i) {
+			if(~mask&1ull<<i) continue;
+			m_material->getPass(0)->setTexture(format(buffer, "diffuseMap{}", i), src->getDiffuseMap(i));
+			m_material->getPass(0)->setTexture(format(buffer, "normalMap{}", i), src->getNormalMap(i));
+			//m_material->getPass(0)->setTexture(format(buffer, "heightMap{}", i), src->getHeightMap(i));
+			if(m_stream) {
+				m_stream->setTexture(format(buffer, "diffuseMap{}", i), *src->getDiffuseMap(i));
+				m_stream->setTexture(format(buffer, "normalMap{}", i), *src->getNormalMap(i));
+				//m_stream->setTexture(format(buffer, "heightMap{}", i), *src->getHeightMap(i));
+			}
+		}
 	}
 
 	// Bind all the map data
-	char buffer[32];
 	uint64 used = 1;
 	std::set<uint> usedMaps;
 	for(size_t i=0; i<m_layers.size(); ++i) {
@@ -206,7 +277,7 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 		if(~used&(1<<layer->mapIndex)) {
 			used |= 1<<layer->mapIndex;
 			const MaterialEditor::MapData& map = src->getMap(layer->mapIndex);
-			sprintf(buffer, "map%dSize", layer->mapIndex);
+			format(buffer, "map{}Size", layer->mapIndex);
 			m_vars->set(buffer, (float)map.size, (float)map.size);
 		}
 		update(i);
@@ -216,42 +287,6 @@ void DynamicMaterial::setTextures(MaterialEditor* src) {
 }
 
 // ------------------------------------------------------------------------------------------------------ //
-
-int str(char* out, int v) { return sprintf(out, "%d", v); }
-int str(char* out, uint v) { return sprintf(out, "%u", v); }
-int str(char* out, size_t v) { return sprintf(out, "%lu", v); }
-int str(char* out, float v) { return sprintf(out, "%g", v); }
-int str(char* out, const char* v) { return sprintf(out, "%s", v); }
-
-template<typename T>
-int formatarg(char* out, int index, T& v) {
-	if(index==0) return str(out, v);
-	return 0;
-}
-template<typename T, typename... R>
-int formatarg(char* out, int index, T& v, R&... args) {
-	if(index==0) return str(out, v);
-	else return formatarg(out, index-1, args...);
-}
-template<typename... T>
-const char* format(char* out, const char* s, T&... args) {
-	char* start = out;
-	for(const char* c=s; *c; ++c) {
-		if(c[0]=='{' && c[1]>='0' && c[1]<='9' && c[2]=='}') {
-			out += formatarg(out, c[1]-'1', args...);
-			c+=2;
-		}
-		else if(c[0]=='{' && c[1]=='}') {
-			out += formatarg(out, 0, args...);
-			c+=1;
-		}
-		else *out=*c, ++out;
-	}
-	*out = 0;
-	return start;
-}
-// --------------------------------------------------------------- //
-
 
 Material* DynamicMaterial::getMaterial() const {
 	return m_material;
@@ -295,11 +330,24 @@ bool DynamicMaterial::compile() {
 	"uniform vec3 lightDirection;\n"
 	"uniform vec4 mapBounds;\n\n";
 	
-	// Texture array samplers
-	if(hasTextureArray) source +=
+	// Terrain texture samplers
+	if(hasTextureArray && m_useTextureArrays) source +=
 	"uniform sampler2DArray diffuseArray;\n"
 	"uniform sampler2DArray normalArray;\n"
 	"uniform float textureTiling[128];\n\n";
+	if(!m_useTextureArrays) {
+		uint64 mask = getUsedTextures();
+		for(int i=0; i<64; ++i) {
+			if(~mask&1ull<<i) continue;
+			source += format("uniform sampler2D diffuseMap{};\n", i);
+			source += format("uniform sampler2D normalMap{};\n", i);
+		}
+		//for(int i=0; i<64; ++i) {
+		//	if(~mask&1ull<<i) continue;
+		//	source += format("uniform float textureTiling{};\n", i);
+		//}
+		if(mask) source += "\n";
+	}
 
 	// Image map samplers
 	uint64 mapMask = 0;
@@ -344,18 +392,35 @@ bool DynamicMaterial::compile() {
 	source += "\n\n//Utility functions\n";
 
 	// Functions
-	if(hasTextureArray && hasTriplanar) source +=
+	if(hasTextureArray && hasTriplanar && m_useTextureArrays) source +=
 	"vec4 sampleTriplanar(float map, vec3 coord, vec3 weights) {\n"
 	"	vec4 c = vec4(coord.xyz, map);\n"
 	"	return texture(diffuseArray, c.yzw)*weights.xxxx + texture(diffuseArray, c.zxw)*weights.yyyy + texture(diffuseArray, c.xyw)*weights.zzzz;\n"
-	"}\n";
-
-	if(hasTextureArray && hasTriplanar) source +=
+	"}\n"
 	"vec4 sampleTriplanerNormal(float map, vec3 coord, vec3 normal, vec3 weights) {\n"
 	"	vec4 c = vec4(coord.xyz, map);\n"
 	"	vec4 nX = texture(normalArray, c.yzw);\n"
 	"	vec4 nY = texture(normalArray, c.zxw);\n"
 	"	vec4 nZ = texture(normalArray, c.xyw);\n"
+	"	nX.xyz = nX.xyz * 2.0 - 1.0;\n"
+	"	nY.xyz = nY.xyz * 2.0 - 1.0;\n"
+	"	nZ.xyz = nZ.xyz * 2.0 - 1.0;\n"
+	"	if(dot(nX.xyz, normal)<0.0) nX.x = -nX.x;\n"
+	"	if(dot(nY.xyz, normal)<0.0) nY.y = -nY.y;\n"
+	"	if(dot(nZ.xyz, normal)<0.0) nZ.z = -nZ.z;\n"
+	"	vec3 result = normalize(nX.xyz*weights.xxx + nY.xyz*weights.yyy + nZ.xyz*weights.zzz);\n"
+	"	return vec4(result, nX.w*weights.x + nY.w*weights.y + nZ.w*weights.z);\n"
+	"}\n";
+
+	if(hasTextureArray && hasTriplanar && !m_useTextureArrays) source +=
+	"vec4 sampleTriplanar(sampler2D map, vec3 coord, vec3 weights) {\n"
+	"	return texture(map, coord.yz)*weights.xxxx + texture(map, coord.zx)*weights.yyyy + texture(map, coord.xy)*weights.zzzz;\n"
+	"}\n"
+	"vec4 sampleTriplanerNormal(sampler2D map, vec3 coord, vec3 normal, vec3 weights) {\n"
+	"	vec4 c = vec4(coord.xyz, map);\n"
+	"	vec4 nX = texture(map, c.yz);\n"
+	"	vec4 nY = texture(map, c.zx);\n"
+	"	vec4 nZ = texture(map, c.xy);\n"
 	"	nX.xyz = nX.xyz * 2.0 - 1.0;\n"
 	"	nY.xyz = nY.xyz * 2.0 - 1.0;\n"
 	"	nZ.xyz = nZ.xyz * 2.0 - 1.0;\n"
@@ -389,19 +454,26 @@ bool DynamicMaterial::compile() {
 	"	return texture(map, coord);\n"
 	"}\n";
 
-	if(hasTextureArray) source +=
+	if(hasTextureArray && m_useTextureArrays) source +=
 	"vec4 sampleDiffuse(float map, vec2 coord) {\n"
 	"	return texture(diffuseArray, vec3(coord, map));\n"
-	"}\n";
-
-	if(hasTextureArray) source +=
+	"}\n"
 	"vec4 sampleNormal(float map, vec2 coord) {\n"
 	"	vec4 n = texture(normalArray, vec3(coord, map));\n"
 	"	return vec4(n.xyz * 2.0 - 1.0, n.w);\n"
 	"}\n";
+
+	if(hasTextureArray && !m_useTextureArrays) source +=
+	"vec4 sampleNormal(sampler2D map, vec2 coord) {\n"
+	"	vec4 n = texture(map, coord);\n"
+	"	return vec4(n.xyz * 2.0 - 1.0, n.w);\n"
+	"}\n"
+	"vec4 sampleDiffuse(sampler2D map, vec2 coord) {\n"
+	"	return texture(map, coord);\n"
+	"}\n";
 	
 	// Barycentric coordinates for index maps
-	if(hasIndexed) source +=
+	if(hasIndexed && m_useTextureArrays) source +=
 	"vec3 barycentric(vec4 info, vec2 size, vec2 coord, out vec2 a, out vec2 b, out vec2 c) {\n"
 	"	// Get sample points\n"
 	"	vec2 one = vec2(1,0);\n"
@@ -420,7 +492,7 @@ bool DynamicMaterial::compile() {
 	"}\n";
 
 	// Basic indexed texture sampling
-	if(hasIndexed) source +=
+	if(hasIndexed && m_useTextureArrays) source +=
 	"void sampleIndexed(sampler2D map, vec4 info, vec2 size, vec2 coord, vec2 tile,  out vec4 diff, out vec4 norm) {\n"
 	"	vec2 a,b,c;\n"
 	"	vec3 bary = barycentric(info, size, coord, a,b,c);\n"
@@ -440,7 +512,7 @@ bool DynamicMaterial::compile() {
 	"}\n";
 
 	// Alternative indexed sampling
-	if(hasIndexed) source +=
+	if(hasIndexed && m_useTextureArrays) source +=
 	"void sampleIndexedQuad(sampler2D map, vec4 info, vec2 size, vec2 coord, vec2 tile,  out vec4 diff, out vec4 norm) {\n"
 	"	vec2 one = vec2(1,0);\n"
 	"	vec2 step = 1.0 / size;\n"
@@ -474,7 +546,7 @@ bool DynamicMaterial::compile() {
 	
 
 	// Weighted indexed sampling - so many texture lookups...
-	if(hasIndexed) source +=
+	if(hasIndexed && m_useTextureArrays) source +=
 	"void sampleIndexedWeighted(sampler2D map, sampler2D weights, vec4 info, vec2 size, vec2 coord, vec2 tile,  out vec4 diff, out vec4 norm) {\n"
 	"	vec2 one = vec2(1,0);\n"
 	"	vec2 step = 1.0 / size;\n"
@@ -596,7 +668,7 @@ bool DynamicMaterial::compile() {
 			else source +=  format("	diff = map{}Sample;\n	weight = 1.0;\n", layer->mapIndex);
 			break;
 		case LAYER_INDEXED:
-			if(!layer->mapIndex) valid = false;
+			if(!layer->mapIndex || !m_useTextureArrays) valid = false;
 			else {
 				source += "	weight=1;\n";
 				if(layer->mapData&0x100) 
@@ -622,19 +694,21 @@ bool DynamicMaterial::compile() {
 
 		// Sample textures
 		if(layer->type == LAYER_AUTO || layer->type==LAYER_WEIGHT) {
+			auto diffuseMap = [this, layer]() { return m_useTextureArrays?  str(layer->texture)+".0": "diffuseMap"+str(layer->texture) ; };
+			auto normalMap = [this, layer]() { return m_useTextureArrays?  str(layer->texture)+".0": "normalMap"+str(layer->texture) ; };
 			if(layer->texture == TEXTURE_COLOUR) source +=
 				"	diff = vec4(" + str(colour.r) + ", " + str(colour.g) + ", " + str(colour.b) + ", 0);\n"
 				"	norm = vec4(0, 0, 1, 0);\n";
 			else if(layer->projection == PROJECTION_VERTICAL) source +=
-				"	diff = sampleTriplanar("+str(layer->texture)+".0, worldPos * scale"+index+", vertical);\n"
-				"	norm = sampleTriplanerNormal("+str(layer->texture)+".0, worldPos * scale"+index+", worldNormal, vertical);\n"
+				"	diff = sampleTriplanar("+diffuseMap()+", worldPos * scale"+index+", vertical);\n"
+				"	norm = sampleTriplanerNormal("+normalMap()+", worldPos * scale"+index+", worldNormal, vertical);\n"
 				"	if(triplanar.y > 0.999) norm = vec4(0,1,0,0);\n";
 			else if(layer->projection == PROJECTION_TRIPLANAR) source +=
-				"	diff = sampleTriplanar("+str(layer->texture)+".0, worldPos * scale"+index+", triplanar);\n"
-				"	norm = sampleTriplanerNormal("+str(layer->texture)+".0, worldPos * scale"+index+", worldNormal, triplanar);\n";
+				"	diff = sampleTriplanar("+diffuseMap()+", worldPos * scale"+index+", triplanar);\n"
+				"	norm = sampleTriplanerNormal("+normalMap()+", worldPos * scale"+index+", worldNormal, triplanar);\n";
 			else source += 
-				"	diff = sampleDiffuse("+str(layer->texture)+".0, worldPos.xz * scale"+index+");\n"
-				"	norm = sampleNormal("+str(layer->texture)+".0, worldPos.xz * scale"+index+");\n";
+				"	diff = sampleDiffuse("+diffuseMap()+", worldPos.xz * scale"+index+");\n"
+				"	norm = sampleNormal("+normalMap()+", worldPos.xz * scale"+index+");\n";
 		}
 
 
@@ -752,6 +826,7 @@ bool DynamicMaterial::compile() {
 
 	m_needsCompile = false;
 	return false;
+	#undef format
 }
 
 #include <base/xml.h>
@@ -801,6 +876,24 @@ void DynamicMaterial::exportMaterial(MaterialEditor* src) const {
 				XMLElement& m = xml.getRoot().add("texture");
 				m.setAttribute("name", addIndex("map", layer->mapIndex));
 				m.setAttribute("file", addIndex("map", layer->mapIndex, ".png"));
+			}
+		}
+	}
+
+	// Textures
+	if(!m_useTextureArrays) {
+		uint64 mask = getUsedTextures();
+		for(int i=0; i<64; ++i) {
+			if(~mask&1ull<<i) continue;
+			if(src->getTexture(i)->diffuse) {
+				XMLElement& m = xml.getRoot().add("texture");
+				m.setAttribute("name", format(shaderFile, "diffuseMap{}", i));
+				m.setAttribute("file", src->getTexture(i)->diffuse);
+			}
+			if(src->getTexture(i)->normal) {
+				XMLElement& m = xml.getRoot().add("texture");
+				m.setAttribute("name", format(shaderFile, "normalMap{}", i));
+				m.setAttribute("file", src->getTexture(i)->normal);
 			}
 		}
 	}

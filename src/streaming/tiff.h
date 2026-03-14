@@ -51,13 +51,13 @@ class TiffStream {
 	~TiffStream();
 
 	private:
-	FILE* m_stream;
-	uint  m_width, m_height;
-	uint  m_bitsPerSample;
-	uint  m_samplesPerPixel;
-	uint  m_rowsPerStrip;
-	uint  m_stripCount;
-	uint* m_stripOffsets;
+	FILE* m_stream=NULL;
+	uint  m_width=0, m_height=0;
+	uint  m_bitsPerSample=0;
+	uint  m_samplesPerPixel=0;
+	uint  m_rowsPerStrip=0;
+	uint  m_stripCount=0;
+	uint* m_stripOffsets=0;
 
 	size_t getAddress(int x, int y) const;
 };

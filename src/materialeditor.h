@@ -48,6 +48,9 @@ class MaterialEditor {
 	const base::Texture& getDiffuseArray() const;
 	const base::Texture& getNormalArray() const;
 	const base::Texture& getHeightArray() const;
+	base::Texture* getDiffuseMap(int index) const;
+	base::Texture* getNormalMap(int index) const;
+	base::Texture* getHeightMap(int index) const;
 
 	// Maps
 	struct MapData { String name; int size; int channels; int flags; };
@@ -133,12 +136,15 @@ class MaterialEditor {
 	ArrayTexture m_diffuseMaps;
 	ArrayTexture m_normalMaps;
 	ArrayTexture m_heightMaps;
+	struct FlatTexture { base::Texture* diffuse; base::Texture* normal; base::Texture* height; };
+	std::vector<FlatTexture> m_flatTextures;
 	std::vector<DynamicMaterial*> m_materials;		// Materials
 	std::vector<TerrainTexture*>  m_textures;		// Textures
 	std::vector<MapData>          m_mapInfo;		// Texture map data
 	float          m_textureTiling[256];	// Texture tiling values
 	vec2           m_terrainSize;			// Terrain map size
 	bool           m_streaming;				// Use streamed textures
+	bool           m_useTextureArrays = true;
 	FileSystem*    m_fileSystem;			// For finding files
 	gui::Root*     m_gui;					// Gui
 	base::Texture  m_textureIconTexture;	// Atlas of texture icons
