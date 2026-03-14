@@ -25,7 +25,6 @@ class Object : public base::SceneNode {
 	protected:
 	BoundingBox m_bounds;
 	ObjectGroup* m_group = nullptr;
-	
 };
 
 // Template data for creating object groups

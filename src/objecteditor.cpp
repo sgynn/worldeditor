@@ -174,7 +174,7 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 					continue;
 				}
 
-				Object* object = createObject(name, model, meshName);
+				Object* object = createObject(name, meshFile, model, meshName);
 				m_node->addChild(object);
 				object->setTransform(pos, rot, scale);
 				object->updateBounds();
@@ -211,29 +211,15 @@ XMLElement ObjectEditor::save(const TerrainMap* context) const {
 		data->editor->saveTemplate(data, out);
 	}
 
-	for(const ListItem& item: m_objectList->items()) {
-		if(ObjectGroup* group = item.getValue<ObjectGroup*>(1, nullptr)) {
-			XMLElement& out = xml.add("group");
-			out.setAttribute("name", item.getText());
-			out.setAttribute("data", group->getData()->name);
-			group->getData()->editor->saveGroup(group, out);
-			continue;
-		}
+	auto saveObject = [this, &buffer](XMLElement& e, Object* object) {
+		StaticMeshObject* o = static_cast<StaticMeshObject*>(object);
+		e.setAttribute("file", m_fileSystem->getRelative(o->getMesh().model));
+		if(o->getMesh().getName() != o->getName()) e.setAttribute("name", o->getName());
+		if(o->getMesh().mesh) e.setAttribute("mesh", o->getMesh().mesh);
 
-		Object* object = getObject(item);
-		if(!object) continue;
 		const vec3 scl = object->getScale();
 		const vec3& pos = object->getPosition();
 		const Quaternion& rot = object->getOrientation();
-		const char* mesh = item.getText(3);
-		String data = item.getText(5);
-		
-
-		XMLElement& e = xml.add("object");
-		e.setAttribute("name", item.getText());
-		e.setAttribute("file", m_fileSystem->getRelative(item.getText(2)));
-		if(mesh && mesh[0]) e.setAttribute("mesh", mesh);
-		
 		if(pos!=vec3()) {
 			sprintf(buffer, "%g %g %g", pos.x, pos.y, pos.z);
 			e.setAttribute("position", buffer);
@@ -246,6 +232,29 @@ XMLElement ObjectEditor::save(const TerrainMap* context) const {
 			sprintf(buffer, "%g %g %g", scl.z, scl.y, scl.z);
 			e.setAttribute("scale", buffer);
 		}
+	};
+
+	for(const ListItem& item: m_objectList->items()) {
+		if(ObjectGroup* group = item.getValue<ObjectGroup*>(1, nullptr)) {
+			XMLElement& out = xml.add("group");
+			out.setAttribute("name", item.getText());
+			out.setAttribute("data", group->getData()->name);
+			group->getData()->editor->saveGroup(group, out);
+
+			// Save generated items in group so games don't need the placement functions
+			for(Object* o: group->objects) {
+				XMLElement& e = out.add("object");
+				saveObject(e, o);
+			}
+			continue;
+		}
+
+		Object* object = getObject(item);
+		if(!object) continue;
+		XMLElement& e = xml.add("object");
+		saveObject(e, object);
+
+		String data = item.getText(5);
 		if(!data.empty()) e.setAttribute("data", data.str());
 	}
 
@@ -1025,10 +1034,10 @@ Object* ObjectEditor::createObject(const MeshReference& mesh, ObjectGroup* group
 		model = base::BMLoader::load(mesh.model);
 		m_models[mesh.model.str()] = model;
 	}
-	return createObject(mesh.getName(), model, mesh.mesh, group);
+	return createObject(mesh.getName(), mesh.model, model, mesh.mesh, group);
 }
 
-Object* ObjectEditor::createObject(const char* name, Model* model, const char* mesh, ObjectGroup* group) {
+Object* ObjectEditor::createObject(const char* name, const char* modelName, Model* model, const char* mesh, ObjectGroup* group) {
 	if(!model) return nullptr;
 	
 	auto createDrawableFromMesh = [&](int meshIndex) {
@@ -1044,7 +1053,7 @@ Object* ObjectEditor::createObject(const char* name, Model* model, const char* m
 		return d;
 	};
 
-	Object* object = new Object(group);
+	Object* object = new StaticMeshObject(MeshReference{modelName, mesh}, group);
 	object->setName(name);
 	m_node->addChild(object);
 
@@ -1092,8 +1101,9 @@ void ObjectEditor::selectResource(TreeView*, TreeNode* resource) {
 	if(resource) {
 		const char* name = resource->getText();
 		Model* model = resource->getData(1).getValue<Model*>(0);
+		const char* file = resource->getText(2);
 		const char* mesh = resource->getText(3);
-		m_placement = createObject(name, model, mesh);
+		m_placement = createObject(name, file, model, mesh);
 	}
 }
 

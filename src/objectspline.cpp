@@ -345,7 +345,7 @@ void ObjectSplineEditor::createObjects(ObjectGroup* object) const {
 
 		const ObjectSplineData::Item* model = selectMesh(data.segments);
 		const float length2 = powf(model->length * data.scale + data.separation, 2);
-		while(p.distance2(start) < length2) {
+		while(p.distance2(start) < length2 && t < end) {
 			t += step;
 			p = getPoint(t);
 		}

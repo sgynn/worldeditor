@@ -246,9 +246,9 @@
 		</widget>
 		<widget anchor="lt" template="label" caption="Mode" rect="4 28 42 20"/>
 		<widget anchor="lt" template="label" caption="Slope" rect="4 52 42 20"/>
-		<widget anchor="lrt" template="spinboxf" name="slope" rect="72 52 156 20"/>
+		<widget anchor="lrt" template="spinboxf" name="slope" rect="72 52 156 20" max="90"/>
 		<widget anchor="lt" template="label" caption="Spacing" rect="4 76 42 20"/>
-		<widget anchor="lrt" template="spinboxf" name="spacing" rect="72 76 156 20"/>
+		<widget anchor="lrt" template="spinboxf" name="spacing" rect="72 76 156 20" min="-100" max="100"/>
 		<widget anchor="lt" template="label" caption="Name" rect="4 4 42 20"/>
 		<widget anchor="lrt" submit="2" template="editbox" name="name" rect="71 4 157 20"/>
 		<widget anchor="lrtb" class="Widget" layout="VerticalLayout" rect="4 144 220 134" skin="none">
@@ -273,7 +273,7 @@
 			</widget>
 		</widget>
 		<widget anchor="lt" template="label" caption="Offset" rect="4 99 42 20"/>
-		<widget anchor="lrt" template="spinboxf" name="pivotoffset" rect="72 99 156 20"/>
+		<widget anchor="lrt" template="spinboxf" name="pivotoffset" rect="72 99 156 20" min="-100" max="100"/>
 		<widget anchor="lt" template="label" caption="Scale" rect="4 122 42 20"/>
 		<widget step="0.1" anchor="lrt" value="1" name="scale" template="spinboxf" rect="72 122 156 20"/>
 	</widget>

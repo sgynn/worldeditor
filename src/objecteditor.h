@@ -20,6 +20,14 @@ struct MeshReference {
 	bool operator==(const MeshReference& o) const { return model==o.model && mesh==o.mesh; }
 };
 
+class StaticMeshObject : public Object {
+	public:
+	StaticMeshObject(const MeshReference& mesh, ObjectGroup* group = nullptr) : Object(group), m_mesh(mesh) {}
+	const MeshReference& getMesh() const { return m_mesh; }
+	private:
+	MeshReference m_mesh;
+};
+
 class ObjectGroupEditor {
 	public:
 	virtual void createObjects(ObjectGroup*) const = 0;
@@ -83,7 +91,7 @@ class ObjectEditor : public EditorPlugin {
 	void cancelPlacement();
 	bool isSelected(base::SceneNode* obj) const;
 	void clearSelection();
-	Object* createObject(const char* name, base::Model* model, const char* mesh=0, ObjectGroup* group = nullptr);
+	Object* createObject(const char* name, const char* modelName, base::Model* model, const char* mesh=0, ObjectGroup* group = nullptr);
 	void placeObject(Object* object, gui::TreeNode* data);
 	void applySelectTransform();
 	void selectionChanged();
