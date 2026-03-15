@@ -201,12 +201,12 @@ void ObjectEditor::addCustomPropertyWidget(const char* key, DataType type) {
 	valueWidget->setName(key);
 	m_customProperties->add(valueWidget, exist+1);
 	switch(type) {
-	case STRING: // TODO: This should be a combobox of all the possible values
+	case STRING:
 		cast<Combobox>(valueWidget)->eventSubmit.bind([this](Combobox* t) {
 			setCustomProperty(t->getName(), t->getText());
-			t->getParent()->setFocus();
 			updateCustomOptions(t->getName(), t);
 		});
+		cast<Combobox>(valueWidget)->getTemplateWidget<Textbox>("_text")->setSubmitAction(Textbox::SubmitOnLoseFocus);
 		cast<Combobox>(valueWidget)->eventSelected.bind([this](Combobox* t, ListItem& i) {
 			setCustomProperty(t->getName(), i.getText());
 		});
