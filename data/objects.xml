@@ -184,9 +184,9 @@
 			<widget anchor="lrt" class="Widget" template="frame" rect="205 6 15 31" skin="none"/>
 			<widget tip="toggle visibility of all objects" anchor="lt" template="visibility" name="visible" skin="button" rect="224 6 32 31"/>
 		</widget>
-		<widget anchor="lrtb" template="category" name="scene" caption="Scene" rect="0 43 262 149">
+		<widget anchor="lrtb" template="category" name="scene" caption="Scene" rect="0 43 262 154">
 			<widget anchor="lrt" template="editbox" name="filter" rect="0 0 246 20"/>
-			<widget rect="0 20 262 109" anchor="lrtb" template="listbox" name="objectlist" skin="default" multi="1">
+			<widget rect="0 20 262 114" anchor="lrtb" template="listbox" name="objectlist" skin="default" multi="1">
 				<widget anchor="lrt" class="Widget" template="frame" rect="0 36 245 24" skin="none" name="_item" tangible="2">
 					<widget inheritstate="1" anchor="lrtb" template="label" name="_0" skin="listitem" rect="0 0 211 24"/>
 					<widget anchor="rt" template="visibility" name="_4" rect="222 3 16 16" drag="1"/>
@@ -194,13 +194,12 @@
 			</widget>
 			<widget anchor="rt" image="2" template="iconbutton" name="clearfilter" group="icons" rect="246 3 15 14"/>
 		</widget>
-		<widget anchor="lrt" template="category" name="properties" caption="Properties" rect="0 192 262 167">
+		<widget anchor="lrt" autosize="1" template="category" name="properties" caption="Properties" rect="0 197 262 151">
 			<widget anchor="lt" template="label" caption="Name" rect="4 4 42 20"/>
 			<widget anchor="lt" template="label" name="modellabel" caption="Model" rect="4 24 42 20"/>
 			<widget anchor="lt" template="label" caption="Position" rect="4 44 42 20"/>
 			<widget anchor="lt" template="label" caption="Orentation" rect="4 64 42 20"/>
 			<widget anchor="lt" template="label" caption="Scale" rect="4 84 42 20"/>
-			<widget anchor="lt" template="label" caption="Data" rect="4 104 42 20"/>
 			<widget anchor="lrt" template="editbox" name="name" rect="84 4 164 20"/>
 			<widget anchor="lrt" class="Widget" layout="HorizontalLayout" rect="84 42 169 21" spacing="4" skin="none">
 				<widget anchor="lrt" template="spinboxf" name="x" rect="0 0 53 21"/>
@@ -217,26 +216,27 @@
 				<widget anchor="lrt" template="spinboxf" name="sy" rect="57 0 53 21"/>
 				<widget anchor="lrt" template="spinboxf" name="sz" rect="114 0 53 21"/>
 			</widget>
-			<widget anchor="lrt" template="editbox" name="property" rect="84 104 168 20"/>
 			<widget anchor="lt" template="label" name="model" rect="84 24 42 20"/>
+			<widget anchor="lrtb" class="Widget" template="frame" rect="0 108 262 0" skin="none" name="customproperties" autosize="1"/>
+			<widget anchor="lb" template="button" name="addproperty" caption="+" rect="3 110 40 17"/>
 		</widget>
-		<widget anchor="lrtb" template="category" name="types" caption="Templates" rect="0 359 262 149">
-			<widget anchor="lrtb" template="listbox" name="templatelist" skin="default" rect="0 0 262 108">
+		<widget anchor="lrtb" template="category" name="types" caption="Templates" rect="0 348 262 154">
+			<widget anchor="lrtb" template="listbox" name="templatelist" skin="default" rect="0 0 262 113">
 				<widget anchor="lrt" class="Widget" template="frame" rect="0 23 245 24" skin="none" name="_item" tangible="2">
 					<widget inheritstate="1" anchor="lrtb" template="label" name="_0" skin="listitem" rect="0 0 211 24"/>
 					<widget inheritstate="1" anchor="rt" rect="222 0 16 24" template="label" align="2" name="_2" caption="0"/>
 				</widget>
 			</widget>
-			<widget anchor="lrb" class="Widget" layout="HorizontalLayout" rect="0 108 262 20" spacing="4" skin="default">
+			<widget anchor="lrb" class="Widget" layout="HorizontalLayout" rect="0 113 262 20" spacing="4" skin="default">
 				<widget anchor="lt" template="droplist" name="newtemplate" skin="button" rect="0 0 120 20"/>
 				<widget anchor="rt" template="button" name="templateedit" caption="Edit" rect="124 0 60 20"/>
 				<widget anchor="lrt" class="Widget" template="frame" rect="188 0 10 12" skin="none"/>
 				<widget anchor="rt" template="button" name="templatedel" caption="Delete" rect="202 0 60 20"/>
 			</widget>
 		</widget>
-		<widget anchor="lrtb" template="category" name="files" caption="Files" rect="0 508 262 149">
-			<widget anchor="lrtb" template="tree" name="resources" rect="0 0 262 111"/>
-			<widget anchor="lrb" template="editbox" name="path" rect="0 109 262 20"/>
+		<widget anchor="lrtb" template="category" name="files" caption="Files" rect="0 502 262 154">
+			<widget anchor="lrtb" template="tree" name="resources" rect="0 0 262 116"/>
+			<widget anchor="lrb" template="editbox" name="path" rect="0 114 262 20"/>
 		</widget>
 	</widget>
 	<widget anchor="lt" template="window" name="objectspline" caption="Object Spline" rect="444 348 240 312">
@@ -246,9 +246,9 @@
 		</widget>
 		<widget anchor="lt" template="label" caption="Mode" rect="4 28 42 20"/>
 		<widget anchor="lt" template="label" caption="Slope" rect="4 52 42 20"/>
-		<widget anchor="lrt" template="spinboxf" name="slope" rect="72 52 156 20" max="90"/>
+		<widget max="90" anchor="lrt" template="spinboxf" name="slope" rect="72 52 156 20"/>
 		<widget anchor="lt" template="label" caption="Spacing" rect="4 76 42 20"/>
-		<widget anchor="lrt" template="spinboxf" name="spacing" rect="72 76 156 20" min="-100" max="100"/>
+		<widget anchor="lrt" template="spinboxf" name="spacing" min="-100" rect="72 76 156 20"/>
 		<widget anchor="lt" template="label" caption="Name" rect="4 4 42 20"/>
 		<widget anchor="lrt" submit="2" template="editbox" name="name" rect="71 4 157 20"/>
 		<widget anchor="lrtb" class="Widget" layout="VerticalLayout" rect="4 144 220 134" skin="none">
@@ -273,7 +273,7 @@
 			</widget>
 		</widget>
 		<widget anchor="lt" template="label" caption="Offset" rect="4 99 42 20"/>
-		<widget anchor="lrt" template="spinboxf" name="pivotoffset" rect="72 99 156 20" min="-100" max="100"/>
+		<widget anchor="lrt" template="spinboxf" name="pivotoffset" min="-100" rect="72 99 156 20"/>
 		<widget anchor="lt" template="label" caption="Scale" rect="4 122 42 20"/>
 		<widget step="0.1" anchor="lrt" value="1" name="scale" template="spinboxf" rect="72 122 156 20"/>
 	</widget>

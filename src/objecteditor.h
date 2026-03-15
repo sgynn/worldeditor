@@ -7,7 +7,7 @@
 #include <vector>
 
 namespace base { class Material; class Texture;  class Model; class Mesh; class DebugGeometry; }
-namespace gui { class Button; class Listbox; class Combobox; class Textbox; class Spinbox; class SpinboxFloat; class TreeView; class TreeNode; class Listbox; class ListItem; }
+namespace gui { class Button; class Listbox; class Combobox; class Textbox; class Spinbox; class SpinboxFloat; class TreeView; class TreeNode; class Listbox; class ListItem; class ItemList; }
 
 namespace editor { class Gizmo; }
 class BoxSelect;
@@ -106,6 +106,14 @@ class ObjectEditor : public EditorPlugin {
 	void editTemplate(gui::Button*);
 	void addGroupEditor(const char* name, ObjectGroupEditor*, const char* panel=nullptr);
 
+	enum DataType { STRING, FLOAT, INT, BOOL };
+	void createCustomPropertyWidgets();
+	void addCustomPropertyWidget(const char* key, DataType type);
+	void displayCustomPropeties(const base::HashMap<base::String>& props) const;
+	void setCustomProperty(const char* key, const char* value);
+	void renameCustomField(const char* from, const char* to);
+	void updateCustomOptions(const char* field, gui::ItemList* list);
+
 	protected:
 	enum PlaceMode { SINGLE, ROTATE, CHAIN };
 	base::SceneNode* m_node;
@@ -125,6 +133,9 @@ class ObjectEditor : public EditorPlugin {
 	ObjectGroup*   m_activeGroup = nullptr;
 	editor::Gizmo* m_gizmo;
 	BoxSelect*     m_box;
+
+	base::HashMap<DataType> m_dataFields;
+	gui::Widget* m_customProperties;
 
 	std::vector<Object*> m_chain;
 	base::SceneNode* m_selectGroup;

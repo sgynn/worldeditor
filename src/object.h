@@ -2,6 +2,7 @@
 
 #include <base/scene.h>
 #include <base/string.h>
+#include <base/hashmap.h>
 
 class ObjectGroup;
 
@@ -21,6 +22,8 @@ class Object : public base::SceneNode {
 	const BoundingBox& getBounds() const { return m_bounds; }
 
 	ObjectGroup* getGroup() const { return m_group; }
+
+	base::HashMap<base::String> customData;
 
 	protected:
 	BoundingBox m_bounds;
@@ -42,6 +45,7 @@ class ObjectGroup {
 	void setVisible(bool visible);
 	const ObjectGroupData* getData() const { return m_groupData; }
 	std::vector<Object*> objects;
+	base::HashMap<base::String> customData;
 	private:
 	const ObjectGroupData* const m_groupData;
 };

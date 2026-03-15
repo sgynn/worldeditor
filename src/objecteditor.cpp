@@ -6,6 +6,7 @@
 #include <base/gui/widgets.h>
 #include <base/gui/lists.h>
 #include <base/gui/tree.h>
+#include <base/gui/menubuilder.h>
 #include <base/scene.h>
 #include <base/drawablemesh.h>
 #include <base/hardwarebuffer.h>
@@ -61,6 +62,7 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 	m_templateList = m_panel->getWidget<Listbox>("templatelist");
 	m_resourceList = m_panel->getWidget<TreeView>("resources");
 	m_templateEditors = m_panel->getWidget<Combobox>("newtemplate");
+	m_customProperties = m_panel->getWidget("customproperties");
 	
 	CONNECT(Textbox,  "path", eventSubmit, changePath);
 	CONNECT(Listbox, "objectlist", eventSelected, selectObject);
@@ -80,6 +82,14 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 	CONNECT(SpinboxFloat, "yaw", eventChanged, setTransform);
 	CONNECT(SpinboxFloat, "roll", eventChanged, setTransform);
 	CONNECT(SpinboxFloat, "pitch", eventChanged, setTransform);
+
+	CONNECT_I(Button, "addproperty", eventPressed, [this](Button*) {
+		int index=0;
+		char key[24];
+		strcpy(key, "property");
+		while(m_dataFields.contains(key)) sprintf(key+8, "%d", ++index);
+		addCustomPropertyWidget(key, DataType::STRING);
+	});
 
 	CONNECT_I(Button, "move", eventPressed, [this](Button*) { setGizmoMode(0); });
 	CONNECT_I(Button, "rotate", eventPressed, [this](Button*) { setGizmoMode(1); });
@@ -126,6 +136,151 @@ void ObjectEditor::close() {
 
 // ------------------------------------------------------------------------------ //
 
+void ObjectEditor::createCustomPropertyWidgets() {
+	m_customProperties->deleteChildWidgets();
+	for(auto& i: m_dataFields) {
+		addCustomPropertyWidget(i.key, i.value);
+	}
+	// Force autosize update as it currently does not trigger automatically when the last widget is removed
+	if(m_dataFields.empty()) {
+		m_customProperties->getParent()->setAutosize(false);
+		m_customProperties->getParent()->setAutosize(true);
+	}
+}
+
+void ObjectEditor::addCustomPropertyWidget(const char* key, DataType type) {
+	if(!m_customProperties) return;
+	Point size = m_customProperties->getSize();
+	if(m_customProperties->getWidgetCount() == 0) size.y = 0;
+
+	// Does it aleady exist
+	int exist = -1;
+	for(int i=0; i<m_customProperties->getWidgetCount(); i+=3) {
+		if(m_customProperties->getWidget(i)->getName() == key) { exist=i; break; }
+	}
+
+	if(exist>=0) {
+		if(m_dataFields[key] == type) return;
+		// Replace widget exist+1 with a new one
+		delete m_customProperties->getWidget(exist+1);
+	}
+	else {
+		// Add a new row
+		exist = m_customProperties->getWidgetCount();
+		Textbox* keyBox = m_customProperties->createChild<Textbox>(Rect(4,size.y,76,20), "editbox", key);
+		keyBox->setSkin(m_customProperties->getRoot()->getSkin("none"));
+		keyBox->setText(key);
+		keyBox->setSubmitAction(Textbox::SubmitOnLoseFocus);
+		keyBox->eventSubmit.bind([this](Textbox* t) {
+			if(m_dataFields.contains(t->getText())) {
+				t->setText(t->getName());
+			}
+			else {
+				renameCustomField(t->getName(), t->getText());
+				t->setName(t->getText());
+				t->getParent()->getWidget(t->getIndex()+1)->setName(t->getText());
+			}
+		});
+		Button* button = m_customProperties->createChild<Button>(Rect(size.x-24, size.y+2, 16,16), "button", nullptr, "tr");
+		button->eventPressed.bind([this, keyBox](Button* b) {
+			MenuBuilder menu(b->getRoot(), "button", "button");
+			menu.addAction("String",  [this, keyBox]() { addCustomPropertyWidget(keyBox->getName(), DataType::STRING); });
+			menu.addAction("Fioat",   [this, keyBox]() { addCustomPropertyWidget(keyBox->getName(), DataType::FLOAT); });
+			menu.addAction("Integer", [this, keyBox]() { addCustomPropertyWidget(keyBox->getName(), DataType::INT); });
+			menu.addAction("Boolean", [this, keyBox]() { addCustomPropertyWidget(keyBox->getName(), DataType::BOOL); });
+			menu.addAction("Remove",  [this, keyBox]() { renameCustomField(keyBox->getName(), nullptr); createCustomPropertyWidgets(); });
+			menu.menu()->popup(b);
+		});
+
+	}
+	// Add the value entry
+	static const char* widgetTypes[] = { "combobox", "spinboxf", "spinbox", "checkbox" };
+	Widget* valueWidget = m_customProperties->getRoot()->createWidget(widgetTypes[type]);
+	valueWidget->setRect(84, (exist/3) * 24, size.x - 108, 20);
+	valueWidget->setAnchor("tlr");
+	valueWidget->setName(key);
+	m_customProperties->add(valueWidget, exist+1);
+	switch(type) {
+	case STRING: // TODO: This should be a combobox of all the possible values
+		cast<Combobox>(valueWidget)->eventSubmit.bind([this](Combobox* t) {
+			setCustomProperty(t->getName(), t->getText());
+			t->getParent()->setFocus();
+			updateCustomOptions(t->getName(), t);
+		});
+		cast<Combobox>(valueWidget)->eventSelected.bind([this](Combobox* t, ListItem& i) {
+			setCustomProperty(t->getName(), i.getText());
+		});
+		updateCustomOptions(key, cast<Combobox>(valueWidget));
+		break;
+	case FLOAT:
+		cast<SpinboxFloat>(valueWidget)->eventChanged.bind([this](SpinboxFloat* b, float v) { setCustomProperty(b->getName(), String::format("%g", v)); });
+		break;
+	case INT:
+		cast<Spinbox>(valueWidget)->eventChanged.bind([this](Spinbox* b, int v) { setCustomProperty(b->getName(), String::format("%d", v)); });
+		break;
+	case BOOL:
+		cast<Checkbox>(valueWidget)->eventChanged.bind([this](Button* b) { setCustomProperty(b->getName(), b->isSelected()? "1": "0"); });
+		cast<Checkbox>(valueWidget)->setDragSelect(1);
+		break;
+	}
+
+	m_dataFields[key] = type;
+}
+
+inline base::HashMap<String>& getCustomData(const ListItem& item) {
+	if(Object* o = item.getValue<Object*>(1, nullptr)) return o->customData;
+	if(ObjectGroup* g = item.getValue<ObjectGroup*>(1, nullptr)) return g->customData;
+	static base::HashMap<String> invalid;
+	return invalid;
+}
+
+void ObjectEditor::updateCustomOptions(const char* field, ItemList* list) {
+	for(ListItem& i: m_objectList->items()) {
+		const base::HashMap<String>& props = getCustomData(i);
+		const String& value = props.get(field, String());
+		if(value && !list->findItem(value.str())) list->addItem(value.str());
+	}
+}
+
+void ObjectEditor::renameCustomField(const char* from, const char* to) {
+	if(!to) printf("Delete custom propety '%s'\n", from);
+	else printf("Rename custom property '%s' -> '%s'\n", from, to);
+
+	const String empty;
+	for(ListItem& i: m_objectList->items()) {
+		base::HashMap<String>& props = getCustomData(i);
+		const String& s = props.get(from, empty);
+		if(!s) continue;
+		if(to) props[to] = s;
+		props.erase(from);
+	}
+	
+	if(to) m_dataFields[to] = m_dataFields[from];
+	m_dataFields.erase(from);
+}
+
+void ObjectEditor::setCustomProperty(const char* key, const char* value) {
+	for(ListItem& i: m_objectList->selectedItems()) {
+		getCustomData(i)[key] = value;
+	}
+}
+
+void ObjectEditor::displayCustomPropeties(const base::HashMap<String>& props) const {
+	const String empty;
+	for(int i=1; i<m_customProperties->getWidgetCount(); i+=3) {
+		Widget* w = m_customProperties->getWidget(i);
+		const String& value = props.get(w->getName(), empty);
+		if(Checkbox* c = cast<Checkbox>(w)) c->setSelected(value=="1" || value=="true");
+		else if(Spinbox* v = cast<Spinbox>(w)) v->setValue(atoi(value));
+		else if(SpinboxFloat* f = cast<SpinboxFloat>(w)) f->setValue(atof(value));
+		else if(Textbox* t = cast<Textbox>(w)) t->setText(value);
+		else if(Combobox* l = cast<Combobox>(w)) l->setText(value);
+	}
+}
+
+
+// ------------------------------------------------------------------------------ //
+
 inline Object* getObject(const ListItem& item) {
 	return item.getValue<Object*>(1, nullptr);
 }
@@ -143,13 +298,36 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 	if(context) return;
 	const XMLElement& list = e.find("objects");
 	constexpr const char* emptyString = nullptr;
+	static auto detectType = [](const base::StringView& value) {
+		if(value=="0" && value=="1" && value=="true" && value=="false") return BOOL;
+		int dots = 0;
+		for(char c: value) {
+			if(c>'9') return STRING;
+			if(c<'0' && c!='.') return STRING;
+			if(c=='.') ++dots;
+			if(dots>1) return STRING;
+		}
+		return dots? FLOAT: INT;
+	};
+	auto customField = [this](const char* key, const char* value) {
+		base::StringView k = key;
+		if(k == "name" || k == "file" || k == "mesh") return false;
+		if(k == "scale" || k == "position" || k == "orientation") return false;
+		// Detect type from data - can change
+		DataType exists = m_dataFields.get(key, BOOL);
+		if(exists == STRING) return true;
+		DataType t = detectType(value);
+		if(t > exists) t = exists;
+		m_dataFields[key] = t;
+		return true;
+	};
+
 	for(const XMLElement& i: list) {
 		if(i == "object") {
 			Quaternion rot;
 			vec3 pos, scale(1,1,1);
 			const char* name = i.attribute("name");
 			const char* file = i.attribute("file");
-			const char* data = i.attribute("data");
 			const char* meshName = i.attribute("mesh", emptyString);
 
 			sscanf(i.attribute("scale"), "%g %g %g", &scale.x, &scale.y, &scale.z);
@@ -178,7 +356,11 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 				m_node->addChild(object);
 				object->setTransform(pos, rot, scale);
 				object->updateBounds();
-				m_objectList->addItem(name, object, meshFile, meshName, true, data);
+				m_objectList->addItem(name, object, meshFile, meshName, true);
+
+				for(auto& c: i.attributes()) {
+					if(customField(c.key, c.value)) object->customData[c.key] = c.value;
+				}
 			}
 		}
 		else if(i == "groupdata") {
@@ -190,11 +372,15 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 			}
 		}
 		else if(i == "group") {
-			if(ListItem* dataItem = m_templateList->findItem(i.attribute("data"))) {
+			if(ListItem* dataItem = m_templateList->findItem(i.attribute("groupdata"))) {
 				if(ObjectGroupData* data = dataItem->getValue<ObjectGroupData*>(1, nullptr)) {
 					ObjectGroup* group = data->editor->loadGroup(data, i);
 					m_objectList->addItem(i.attribute("name"), group, Any(), Any(), true);
 					data->editor->createObjects(group);
+
+					for(auto& c: i.attributes()) {
+						if(customField(c.key, c.value)) group->customData[c.key] = c.value;
+					}
 				}
 			}
 		}
@@ -238,8 +424,9 @@ XMLElement ObjectEditor::save(const TerrainMap* context) const {
 		if(ObjectGroup* group = item.getValue<ObjectGroup*>(1, nullptr)) {
 			XMLElement& out = xml.add("group");
 			out.setAttribute("name", item.getText());
-			out.setAttribute("data", group->getData()->name);
+			out.setAttribute("groupdata", group->getData()->name);
 			group->getData()->editor->saveGroup(group, out);
+			for(auto& d: group->customData) out.setAttribute(d.key, d.value);
 
 			// Save generated items in group so games don't need the placement functions
 			for(Object* o: group->objects) {
@@ -253,9 +440,7 @@ XMLElement ObjectEditor::save(const TerrainMap* context) const {
 		if(!object) continue;
 		XMLElement& e = xml.add("object");
 		saveObject(e, object);
-
-		String data = item.getText(5);
-		if(!data.empty()) e.setAttribute("data", data.str());
+		for(auto& d: object->customData) e.setAttribute(d.key, d.value);
 	}
 
 	return xml;
@@ -710,10 +895,10 @@ void ObjectEditor::selectObject(Object* obj, bool append) {
 		else snprintf(model, 127, "%s : %d", file, item->getValue(3,0));
 
 		m_panel->getWidget<Textbox>("name")->setText(item->getText());
-		m_panel->getWidget<Textbox>("property")->setText(item->getText(5));
 		m_panel->getWidget<Label>("model")->setCaption(model);
 		m_panel->getWidget<Label>("modellabel")->setCaption("Model");
 		refreshTransform(obj);
+		displayCustomPropeties(obj->customData);
 	}
 
 	selectionChanged();
@@ -727,9 +912,9 @@ void ObjectEditor::selectObjectGroup(ObjectGroup* group) {
 		m_objectList->selectItem(item->getIndex());
 		m_objectList->ensureVisible(item->getIndex());
 		m_panel->getWidget<Textbox>("name")->setText(item->getText());
-		m_panel->getWidget<Textbox>("property")->setText(item->getText(5));
 		m_panel->getWidget<Label>("model")->setCaption(group->getData()->name);
 		m_panel->getWidget<Label>("modellabel")->setCaption("Template");
+		displayCustomPropeties(group->customData);
 		printf("Select object group %s\n", item->getText());
 	}
 	else printf("Select object group Unknown\n");
