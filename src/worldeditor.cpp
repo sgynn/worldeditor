@@ -129,7 +129,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_ac
 	m_camera = cam;
 
 	m_sky = m_scene->add(new SkyDome(m_options.distance*0.93), "Sky");
-	m_sky->setVisible(m_options.showSky);
+	m_sky->setVisible(false);
 
 	// Set up gui
 	Root::registerClass<FileDialog>();
@@ -577,6 +577,8 @@ void WorldEditor::createNewTerrain(int size) {
 	m_mapSize = size;
 	updateTitle();
 
+	m_sky->setVisible(m_options.showSky);
+
 	// Create terrain
 	m_terrain = new MapGrid( (size-1)*m_resolution, m_heightRange );
 	m_terrain->eventMapCreated.bind(this, &WorldEditor::textureMapCreated);
@@ -822,7 +824,7 @@ void WorldEditor::changeCollision(Button* b) {
 
 void WorldEditor::changeSkyVisibility(Button* b) {
 	m_options.showSky = b->isSelected();
-	m_sky->setVisible(m_options.showSky);
+	if(m_terrain) m_sky->setVisible(m_options.showSky);
 }
 
 void WorldEditor::saveSettings(gui::Window*) {
