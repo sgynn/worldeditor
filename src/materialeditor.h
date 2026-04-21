@@ -127,7 +127,7 @@ class MaterialEditor {
 	void colourPicked(const Colour&);
 	void colourFinish(const Colour&);
 
-	int  createTextureIcon(const char* name, const base::Image& dds);
+	int  createTextureIcon(const char* name, const base::Image& image);
 	void deleteTextureIcon(const char* name);
 
 	bool loadTexture(ArrayTexture* target, int layer, const char* file, bool icon=false);

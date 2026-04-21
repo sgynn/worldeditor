@@ -27,7 +27,7 @@ MaterialEditor::MaterialEditor(gui::Root* gui, FileSystem* fs, bool stream): m_s
 
 	// Create material icon list
 	m_textureIcons = new gui::IconList();
-	m_textureIconTexture = Texture::create(1024, 1024, Texture::BC1, 0, false);
+	m_textureIconTexture = Texture::create(1024, 1024, Texture::RGB8, 0, false);
 	int img = m_gui->getRenderer()->addImage("textureIcons", 1024, 1024, m_textureIconTexture.unit());
 	m_textureIcons->setImageIndex(img);
 	m_gui->addIconList("textureIcons", m_textureIcons);
@@ -351,15 +351,15 @@ const base::Texture& MaterialEditor::getHeightArray() const {
 	return m_heightMaps.getTexture();
 }
 base::Texture* MaterialEditor::getDiffuseMap(int index) const {
-	if(index > (int)m_flatTextures.size()) return nullptr;
+	if(index >= (int)m_flatTextures.size()) return nullptr;
 	return m_flatTextures[index].diffuse;
 }
 base::Texture* MaterialEditor::getNormalMap(int index) const {
-	if(index > (int)m_flatTextures.size()) return nullptr;
+	if(index >= (int)m_flatTextures.size()) return nullptr;
 	return m_flatTextures[index].normal;
 }
 base::Texture* MaterialEditor::getHeightMap(int index) const {
-	if(index > (int)m_flatTextures.size()) return nullptr;
+	if(index >= (int)m_flatTextures.size()) return nullptr;
 	return m_flatTextures[index].height;
 }
 
@@ -557,21 +557,101 @@ int MaterialEditor::createTextureIcon(const char* name, const Image& image) {
 		m_textureIcons->setIconRect(index, rect);
 		m_textureIcons->setIconName(index, name);
 	}
+
 	// Update image
 	if(!image) return index;
-	assert(image.isCompressed());
-	int skip = 0;
-	while(image.getWidth()>>skip > 64) ++skip;
-	if(image.getFormat()==Image::BC2 || image.getFormat()==Image::BC3) {
-		unsigned char* data = new unsigned char[64 * 64];
-		memcpy(data, image.getData(skip), 64 * 64);
-		data = removeDXTAlpha(data, 64, 64);
-		m_textureIconTexture.setPixels(rect.x, rect.y, rect.width, rect.height, Texture::BC1, data);
-		delete [] data;
+
+	
+	// TODO: Move this into Image class somehow
+	// perhaps Image::sampleARGB(x, y, mip=0);
+
+	static auto decodeBC1 = [](const Image::byte* p, int x, int y) {
+		int r0 = (p[1]>>3)*255/31, g0 = ((p[1]<<3|p[0]>>5)&0x3f)*255/63, b0 = (p[0]&0x1f)*255/31; // R5G6B5
+		int r1 = (p[3]>>3)*255/31, g1 = ((p[3]<<3|p[2]>>5)&0x3f)*255/63, b1 = (p[2]&0x1f)*255/31;
+		int k = (p[y+4] >> (x*2)) & 3; // 2bit lookup
+		switch(k) {
+		case 0: return r0 | g0<<8 | b0<<16;
+		case 1: return r1 | g1<<8 | b1<<16;
+		case 2: return (r0*2+r1)/3 | (g0*2+g1)/3 << 8 | (b0*2+b1)/3 << 16;
+		case 3: return (r0+r1*2)/3 | (g0+g1*2)/3 << 8 | (b0+b1*2)/3 << 16;
+		}
+		return 0;
+	};
+	static auto decodeBC4 = [](const Image::byte* p, int x, int y) {
+		int a=p[0], b=p[1];
+		uint64 bits = *(const uint64*)p;
+		int k = x + y*4;
+		int v = (bits >> (48 - k*3)) & 7; // 3bit lookup
+		assert(a>b); // skipped case (adds 00 and FF to table)
+		switch(v) {
+		case 0: return a;
+		case 1: return b;
+		case 2: return (a*6 + b*1) / 7;
+		case 3: return (a*5 + b*2) / 7;
+		case 4: return (a*4 + b*3) / 7;
+		case 5: return (a*3 + b*4) / 7;
+		case 6: return (a*2 + b*5) / 7;
+		case 7: return (a*1 + b*6) / 7;
+		}
+		return 0;
+	};
+
+	auto readPixel = [format=image.getFormat(), data=image.getData(), w=image.getWidth()](int x, int y) {
+		int result = 0;
+		switch(format) {
+		case Image::R8:
+			result = data[x+y*w];
+			result |= result << 8 | result << 16;
+			break;
+		case Image::RG8:
+			result = (x + y*w) * 2;
+			result = data[result] | data[result+1]<<8;
+			break;
+		case Image::RGB8:
+		case Image::RGBA8:
+			result = (x + y*w) * 3;
+			result = data[result] | data[result+1]<<8 | data[result+2]<<16;
+			break;
+		case Image::BC1:
+			result = (x/4) + (y/4) * ((w+7)/4); // block index
+			result = decodeBC1(data + result*8, x&3, y&3);
+			break;
+		case Image::BC2:
+		case Image::BC3:
+			result = (x/4) + (y/4) * ((w+7)/4); // block index
+			result = decodeBC1(data + result*16+8, x&3, y&3);
+			break;
+		case Image::BC4:
+			result = (x/4) + (y/4) * ((w+7)/4); // block index
+			result = decodeBC4(data + result*8, x&3, y&3);
+			result |= result<<8 | result<<16;
+			break;
+		case Image::BC5:
+			result = (x/4) + (y/4) * ((w+7)/4); // block index
+			result = decodeBC4(data + result*16, x&3, y&3) | decodeBC4(data+result*16+8, x&3, y&3)<<8;
+			break;
+		case Image::R16:
+			result = data[(x+y*w)*2];
+			result |= result << 8 | result << 16;
+			break;
+		default: break;
+		}
+		return result;
+	};
+
+	// Resample image
+	float scaleX = image.getWidth() / 64.f;
+	float scaleY = image.getHeight() / 64.f;
+	Image::byte* data = new Image::byte[64*64*3];
+	for(int x=0; x<64; ++x) for(int y=0; y<64;++y) {
+		int value = readPixel(floor(x*scaleX+0.5), floor(y*scaleY+0.5));
+		//int value = readPixel(x,y);
+		int d = x + y * 64;
+		memcpy(data + d*3, &value, 3);
 	}
-	else {
-		m_textureIconTexture.setPixels(rect.x, rect.y, rect.width, rect.height, Texture::BC1, image.getData(skip));
-	}
+	m_textureIconTexture.setPixels(rect.x, rect.y, rect.width, rect.height, Texture::RGB8, data);
+	delete [] data;
+
 	return index;
 }
 
@@ -588,6 +668,7 @@ bool MaterialEditor::loadTexture(ArrayTexture* array, int layer, const char* fil
 	if(!filename) return false;
 	String file = m_fileSystem->getFile(filename);
 	Image image = DDS::load( file );
+	if(!image) image = PNG::load(file);
 	if(image) {
 		// Image icon
 		if(icon) {
