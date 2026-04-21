@@ -83,6 +83,7 @@ class WorldEditor : public base::GameState {
 	void changeSpeed(gui::Scrollbar*, int);
 	void changeTabletMode(gui::Button*);
 	void changeCollision(gui::Button*);
+	void changeSkyVisibility(gui::Button*);
 	void saveSettings(gui::Window* =0);
 
 	void selectToolGroup(gui::Combobox*, gui::ListItem&);
@@ -115,6 +116,8 @@ class WorldEditor : public base::GameState {
 	bool  m_streaming;					// Use streaming editor
 	int   m_mapSize;					// Map size
 	float m_resolution;					// Map horizontal resolution
+
+	base::SceneNode* m_sky = nullptr;
 
 	gui::String m_terrainFile;
 	SaveFormat m_heightFormat;
@@ -171,6 +174,7 @@ class WorldEditor : public base::GameState {
 		bool  tabletMode;	// Mouse is not grabbed
 		float fov;			// Camera field of view
 		bool  escapeQuits;	// Escape quits program when no windows open
+		bool  showSky;		// Skydome
 	} m_options;
 	
 };

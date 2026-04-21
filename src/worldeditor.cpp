@@ -9,6 +9,7 @@
 #include <base/xml.h>
 
 #include <base/inifile.h>
+#include <base/world/skydome.h>
 
 #include "simple/heightmap.h"
 #include "dynamic/dynamicmap.h"
@@ -118,6 +119,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_ac
 	m_options.distance   = options.get("distance", 10000);
 	m_options.fov        = options.get("fov", 90.0f);
 	m_options.escapeQuits= options.get("escquit", false);
+	m_options.showSky    = options.get("sky", true);
 
 	// Run an fps camera for now
 	if(m_options.fov<=0) m_options.fov = 90; // causes nothing to appear but no errors
@@ -125,6 +127,9 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_ac
 	cam->setSpeed(m_options.speed, 0.004);
 	cam->lookat( vec3(10, 50, 10), vec3(100,0,100));
 	m_camera = cam;
+
+	m_sky = m_scene->add(new SkyDome(m_options.distance*0.93), "Sky");
+	m_sky->setVisible(m_options.showSky);
 
 	// Set up gui
 	Root::registerClass<FileDialog>();
@@ -185,6 +190,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_ac
 	BIND(Scrollbar, "cameraspeed",   eventChanged, changeSpeed);
 	BIND(Checkbox,  "tabletmode",    eventChanged, changeTabletMode);
 	BIND(Checkbox,  "collision",     eventChanged, changeCollision);
+	BIND(Checkbox,  "sky",           eventChanged, changeSkyVisibility);
 	BIND(gui::Window, "settings",    eventClosed,  saveSettings);
 
 	m_gui->getWidget<Scrollbar>("viewdistance")->setValue((m_options.distance - 1000) / 10);
@@ -192,6 +198,7 @@ WorldEditor::WorldEditor(const INIFile& ini) : m_materials(0), m_editor(0), m_ac
 	m_gui->getWidget<Scrollbar>("terraindetail")->setValue((16-m_options.detail)/15 * 1000);
 	m_gui->getWidget<Checkbox>("tabletmode")->setSelected(m_options.tabletMode);
 	m_gui->getWidget<Checkbox>("collision")->setSelected(m_options.collide);
+	m_gui->getWidget<Checkbox>("sky")->setSelected(m_options.showSky);
 
 	// Disable some buttons
 	DISABLE_BUTTON( "savemap" );
@@ -813,6 +820,11 @@ void WorldEditor::changeCollision(Button* b) {
 	m_options.collide = b->isSelected();
 }
 
+void WorldEditor::changeSkyVisibility(Button* b) {
+	m_options.showSky = b->isSelected();
+	m_sky->setVisible(m_options.showSky);
+}
+
 void WorldEditor::saveSettings(gui::Window*) {
 	INIFile ini = INIFile::load(appPath + INIFILE);
 	INIFile::Section& settings = ini["settings"];
@@ -821,6 +833,7 @@ void WorldEditor::saveSettings(gui::Window*) {
 	settings.set("detail",   m_options.detail);
 	settings.set("tablet",   m_options.tabletMode);
 	settings.set("collision",m_options.collide);
+	settings.set("sky",      m_options.showSky);
 	settings.set("fov",      m_options.fov);
 	settings.set("escquit",  m_options.escapeQuits);
 	ini.save(appPath + INIFILE);

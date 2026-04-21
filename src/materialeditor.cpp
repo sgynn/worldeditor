@@ -686,6 +686,8 @@ bool MaterialEditor::loadTexture(ArrayTexture* array, int layer, const char* fil
 		if(m_selectedMaterial>=0)
 			m_materials[m_selectedMaterial]->setTextures(this);
 
+		buildTextures();
+
 		return true;
 	}
 	else printf("Error: Failed to load %s\n", file.str());
