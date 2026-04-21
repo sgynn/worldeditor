@@ -313,6 +313,7 @@ void ObjectEditor::load(const XMLElement& e, const TerrainMap* context) {
 		base::StringView k = key;
 		if(k == "name" || k == "file" || k == "mesh") return false;
 		if(k == "scale" || k == "position" || k == "orientation") return false;
+		if(k == "groupdata") return false;
 		// Detect type from data - can change
 		DataType exists = m_dataFields.get(key, BOOL);
 		if(exists == STRING) return true;

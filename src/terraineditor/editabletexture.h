@@ -7,10 +7,10 @@
 
 #include "editor.h"
 #include <base/texture.h>
+#include <base/assert.h>
 #include <cstring>
 #include <map>
 #include <unordered_map>
-#include <assert.h>
 
 class TextureStream;
 class BufferedStream;
