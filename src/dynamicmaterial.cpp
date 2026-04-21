@@ -600,14 +600,14 @@ bool DynamicMaterial::compile() {
 	source +=
 	"\n\n\n// Main shader function\n"
 	"void main() {\n"
-	"	vec4 diffuse = vec4(1,1,1,1);\n"
-	"	vec4 normal = vec4(0,0,1,0);\n"
+	"	vec4 diffuse = vec4(1.0);\n"
+	"	vec4 normal = vec4(0.0,0.0,1.0,0.0);\n"
 	"	float gloss = 0.0;\n"
 	"	float height;\n"
 	"	float weight;\n"
 	"	vec4 diff, norm;\n"
 	"	vec3 triplanar = max( (abs(worldNormal) - 0.2) * 0.7, 0.0);\n"
-	"	triplanar /= dot(triplanar, vec3(1,1,1));\n"
+	"	triplanar /= dot(triplanar, vec3(1.0,1.0,1.0));\n"
 	"	vec3 autoValue = vec3(worldPos.y, 1.0 - worldNormal.y, 0.0);\n"
 	"	\n";
 
@@ -697,8 +697,8 @@ bool DynamicMaterial::compile() {
 			auto diffuseMap = [this, layer]() { return m_useTextureArrays?  str(layer->texture)+".0": "diffuseMap"+str(layer->texture) ; };
 			auto normalMap = [this, layer]() { return m_useTextureArrays?  str(layer->texture)+".0": "normalMap"+str(layer->texture) ; };
 			if(layer->texture == TEXTURE_COLOUR) source +=
-				"	diff = vec4(" + str(colour.r) + ", " + str(colour.g) + ", " + str(colour.b) + ", 0);\n"
-				"	norm = vec4(0, 0, 1, 0);\n";
+				"	diff = vec4(" + str(colour.r) + ", " + str(colour.g) + ", " + str(colour.b) + ", 0.0);\n"
+				"	norm = vec4(0.0, 0.0, 1.0, 0.0);\n";
 			else if(layer->projection == PROJECTION_VERTICAL) source +=
 				"	diff = sampleTriplanar("+diffuseMap()+", worldPos * scale"+index+", vertical);\n"
 				"	norm = sampleTriplanerNormal("+normalMap()+", worldPos * scale"+index+", worldNormal, vertical);\n"
@@ -722,7 +722,7 @@ bool DynamicMaterial::compile() {
 			break;
 		case BLEND_MULTIPLY:
 			source += 
-			"	diffuse *= mix(vec4(1,1,1,1), diff, weight * opacity" + index + ");\n";
+			"	diffuse *= mix(vec4(1.0), diff, weight * opacity" + index + ");\n";
 			break;
 		case BLEND_ADD:
 			source += 
@@ -744,7 +744,7 @@ bool DynamicMaterial::compile() {
 		source +=
 		"	// Lighting\n"
 		"	float l = dot(finalNormal, normalize(lightDirection));\n"
-		"	float s = (l+1)/1.3 * 0.2 + 0.1;\n"
+		"	float s = (l+1.0)/1.3 * 0.2 + 0.1;\n"
 		"	fragment = diffuse * max(l, s);\n"
 		"}\n";
 		break;
@@ -758,16 +758,16 @@ bool DynamicMaterial::compile() {
 		source +=
 		"	// Normal output\n"
 		"	vec3 output = finalNormal * 0.5 + 0.5;"
-		"	fragment = vec4(output, 1);\n"
+		"	fragment = vec4(output, 1.0);\n"
 		"}\n";
 		break;
 	case LIGHTING:
 		source +=
 		"	// Lighting\n"
 		"	float l = dot(finalNormal, normalize(lightDirection));\n"
-		"	float s = (l+1)/1.3 * 0.2 + 0.1;\n"
+		"	float s = (l+1.0)/1.3 * 0.2 + 0.1;\n"
 		"	l = max(l, s);\n"
-		"	fragment = vec4(l,l,l,1);\n"
+		"	fragment = vec4(l,l,l,1.0);\n"
 		"}\n";
 		break;
 	}
