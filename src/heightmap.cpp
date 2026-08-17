@@ -95,8 +95,12 @@ int MapGrid::getMaps(unsigned id, const Brush& brush, EditableMap** maps, vec3* 
 	return result;
 }
 
+void MapGrid::setTerrainResolution(float res) {
+	m_terrainResolution = res;
+}
+
 float MapGrid::getResolution(unsigned id) const {
-	if(id==0) return 1; // Need Heightmap resolution.
+	if(id==0) return m_terrainResolution;
 	if(id<m_mapDefinitions.size() && m_mapDefinitions[id].size) {
 		return m_gridSize / m_mapDefinitions[id].size;
 	}

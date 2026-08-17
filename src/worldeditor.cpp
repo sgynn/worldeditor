@@ -511,7 +511,7 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	SaveFormat formats[] = { SaveFormat::RAW, SaveFormat::TIF16, SaveFormat::PNG16  };
 	m_heightFormat = formats[mode];
 	m_streaming = false; // This could be in the options ?
-	m_resolution = 1;
+	m_resolution = panel->getWidget<SpinboxFloat>("resolution")->getValue();
 	if(hmin >= hmax) m_heightRange.set(-1e8f, 1e8f);
 	else m_heightRange.set(hmin, hmax);
 
@@ -592,6 +592,7 @@ void WorldEditor::createNewTerrain(int size) {
 	// Create terrain
 	m_terrain = new MapGrid( (size-1)*m_resolution, m_heightRange );
 	m_terrain->eventMapCreated.bind(this, &WorldEditor::textureMapCreated);
+	m_terrain->setTerrainResolution(m_resolution);
 	m_scene->add(m_terrain);
 
 
@@ -1080,6 +1081,7 @@ TerrainMap* WorldEditor::createTile(const char* name) {
 	}
 	map->heightMap->setMaterial(m_materials->getMaterial(), map->maps);
 	map->heightMap->setHeightRange(m_heightRange);
+	map->heightMap->setResolution(m_resolution);
 	map->size = m_mapSize;
 	map->name = name;
 	map->locked = false;
@@ -1208,6 +1210,7 @@ void WorldEditor::saveWorld(const char* file) {
 	xml.getRoot().setAttribute("mapsize", m_mapSize);
 	xml.getRoot().setAttribute("min", m_heightRange.min);
 	xml.getRoot().setAttribute("max", m_heightRange.max);
+	if(m_resolution != 1) xml.getRoot().setAttribute("resolution", m_resolution);
 	if(m_root) xml.getRoot().setAttribute("root", m_root);
 
 	// Terrain
@@ -1322,8 +1325,10 @@ void WorldEditor::loadWorld(const char* file) {
 	m_streaming = false;
 	m_resolution = 1;
 	m_heightRange.set(xml.getRoot().attribute("min",0.f), xml.getRoot().attribute("max", 0.f));
+	m_resolution = xml.getRoot().attribute("resolution", 1.f);
 
 	createNewTerrain(m_mapSize);
+	m_terrain->setTerrainResolution(m_resolution);
 	m_fileSystem->setRootPath(file, true);
 	m_file = file;
 

@@ -22,6 +22,7 @@ class HeightmapInterface {
 	virtual void getData(float* out) const = 0;
 	virtual size_t getDataSize() const = 0;
 	virtual void setHeightRange(const Rangef&) {}
+	virtual void setResolution(float) = 0;
 };
 
 
@@ -47,6 +48,7 @@ class MapGrid : public TerrainEditorDataInterface, public base::SceneNode {
 	int trace(const Ray& ray, float& t) const override;
 	float getHeight(const vec3&) const override;
 	float getResolution(unsigned id) const override;
+	void setTerrainResolution(float);
 
 	public:
 	const Range& getHeightRange() const { return m_heightRange; }
@@ -79,5 +81,6 @@ class MapGrid : public TerrainEditorDataInterface, public base::SceneNode {
 	BoundingBox m_bounds;
 	Range m_heightRange;
 	float m_gridSize;
+	float m_terrainResolution = 1;
 };
 

@@ -67,6 +67,7 @@ DynamicMaterial::DynamicMaterial(bool stream, bool arrays) : m_streaming(stream)
 	m_material = new Material();
 	m_material->addPass()->setShader(shader);
 	m_material->getPass(0)->addShared(m_vars);
+//	m_material->getPass(0)->state.wireframe = true;
 }
 
 DynamicMaterial::~DynamicMaterial() {

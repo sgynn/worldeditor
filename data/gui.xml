@@ -3,12 +3,13 @@
 	<!--Font list-->
 	<font name="helvetica" size="24"/>
 	<!--Generated Images-->
-	<genimage radius="0" name="default" core="2 2" line="1">
+	<genimage glyphs="16" name="glyphs"/>
+	<genimage name="default" core="2 2" line="1">
 		<state back="#800d1241" name="normal" line="#ff061cd5"/>
 		<state back="#80000020" name="disabled" line="#ff004050"/>
 		<state back="#800d1241" name="selected normal" line="#ffffff00"/>
 	</genimage>
-	<genimage radius="0" name="button" core="2 2" line="1">
+	<genimage name="button" core="2 2" line="1">
 		<state back="#ff0060c0" name="normal" line="#ff0060c0"/>
 		<state back="#ff40a080" name="selected normal" line="#ff40a080"/>
 	</genimage>
@@ -76,6 +77,15 @@
 		<state coord="12 4 4 4" name="selected disabled"/>
 	</skin>
 	<!--Icon sets-->
+	<iconlist name="glyphs">
+		<image file="glyphs"/>
+		<icon rect="2 4 13 8" name="up"/>
+		<icon rect="18 5 13 8" name="down"/>
+		<icon rect="36 2 8 13" name="left"/>
+		<icon rect="5 18 8 13" name="right"/>
+		<icon rect="18 18 13 13" name="dot"/>
+		<icon rect="35 19 12 12" name="cross"/>
+	</iconlist>
 	<iconlist name="icons">
 		<image file="data/gui.png"/>
 		<icon rect="16 0 16 16" name="scroll_up"/>
@@ -124,24 +134,24 @@
 		<icon rect="160 96 32 32" name="sphere"/>
 	</iconlist>
 	<!--Templates-->
-	<template class="Image" group="icons" rect="0 0 32 32" name="icon" skin="panel" category="Display"/>
+	<template skin="panel" class="Image" rect="0 0 32 32" name="icon" group="icons" category="Display"/>
 	<template class="Button" rect="0 0 32 32" name="iconbutton" skin="button">
-		<widget anchor="tlrb" class="Image" group="icons" rect="0 0 32 32" name="_icon" skin="button" inheritstate="1"/>
+		<widget anchor="tlrb" class="Image" inheritstate="1" group="icons" rect="0 0 32 32" skin="button" name="_icon"/>
 	</template>
 	<template class="Window" rect="0 0 100 100" name="dialog">
-		<widget anchor="tr" template="iconbutton" name="_close" rect="84 0 16 16" image="close_dialog"/>
+		<widget anchor="tr" image="close_dialog" template="iconbutton" name="_close" rect="84 0 16 16"/>
 		<widget anchor="tlr" class="Button" rect="10 0 70 20" name="_caption" skin="titlebar"/>
 		<widget anchor="tlrb" rect="5 22 90 73" name="_client"/>
 		<widget anchor="br" rect="90 90 10 10" name="_sizebr" skin="button"/>
 	</template>
 	<template class="Spinbox" rect="0 0 60 20" name="spinbox">
 		<widget anchor="tlrb" class="Textbox" rect="0 0 44 20" name="_text"/>
-		<widget anchor="trm" template="iconbutton" name="_inc" image="scroll_up" rect="44 0 16 10"/>
-		<widget anchor="brm" template="iconbutton" name="_dec" image="scroll_down" rect="44 10 16 10"/>
+		<widget anchor="trm" image="scroll_up" template="iconbutton" name="_inc" rect="44 0 16 10"/>
+		<widget anchor="brm" image="scroll_down" template="iconbutton" name="_dec" rect="44 10 16 10"/>
 	</template>
 	<template class="Scrollbar" rect="0 0 16 100" name="vscroll">
-		<widget anchor="tlr" template="iconbutton" name="_dec" rect="0 0 16 16" image="scroll_up"/>
-		<widget anchor="blr" template="iconbutton" name="_inc" rect="0 84 16 16" image="scroll_down"/>
+		<widget anchor="tlr" image="scroll_up" template="iconbutton" name="_dec" rect="0 0 16 16"/>
+		<widget anchor="blr" image="scroll_down" template="iconbutton" name="_inc" rect="0 84 16 16"/>
 		<widget anchor="tlrb" rect="0 16 16 68" name="_track">
 			<widget anchor="lr" class="Button" rect="0 0 16 24" name="_block" skin="button"/>
 		</widget>
@@ -153,16 +163,10 @@
 	<template class="Listbox" rect="0 0 100 100" name="iconlistbox">
 		<widget anchor="tlrb" rect="0 0 85 100" name="_client"/>
 		<widget anchor="trb" template="vscroll" name="_scroll" rect="84 0 16 100"/>
-		<widget name="_item" rect="0 0 100 20"  tangible="2" anchor="lr" skin="none">
-			<widget name="_0" class="Label" skin="listitem" rect="20 0 80 20" inheritstate="1"/>
-			<widget name="_1" template="icon" rect="2 2 16 16"/>
+		<widget anchor="lr" tangible="2" rect="0 0 100 20" name="_item" skin="none">
+			<widget inheritstate="1" class="Label" rect="20 0 80 20" name="_0" skin="listitem"/>
+			<widget template="icon" name="_1" rect="2 2 16 16"/>
 		</widget>
-	</template>
-	<template class="TreeView" rect="0 0 100 100" name="tree" skin="panel" category="Lists">
-		<widget anchor="tlrb" rect="1 1 86 98" name="_client" skin="none"/>
-		<widget anchor="trb" template="vscroll" name="_scroll" rect="87 0 13 100"/>
-		<widget rect="0 6 8 8" name="_expand" skin="panel"/>
-		<widget class="Label" rect="0 0 100 20" name="_item" skin="listitem"/>
 	</template>
 	<template max="1000" class="Scrollbar" rect="0 0 100 16" name="slider" skin="none" orientation="horizontal">
 		<widget anchor="mlr" inheritstate="1" tangible="0" rect="0 6 100 4" skin="button"/>
@@ -173,14 +177,14 @@
 		<widget anchor="tlrb" rect="0 0 84 100" name="_client"/>
 	</template>
 	<template class="Combobox" rect="0 0 100 32" name="toolgrouplist" skin="darkbutton">
-		<widget class="Image" group="icons" rect="4 0 32 32" name="_icon" image="-1" tangible="0"/>
+		<widget class="Image" image="-1" rect="4 0 32 32" name="_icon" group="icons" tangible="0"/>
 		<widget class="Label" rect="38 6 62 20" name="_text"/>
 		<widget anchor="blr" class="Listbox" rect="0 32 100 100" name="_list">
 			<widget anchor="tlrb" rect="0 0 85 100" name="_client"/>
 			<widget anchor="trb" template="vscroll" name="_scroll" rect="84 0 16 100"/>
-			<widget name="_item" rect="0 0 84 32" tangible="0" skin="none" anchor="lr">
-				<widget anchor="lr" rect="38 6 67 20" class="Label" name="_0" skin="none"/>
-				<widget class="Image" group="icons" rect="4 0 32 32" name="_2"/>
+			<widget anchor="lr" tangible="0" rect="0 0 84 32" name="_item" skin="none">
+				<widget anchor="lr" class="Label" rect="38 6 67 20" name="_0" skin="none"/>
+				<widget class="Image" rect="4 0 32 32" name="_2" group="icons"/>
 			</widget>
 		</widget>
 	</template>
@@ -188,8 +192,21 @@
 		<widget anchor="lrtb" class="Label" rect="0 0 100 20" name="_text" skin="none"/>
 		<widget anchor="lrb" class="Listbox" rect="0 20 100 100" name="_list" skin="default"/>
 	</template>
+	<template class="Button" name="button" skin="button" category="Input"/>
+	<template anchor="lt" class="Widget" layout="VerticalLayout" rect="36 36 24 24" skin="none" category="Input" name="updown">
+		<widget anchor="lrtb" template="button" name="_inc" rect="0 0 24 12">
+			<widget anchor="cm" group="glyphs" rect="5 3 13 8" template="icon" skin="button" image="0" name="_icon" autosize="1"/>
+		</widget>
+		<widget anchor="lrtb" template="button" name="_dec" rect="0 12 24 12">
+			<widget anchor="cm" group="glyphs" rect="5 3 13 8" template="icon" skin="button" image="1" name="_icon" autosize="1"/>
+		</widget>
+	</template>
+	<template step="0.1" class="SpinboxFloat" rect="0 0 60 20" name="spinboxf" skin="panel" category="Input">
+		<widget anchor="tlrb" class="Textbox" rect="0 0 44 20" name="_text" skin="panel"/>
+		<widget anchor="trb" template="updown" rect="44 0 16 20"/>
+	</template>
 	<template anchor="lrt" class="Widget" rect="290 607 216 100" name="textureitem" skin="border">
-		<widget class="Image" rect="4 4 92 92" name="textureicon" skin="default" tangible="0"/>
+		<widget class="Image" tangible="0" rect="4 4 92 92" name="textureicon" skin="default"/>
 		<widget anchor="lrt" class="Textbox" hint="Name" name="texturename" skin="default" rect="100 2 108 20"/>
 		<widget tip="Diffuse map" class="Textbox" anchor="lrt" hint="Diffuse" rect="100 24 92 20" skin="default" name="diffuse"/>
 		<widget anchor="rt" class="Button" rect="192 24 16 20" name="browse_diffuse" caption="..." skin="button"/>
@@ -200,11 +217,11 @@ Metalness, Roughness, Glow, Height" class="Textbox" anchor="lrt" hint="Property"
 		<widget anchor="rt" class="Button" rect="192 60 16 20" name="browse_height" caption="..." skin="button"/>
 		<widget tip="Texture Scale" class="Scrollbar" anchor="lrt" rect="100 78 108 20" name="tiling" skin="none"/>
 	</template>
-	<template class="ToolButton" group="icons" rect="0 0 34 34" name="menuoption" skin="darkbutton">
-		<widget anchor="tlrb" class="Image" group="icons" rect="1 1 32 32" name="_icon"/>
+	<template class="ToolButton" rect="0 0 34 34" name="menuoption" group="icons" skin="darkbutton">
+		<widget anchor="tlrb" class="Image" rect="1 1 32 32" name="_icon" group="icons"/>
 	</template>
 	<template class="Window" rect="0 0 100 100" name="dialogfixed">
-		<widget anchor="tr" template="iconbutton" name="_close" rect="84 0 16 16" image="close_dialog"/>
+		<widget anchor="tr" image="close_dialog" template="iconbutton" name="_close" rect="84 0 16 16"/>
 		<widget anchor="tlr" class="Button" rect="10 0 70 20" name="_caption" skin="titlebar"/>
 		<widget anchor="tlrb" rect="5 22 90 73" name="_client"/>
 	</template>
@@ -218,88 +235,90 @@ Metalness, Roughness, Glow, Height" class="Textbox" anchor="lrt" hint="Property"
 		</widget>
 	</template>
 	<template class="Button" rect="0 0 32 32" name="iconbuttondark" skin="darkbutton">
-		<widget anchor="tlrb" class="Image" group="icons" rect="0 0 32 32" name="_icon"/>
+		<widget anchor="tlrb" class="Image" rect="0 0 32 32" name="_icon" group="icons"/>
 	</template>
 	<template anchor="tlr" class="OrderableItem" rect="0 0 232 120" name="materiallayer" skin="border">
-		<widget anchor="tr" template="iconbutton" name="expand" image="scroll_up" rect="215 1 16 16"/>
-		<widget anchor="tr" template="iconbutton" name="visibility" image="eye_open" rect="199 1 16 16"/>
+		<widget anchor="tr" image="scroll_up" template="iconbutton" name="expand" rect="215 1 16 16"/>
+		<widget anchor="tr" image="eye_open" template="iconbutton" name="visibility" rect="199 1 16 16"/>
 		<widget anchor="tlr" class="Textbox" inheritstate="1" rect="32 0 160 20" skin="border" text="Name" name="layername"/>
-		<widget class="Image" group="icons" rect="0 0 26 26" name="typeicon" tangible="0"/>
+		<widget class="Image" tangible="0" rect="0 0 26 26" name="typeicon" group="icons"/>
 	</template>
 	<!--Widget Layout-->
-	<widget rect="300 300 300 200" visible="0" template="dialog" name="messagebox" caption="Message" skin="default">
+	<widget anchor="lt" visible="0" rect="300 300 300 200" template="dialog" skin="default" name="messagebox" caption="Message">
 		<widget anchor="lrtb" class="Label" rect="10 10 280 140" name="message" skin="default"/>
 		<widget anchor="cb" class="Button" rect="130 150 40 20" name="button" caption="Ok" skin="button"/>
 	</widget>
-	<widget visible="0" class="FileDialog" template="dialog" name="filedialog" skin="default" rect="100 100 500 228">
+	<widget anchor="lt" visible="0" class="FileDialog" template="dialog" name="filedialog" skin="default" rect="100 100 500 228">
 		<widget anchor="lrt" class="Textbox" rect="0 0 428 20" name="path" skin="default"/>
-		<widget rect="428 0 20 20" anchor="rt" template="iconbutton" name="up" image="file_up" skin="panel"/>
-		<widget rect="448 0 20 20" anchor="rt" template="iconbutton" name="back" image="file_back" skin="panel"/>
-		<widget rect="468 0 20 20" anchor="rt" template="iconbutton" name="fwd" image="file_forward" skin="panel"/>
+		<widget anchor="rt" image="file_up" template="iconbutton" name="up" skin="panel" rect="428 0 20 20"/>
+		<widget anchor="rt" template="iconbutton" rect="448 0 20 20" skin="panel" image="file_back" name="back" enabled="0"/>
+		<widget anchor="rt" template="iconbutton" rect="468 0 20 20" skin="panel" image="file_forward" name="fwd" enabled="0"/>
 		<widget anchor="lrtb" template="iconlistbox" name="filelist" skin="default" rect="0 20 490 160"/>
 		<widget anchor="lrb" class="Textbox" rect="0 180 408 20" name="filename" skin="default"/>
-		<widget anchor="rb" class="Button" rect="408 180 80 20" name="confirm" caption="Open" skin="button"/>
+		<widget anchor="rb" class="Button" rect="408 180 80 20" skin="button" name="confirm" caption="Open" enabled="0"/>
 	</widget>
-	<widget rect="100 100 224 168" visible="0" template="dialogfixed" name="newdialog" caption="New Terrain" skin="default">
-		<widget class="Label" rect="8 40 56 20" caption="Size" skin="default"/>
-		<widget class="Label" rect="8 16 48 20" caption="Format" skin="default"/>
-		<widget anchor="rt" class="Button" rect="80 114 56 20" name="create" caption="Create" skin="button"/>
-		<widget anchor="rt" class="Button" rect="144 114 56 20" name="cancel" caption="Cancel" skin="button"/>
-		<widget class="Label" rect="8 64 56 20" caption="Source" skin="default"/>
-		<widget anchor="lrt" class="Textbox" rect="64 64 120 20" name="source" skin="default"/>
-		<widget anchor="rt" class="Button" rect="184 64 16 20" name="sourcebutton" caption="..." skin="button"/>
-		<widget anchor="lrt" template="droplist" name="mode" skin="panel" rect="64 16 136 20">
+	<widget anchor="lt" visible="0" rect="100 100 260 193" template="dialogfixed" skin="default" name="newdialog" caption="New Terrain">
+		<widget anchor="lt" class="Label" rect="8 40 56 20" caption="Size" skin="default"/>
+		<widget anchor="lt" class="Label" rect="8 16 48 20" caption="Format" skin="default"/>
+		<widget anchor="rt" class="Button" rect="116 138 56 20" name="create" caption="Create" skin="button"/>
+		<widget anchor="rt" class="Button" rect="180 138 56 20" name="cancel" caption="Cancel" skin="button"/>
+		<widget anchor="lt" class="Label" rect="8 64 56 20" caption="Source" skin="default"/>
+		<widget anchor="lrt" class="Textbox" rect="64 64 156 20" name="source" skin="default"/>
+		<widget anchor="rt" class="Button" rect="220 64 16 20" name="sourcebutton" caption="..." skin="button"/>
+		<widget anchor="lrt" template="droplist" name="mode" skin="panel" rect="64 16 172 20">
 			<item>Raw Float</item>
 			<item>Tiff 16bit</item>
 		</widget>
-		<widget anchor="lrt" template="droplist" name="size" skin="panel" rect="64 40 136 20"/>
-		<widget class="Label" rect="8 88 56 20" caption="Range" skin="default"/>
-		<widget max="10000" anchor="lrt" rect="64 88 65 20" template="spinbox" min="-1000" skin="panel" name="minheight"/>
-		<widget max="10000" anchor="lrt" template="spinbox" rect="133 88 68 20" min="-1000" skin="panel" value="300" name="maxheight"/>
+		<widget anchor="lrt" template="droplist" name="size" skin="panel" rect="64 40 172 20"/>
+		<widget anchor="lt" class="Label" rect="8 88 56 20" caption="Range" skin="default"/>
+		<widget max="10000" anchor="lrt" rect="64 88 101 20" template="spinbox" min="-1000" skin="panel" name="minheight"/>
+		<widget max="10000" anchor="lrt" template="spinbox" rect="133 88 104 20" min="-1000" skin="panel" value="300" name="maxheight"/>
+		<widget anchor="lt" class="Label" rect="8 112 56 20" caption="Resolution" skin="default"/>
+		<widget rect="87 112 150 20" anchor="lrt" value="1" name="resolution" min="0.001" template="spinboxf"/>
 	</widget>
-	<widget rect="100 100 280 180" visible="0" template="dialogfixed" name="settings" caption="Settings" skin="default">
-		<widget class="Label" rect="8 8 104 20" caption="View Distance" skin="default"/>
-		<widget class="Label" rect="8 32 100 20" caption="Terrain Detail" skin="default"/>
-		<widget class="Label" rect="8 56 104 20" caption="Camera speed" skin="default"/>
-		<widget class="Label" rect="8 80 100 20" caption="Tablet Mode" skin="default"/>
-		<widget class="Label" rect="8 104 100 20" caption="Collision" skin="default"/>
-		<widget class="Label" rect="8 128 100 20" caption="Sky" skin="default"/>
-		<widget class="Checkbox" rect="120 80 16 16" name="tabletmode" skin="button"/>
-		<widget class="Checkbox" rect="120 104 16 16" name="collision" skin="button"/>
-		<widget class="Checkbox" rect="120 128 16 16" name="sky" skin="button"/>
+	<widget anchor="lt" visible="0" rect="100 100 280 180" template="dialogfixed" skin="default" name="settings" caption="Settings">
+		<widget anchor="lt" class="Label" rect="8 8 104 20" caption="View Distance" skin="default"/>
+		<widget anchor="lt" class="Label" rect="8 32 100 20" caption="Terrain Detail" skin="default"/>
+		<widget anchor="lt" class="Label" rect="8 56 104 20" caption="Camera speed" skin="default"/>
+		<widget anchor="lt" class="Label" rect="8 80 100 20" caption="Tablet Mode" skin="default"/>
+		<widget anchor="lt" class="Label" rect="8 104 100 20" caption="Collision" skin="default"/>
+		<widget anchor="lt" class="Label" rect="8 128 100 20" caption="Sky" skin="default"/>
+		<widget anchor="lt" class="Checkbox" rect="120 80 16 16" name="tabletmode" skin="button"/>
+		<widget anchor="lt" class="Checkbox" rect="120 104 16 16" name="collision" skin="button"/>
+		<widget anchor="lt" class="Checkbox" rect="120 128 16 16" name="sky" skin="button"/>
 		<widget anchor="lrt" template="slider" name="viewdistance" rect="120 8 144 16"/>
 		<widget anchor="lrt" template="slider" name="terraindetail" rect="120 32 144 16"/>
 		<widget anchor="lrt" template="slider" name="cameraspeed" min="10" rect="120 56 144 16"/>
 	</widget>
-	<widget class="Widget" rect="0 0 172 36" name="mainmenu" skin="default">
-		<widget template="iconbuttondark" name="newmap" image="new" rect="2 2 32 32"/>
-		<widget template="iconbuttondark" name="openmap" image="open" rect="36 2 32 32"/>
-		<widget template="iconbuttondark" name="savemap" image="save" rect="70 2 32 32"/>
-		<widget template="iconbuttondark" name="options" image="options" rect="104 2 32 32"/>
-		<widget template="iconbuttondark" name="minimap" image="map" rect="138 2 32 32"/>
+	<widget anchor="lt" class="Widget" rect="0 0 172 36" name="mainmenu" skin="default">
+		<widget anchor="lt" image="new" template="iconbuttondark" name="newmap" rect="2 2 32 32"/>
+		<widget anchor="lt" image="open" template="iconbuttondark" name="openmap" rect="36 2 32 32"/>
+		<widget anchor="lt" image="save" template="iconbuttondark" name="savemap" rect="70 2 32 32"/>
+		<widget anchor="lt" image="options" template="iconbuttondark" name="options" rect="104 2 32 32"/>
+		<widget anchor="lt" image="map" template="iconbuttondark" name="minimap" rect="138 2 32 32"/>
 	</widget>
 	<widget anchor="lrt" class="Widget" layout="HorizontalLayout" margin="2" rect="174 0 906 36" skin="default" name="toolshelf" spacing="1">
-		<widget template="iconbuttondark" name="texturebutton" image="texture" rect="2 2 32 32"/>
-		<widget template="iconbuttondark" name="materialbutton" image="material" rect="35 2 32 32"/>
-		<widget template="toolgrouplist" name="toollist" rect="68 2 160 32"/>
+		<widget anchor="lt" image="texture" template="iconbuttondark" name="texturebutton" rect="2 2 32 32"/>
+		<widget anchor="lt" image="material" template="iconbuttondark" name="materialbutton" rect="35 2 32 32"/>
+		<widget anchor="lt" template="toolgrouplist" name="toollist" rect="68 2 160 32"/>
 	</widget>
 	<widget anchor="rt" class="Widget" rect="1080 0 200 56" name="brushinfo" skin="default">
-		<widget class="Label" rect="2 2 60 20" caption="Size" skin="default"/>
-		<widget class="Label" rect="2 20 60 20" caption="Weight" skin="default"/>
-		<widget class="Label" rect="2 38 60 20" caption="Falloff" skin="default"/>
-		<widget template="slider" name="brushsize" rect="60 2 130 16"/>
-		<widget template="slider" name="brushstrength" rect="60 20 130 16"/>
-		<widget template="slider" name="brushfalloff" rect="60 38 130 16"/>
+		<widget anchor="lt" class="Label" rect="2 2 60 20" caption="Size" skin="default"/>
+		<widget anchor="lt" class="Label" rect="2 20 60 20" caption="Weight" skin="default"/>
+		<widget anchor="lt" class="Label" rect="2 38 60 20" caption="Falloff" skin="default"/>
+		<widget anchor="lt" template="slider" name="brushsize" rect="60 2 130 16"/>
+		<widget anchor="lt" template="slider" name="brushstrength" rect="60 20 130 16"/>
+		<widget anchor="lt" template="slider" name="brushfalloff" rect="60 38 130 16"/>
 	</widget>
-	<widget rect="800 100 140 160" visible="0" template="dialog" name="worldmap" caption="Map" skin="default">
+	<widget anchor="lt" visible="0" rect="800 100 140 160" template="dialog" skin="default" name="worldmap" caption="Map">
 		<widget anchor="lrtb" class="Image" rect="1 1 128 128" name="mapimage" skin="default">
-			<widget class="Image" group="icons" rect="0 0 16 16" name="mapmarker" image="direction" skin="default" tangible="0"/>
+			<widget anchor="lt" class="Image" group="icons" rect="0 0 16 16" skin="default" image="direction" name="mapmarker" tangible="0"/>
 		</widget>
 	</widget>
-	<widget rect="400 100 400 500" visible="0" template="dialog" name="materials" caption="Materials" skin="default">
-		<widget class="Label" rect="8 8 64 20" caption="Material" skin="default"/>
+	<widget anchor="lt" visible="0" rect="400 100 400 500" template="dialog" skin="default" name="materials" caption="Materials">
+		<widget anchor="lt" class="Label" rect="8 8 64 20" caption="Material" skin="default"/>
 		<widget anchor="lrt" template="combobox" name="materiallist" skin="panel" rect="72 8 310 20"/>
-		<widget class="Label" rect="16 32 64 20" caption="Mode" skin="default"/>
+		<widget anchor="lt" class="Label" rect="16 32 64 20" caption="Mode" skin="default"/>
 		<widget anchor="lrt" template="droplist" name="materialmodes" skin="panel" rect="72 32 310 20">
 			<item>Composite</item>
 			<item>Diffuse</item>
@@ -318,38 +337,38 @@ Metalness, Roughness, Glow, Height" class="Textbox" anchor="lrt" hint="Property"
 		</widget>
 		<widget anchor="rb" class="Button" rect="288 448 96 20" name="removelayer" caption="Delete Layer" skin="button"/>
 	</widget>
-	<widget rect="100 100 256 400" visible="0" template="dialog" name="textures" caption="Textures" skin="default">
+	<widget anchor="lt" visible="0" rect="100 100 256 400" template="dialog" skin="default" name="textures" caption="Textures">
 		<widget anchor="lrtb" template="scrollpane" name="texturelist" skin="panel" rect="0 0 246 336"/>
 		<widget anchor="rb" class="Button" rect="16 344 56 20" name="addtexture" caption="Add" skin="button"/>
 		<widget anchor="rb" class="Button" rect="80 344 64 20" name="removetexture" caption="Remove" skin="button"/>
 		<widget anchor="rb" class="Button" rect="152 344 72 20" name="reloadtexture" caption="Reload" skin="button"/>
 	</widget>
-	<widget visible="0" class="ColourPicker" template="dialogfixed" name="picker" skin="default" rect="200 300 368 208">
-		<widget class="Image" rect="8 8 160 160" name="swatch" skin="default"/>
-		<widget class="Image" rect="168 8 24 160" name="lum" skin="default"/>
-		<widget class="Widget" rect="208 8 48 24" name="colour" skin="white"/>
-		<widget class="Widget" rect="256 8 48 24" name="previous" skin="white"/>
-		<widget class="Label" rect="208 40 16 20" caption="R" skin="default"/>
-		<widget class="Label" rect="208 64 16 20" caption="G" skin="default"/>
-		<widget class="Label" rect="208 88 16 20" caption="B" skin="default"/>
-		<widget class="Label" rect="280 40 16 20" caption="H" skin="default"/>
-		<widget class="Label" rect="280 64 16 20" caption="S" skin="default"/>
-		<widget class="Label" rect="280 88 16 20" caption="V" skin="default"/>
-		<widget class="Textbox" text="000000" name="hex" skin="default" rect="224 120 120 20"/>
-		<widget class="Label" rect="208 120 16 20" caption="#" skin="default"/>
-		<widget class="Button" rect="208 152 60 21" name="ok" caption="OK" skin="button"/>
-		<widget class="Button" rect="272 152 72 20" name="cancel" caption="Cancel" skin="button"/>
-		<widget max="255" template="spinbox" name="r" skin="panel" rect="224 40 48 20"/>
-		<widget max="255" template="spinbox" name="g" skin="panel" rect="224 64 48 20"/>
-		<widget max="255" template="spinbox" name="b" skin="panel" rect="224 88 48 20"/>
-		<widget max="360" template="spinbox" name="h" skin="panel" rect="296 40 48 20"/>
-		<widget template="spinbox" name="s" skin="panel" rect="296 64 48 20"/>
-		<widget template="spinbox" name="v" skin="panel" rect="296 88 48 20"/>
+	<widget anchor="lt" visible="0" template="dialogfixed" name="picker" skin="default" rect="200 300 368 208">
+		<widget anchor="lt" class="Image" rect="8 8 160 160" name="swatch" skin="default"/>
+		<widget anchor="lt" class="Image" rect="168 8 24 160" name="lum" skin="default"/>
+		<widget anchor="lt" class="Widget" rect="208 8 48 24" name="colour" skin="white"/>
+		<widget anchor="lt" class="Widget" rect="256 8 48 24" name="previous" skin="white"/>
+		<widget anchor="lt" class="Label" rect="208 40 16 20" caption="R" skin="default"/>
+		<widget anchor="lt" class="Label" rect="208 64 16 20" caption="G" skin="default"/>
+		<widget anchor="lt" class="Label" rect="208 88 16 20" caption="B" skin="default"/>
+		<widget anchor="lt" class="Label" rect="280 40 16 20" caption="H" skin="default"/>
+		<widget anchor="lt" class="Label" rect="280 64 16 20" caption="S" skin="default"/>
+		<widget anchor="lt" class="Label" rect="280 88 16 20" caption="V" skin="default"/>
+		<widget anchor="lt" class="Textbox" text="000000" name="hex" skin="default" rect="224 120 120 20"/>
+		<widget anchor="lt" class="Label" rect="208 120 16 20" caption="#" skin="default"/>
+		<widget anchor="lt" class="Button" rect="208 152 60 21" name="ok" caption="OK" skin="button"/>
+		<widget anchor="lt" class="Button" rect="272 152 72 20" name="cancel" caption="Cancel" skin="button"/>
+		<widget max="255" anchor="lt" template="spinbox" name="r" skin="panel" rect="224 40 48 20"/>
+		<widget max="255" anchor="lt" template="spinbox" name="g" skin="panel" rect="224 64 48 20"/>
+		<widget max="255" anchor="lt" template="spinbox" name="b" skin="panel" rect="224 88 48 20"/>
+		<widget max="360" anchor="lt" template="spinbox" name="h" skin="panel" rect="296 40 48 20"/>
+		<widget anchor="lt" template="spinbox" name="s" skin="panel" rect="296 64 48 20"/>
+		<widget anchor="lt" template="spinbox" name="v" skin="panel" rect="296 88 48 20"/>
 	</widget>
-	<widget rect="300 100 224 152" visible="0" template="dialogfixed" name="neweditor" caption="New Editor Layer" skin="default">
-		<widget class="Label" rect="8 16 48 20" caption="Type" skin="default"/>
-		<widget class="Label" rect="8 40 48 20" caption="Name" skin="default"/>
-		<widget class="Label" rect="8 64 56 20" caption="Size" skin="default"/>
+	<widget anchor="lt" visible="0" rect="300 100 224 152" template="dialogfixed" skin="default" name="neweditor" caption="New Editor Layer">
+		<widget anchor="lt" class="Label" rect="8 16 48 20" caption="Type" skin="default"/>
+		<widget anchor="lt" class="Label" rect="8 40 48 20" caption="Name" skin="default"/>
+		<widget anchor="lt" class="Label" rect="8 64 56 20" caption="Size" skin="default"/>
 		<widget anchor="rt" class="Button" rect="80 96 56 20" name="editorcreate" caption="Create" skin="button"/>
 		<widget anchor="rt" class="Button" rect="144 96 56 20" name="editorcancel" caption="Cancel" skin="button"/>
 		<widget anchor="lrt" template="droplist" name="editormode" skin="panel" rect="64 16 136 20">
@@ -371,20 +390,20 @@ Metalness, Roughness, Glow, Height" class="Textbox" anchor="lrt" hint="Property"
 			<item>32768 (streamed)</item>
 		</widget>
 	</widget>
-	<widget class="Popup" layout="VerticalLayout" rect="200 200 100 140" name="contextmenu" skin="default" visible="0">
-		<widget class="Button" rect="0 0 100 20" name="settile" caption="Assign Tile" skin="button"/>
-		<widget class="Button" rect="0 20 100 20" name="newtile" caption="New Tile" skin="button"/>
-		<widget class="Button" rect="0 40 100 20" name="copytile" caption="Clone Tile" skin="button"/>
-		<widget class="Button" rect="0 60 100 20" name="loadtile" caption="Load Tile" skin="button"/>
-		<widget class="Button" rect="0 80 100 20" name="hidetile" caption="Unload Tile" skin="button"/>
-		<widget class="Button" rect="0 100 100 20" name="nametile" caption="Rename Tile" skin="button"/>
-		<widget class="Button" rect="0 120 100 20" name="locktile" caption="Lock Tile" skin="button"/>
+	<widget anchor="lt" class="Popup" layout="VerticalLayout" visible="0" rect="200 200 100 140" skin="default" name="contextmenu">
+		<widget anchor="lt" class="Button" rect="0 0 100 20" name="settile" caption="Assign Tile" skin="button"/>
+		<widget anchor="lt" class="Button" rect="0 20 100 20" name="newtile" caption="New Tile" skin="button"/>
+		<widget anchor="lt" class="Button" rect="0 40 100 20" name="copytile" caption="Clone Tile" skin="button"/>
+		<widget anchor="lt" class="Button" rect="0 60 100 20" name="loadtile" caption="Load Tile" skin="button"/>
+		<widget anchor="lt" class="Button" rect="0 80 100 20" name="hidetile" caption="Unload Tile" skin="button"/>
+		<widget anchor="lt" class="Button" rect="0 100 100 20" name="nametile" caption="Rename Tile" skin="button"/>
+		<widget anchor="lt" class="Button" rect="0 120 100 20" name="locktile" caption="Lock Tile" skin="button"/>
 	</widget>
-	<widget visible="0" layout="VerticalLayout" rect="400 200 200 300" template="dialogfixed" skin="default" name="assigntile" caption="Assign Tile">
-		<widget template="listbox" name="tilelist" skin="panel" rect="0 0 190 260"/>
+	<widget anchor="lt" visible="0" layout="VerticalLayout" rect="400 200 200 300" template="dialogfixed" skin="default" name="assigntile" caption="Assign Tile">
+		<widget anchor="lt" template="listbox" name="tilelist" skin="panel" rect="0 0 190 260"/>
 	</widget>
-	<widget rect="400 400 250 80" visible="0" template="dialogfixed" name="renametile" caption="Rename Tile" skin="default">
-		<widget class="Textbox" rect="4 4 230 20" name="tilename" skin="default"/>
-		<widget class="Button" rect="80 28 80 20" name="applyname" caption="Apply" skin="button"/>
+	<widget anchor="lt" visible="0" rect="400 400 250 80" template="dialogfixed" skin="default" name="renametile" caption="Rename Tile">
+		<widget anchor="lt" class="Textbox" rect="4 4 230 20" name="tilename" skin="default"/>
+		<widget anchor="lt" class="Button" rect="80 28 80 20" name="applyname" caption="Apply" skin="button"/>
 	</widget>
 </gui>

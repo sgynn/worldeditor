@@ -147,7 +147,7 @@ void TerrainEditor::update(const Mouse& mouse, const Ray& ray, base::Camera*, In
 		float spacing = fmin(m_brush.getRadius(0.8), m_brush.radius * 0.4) * 0.5;
 		int samples = (int) floor(distance / spacing) + 1;
 		vec2 step = (m_last - m_brush.position) / distance * spacing;
-		float resolution = 1; //m_tool->getResolution(); // should be from maps?
+		float resolution = m_target->getResolution(0); //m_tool->getResolution(); // should be from maps?
 		vec3 offsets[9];
 		EditableMap* maps[9];
 		Rect local[9];

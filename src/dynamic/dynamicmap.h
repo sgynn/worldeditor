@@ -14,6 +14,7 @@ class DynamicHeightmap : public HeightmapInterface {
 	~DynamicHeightmap();
 	
 	void setDetail(float) override;
+	void setResolution(float r) override { m_resolution = r; }
 	base::Drawable* createDrawable() override;
 	int trace(const Ray& ray, float& t) const override;
 	float getHeight(const vec3& point) const override;

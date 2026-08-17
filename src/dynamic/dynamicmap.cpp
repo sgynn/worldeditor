@@ -107,7 +107,7 @@ void DynamicHeightmap::setup(int w, int h, float r) {
 	int p = 0;
 	while((1<<p)<w) ++p;
 	m_heightData = new float[w*h];
-	m_land = new Landscape(w&~1);
+	m_land = new Landscape(r * (w&~1));
 	m_land->setLimits(0, p-3);
 }
 
