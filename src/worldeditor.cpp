@@ -600,7 +600,7 @@ void WorldEditor::createNewTerrain(int size) {
 	m_materials = new MaterialEditor(m_gui, m_fileSystem, m_streaming);
 	m_materials->eventChangeMaterial.bind(this, &WorldEditor::setTerrainMaterial);
 	m_materials->eventChangeTextureList.bind(this, &WorldEditor::textureListChanged);
-	m_materials->setTerrainSize( vec2(size,size) );
+	m_materials->setTerrainSize( vec2(size,size) * m_resolution );
 
 	// Additional Editors
 	createEditor<ErosionEditor>();
