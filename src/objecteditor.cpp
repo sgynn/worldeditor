@@ -1,7 +1,7 @@
 #include "objecteditor.h"
 #include "heightmap.h"
 #include "filesystem.h"
-#include "gizmo.h"
+#include <base/editor/gizmo.h>
 #include "boxselect.h"
 #include <base/gui/widgets.h>
 #include <base/gui/lists.h>
@@ -126,6 +126,9 @@ ObjectEditor::ObjectEditor(gui::Root* gui, FileSystem* fs, MapGrid* terrain, Sce
 }
 
 ObjectEditor::~ObjectEditor() {
+	m_node->getParent()->detach(m_gizmo);
+	delete m_gizmo;
+	delete m_box;
 	clear();
 }
 
@@ -814,6 +817,7 @@ void ObjectEditor::update(const Mouse& mouse, const Ray& ray, base::Camera* came
 				m_box->updatePlanes(camera);
 				if(~state.keyMask&SHIFT_MASK) clearSelection();
 				for(SceneNode* node: m_node->children()) {
+					if(node == m_selectGroup) continue;
 					Object* object = static_cast<Object*>(node);
 					if(object->isVisible() && m_box->inside(object->getBounds())) selectObject(object, true);
 				}
@@ -1289,6 +1293,10 @@ void ObjectEditor::selectResource(TreeView*, TreeNode* resource) {
 		Model* model = resource->getData(1).getValue<Model*>(0);
 		const char* file = resource->getText(2);
 		const char* mesh = resource->getText(3);
+		while(!file) {
+			resource = resource->getParent();
+			file = resource->getText(2);
+		}
 		m_placement = createObject(name, file, model, mesh);
 	}
 }
