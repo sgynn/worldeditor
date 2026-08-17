@@ -516,6 +516,7 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	else m_heightRange.set(hmin, hmax);
 
 	createNewTerrain(size);
+
 	
 	// Default material
 	m_materials->addMaterial(0);
@@ -523,6 +524,15 @@ void WorldEditor::createNewTerrain(gui::Button* b) {
 	
 	// Create first tile
 	TerrainMap* tile = createTile( "Terrain" );
+
+	// Import data
+	const char* source = m_gui->getWidget<Textbox>("source")->getText();
+	if(source) {
+		float* raw = new float[size*size];
+		if(loadHeightMapData(size, raw, m_heightRange, source)) tile->heightMap->setData(raw);
+		delete [] raw;
+	}
+
 	assignTile( Point(0,0), tile );
 	refreshMap();
 }
@@ -1106,8 +1116,9 @@ bool saveHeightMapData(int size, float* data, SaveFormat format, const Rangef& r
 	return false;
 }
 
-bool loadHeightMapData(int size, float* data, const Rangef& range, const char* file) {
+bool WorldEditor::loadHeightMapData(int size, float* data, const Rangef& range, const char* file) {
 	const char* ext = strrchr(file, '.');
+	if(!ext) return false;
 	if(strcmp(ext, ".tif")==0 || strcmp(ext, ".tiff")==0) {
 		// Load tiff file
 		TiffStream* tiff = TiffStream::openStream(file);
@@ -1124,6 +1135,33 @@ bool loadHeightMapData(int size, float* data, const Rangef& range, const char* f
 		}
 		else printf("Invalid tiff heightmap: %s: Must be uncompressed 16bit greyscale", file);
 		delete tiff;
+	}
+	else if(strcmp(ext, ".png") == 0) {
+		base::Image image = PNG::load(file);
+		if(!image) return false;
+		int w = std::min(size, image.getWidth());
+		int h = std::min(size, image.getHeight());
+		if(w<size || h<size) memset(data, 0, size*size*sizeof(float));
+		int stride = image.getBytesPerPixel();
+		int pitch = stride * image.getWidth();
+		const base::Image::byte* source = image.getData();
+		float scale = range.size();
+		for(int y=0; y<h; ++y) {
+			for(int x=0; x<w; ++x) {
+				float& out = data[x + y*size];
+				const base::Image::byte* pixel = source + x*stride + y*pitch;
+				switch(image.getFormat()) {
+				case base::Image::R8:
+				case base::Image::RG8:
+				case base::Image::RGB8:
+				case base::Image::RGBA8: out = range.min + *pixel * scale / 0xff; break;
+				case base::Image::R16: out = range.min + *(uint16*)pixel * scale / 0xffff; break;
+				case base::Image::R32F: out = range.min + *(float*)pixel; break;
+				default: return false;
+				}
+			}
+		}
+		return true;
 	}
 	else if(strcmp(ext, ".raw")==0) {
 		FILE* fp = fopen(file, "rb");

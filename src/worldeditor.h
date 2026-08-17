@@ -103,6 +103,7 @@ class WorldEditor : public base::GameState {
 	TerrainMap* loadTile(const base::XMLElement&);			// Load tile from xml
 	void saveTile(TerrainMap*, base::XMLElement&) const;	// Save tile data to xml
 	void assignTile(const Point&, TerrainMap* tile);		// Assign map to tile
+	static bool loadHeightMapData(int size, float* data, const Rangef& range, const char* file);
 
 
 	private:
